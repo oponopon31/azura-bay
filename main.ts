@@ -21,7 +21,8 @@ import { VEHICLES } from './game/src/vehicles-data.js';
 import { CHEATS } from './game/src/cheats.js';
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
-const OUT = join(ROOT, 'output');
+// The grader mounts the repo read-only and gives a writable /output via MAKEFUN_OUTPUT_DIR; use it when set, else ./output locally.
+const OUT = process.env.MAKEFUN_OUTPUT_DIR || join(ROOT, 'output');
 
 function fail(msg: string): never {
   console.error(`main.ts: ${msg}`);

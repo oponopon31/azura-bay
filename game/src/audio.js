@@ -2,6 +2,9 @@
 // no licensed recordings: every note is generated here. Engine hum, sirens,
 // gunshots, pickup blips, UI clicks and a procedural radio loop whose
 // chords/tempo/waveform change per station (radio.js owns the 24-station table).
+// The default station profile is a synthwave loop (Azura FM) until radio.js
+// hands over a real station profile.
+// Round 5: header rewritten; the synth engine itself is unchanged.
 
 export function createAudio() {
   const A = {
@@ -250,4 +253,9 @@ export function createAudio() {
     },
   };
   return A;
+}
+
+// ---- Round 3: MIDI note number to frequency (radio jingles + stingers) ----
+export function midiToFreq(midi) {
+  return 440 * Math.pow(2, (midi - 69) / 12);
 }

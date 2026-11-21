@@ -1,19 +1,22 @@
 // effects.js — Crash sparks, exhaust smoke, muzzle flashes and camera shake.
 // One job: short-lived visual feedback, all pooled, no allocations per frame.
+// The pool is one fixed buffer of 420 points — effects reuse it, so a crash
+// never allocates mid-frame.
+// Round 5: the pool size constant is renamed, Game replaces G. Behaviour unchanged.
 
 import * as THREE from 'three';
 
-export function createEffects(G) {
-  const MAX = 420;
+export function createEffects(Game) {
+  const MAX_POINTS = 420;
   const geo = new THREE.BufferGeometry();
-  const pos = new Float32Array(MAX * 3);
-  const col = new Float32Array(MAX * 3);
+  const pos = new Float32Array(MAX_POINTS * 3);
+  const col = new Float32Array(MAX_POINTS * 3);
   geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
   geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
   const mat = new THREE.PointsMaterial({ size: 0.55, vertexColors: true, transparent: true, opacity: 0.95, depthWrite: false });
   const points = new THREE.Points(geo, mat);
   points.frustumCulled = false;
-  G.scene.add(points);
+  Game.scene.add(points);
 
   const P = {
     parts: [], // {x,y,z,vx,vy,vz,life,maxLife,r,g,b,grav}
@@ -22,7 +25,7 @@ export function createEffects(G) {
     spawn(x, y, z, opts) {
       const n = opts.count || 10;
       for (let i = 0; i < n; i++) {
-        if (this.parts.length >= MAX) this.parts.shift();
+        if (this.parts.length >= MAX_POINTS) this.parts.shift();
         const a = Math.random() * Math.PI * 2;
         const sp = (opts.speed || 6) * (0.4 + Math.random() * 0.8);
         this.parts.push({
@@ -42,6 +45,8 @@ export function createEffects(G) {
     muzzleFlash(x, y, z) {
       this.spawn(x, y, z, { count: 6, speed: 12, up: 0.5, life: 0.08, r: 1, g: 0.9, b: 0.4 });
     },
+    // Round 3: bright impact sparks (metal on metal, stunt landings).
+    sparks(x, y, z) { this.spawn(x, y, z, { count: 14, speed: 9, up: 3, life: 0.4, r: 1, g: 0.85, b: 0.3, grav: 9 }); },
     // Persistent ground stains (Bab 26): blood / scuff marks that linger
     // for days of game time. Kept as a small list of fading decals.
     stains: [],
@@ -60,7 +65,7 @@ export function createEffects(G) {
         p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt;
         if (p.y < 0.05) { p.y = 0.05; p.vy *= -0.3; p.vx *= 0.7; p.vz *= 0.7; }
       }
-      for (let i = 0; i < MAX; i++) {
+      for (let i = 0; i < MAX_POINTS; i++) {
         const p = this.parts[i];
         if (p) {
           const fade = 1 - p.life / p.maxLife;

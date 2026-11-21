@@ -2,27 +2,30 @@
 // Lucia & Jason. One job: play the STORY entries through ten archetypes
 // (drive, steal, delivery, fetch, tail, escape, heist, combat, chase, timed)
 // with markers, payouts, the Chapter 2 ankle monitor, and the finale.
-// NEW in round 2: setMarker() (a manual marker for other systems — cheats,
-// stunts, strangers — to point the player at a target), and the full
-// five-profile criminalProfile() including Irredeemable and the breaking
-// point warning (Bab 11).
+// setMarker() is the shared pointer — cheats, stunts and strangers all aim
+// the player through this one mission-system marker — and criminalProfile()
+// covers all five profiles including Irredeemable plus the breaking-point
+// warning (Bab 11).
+// Round 5: the marker meshes and state object are renamed (markerMat /
+// markerBeam / markerGem / MS) and the helpers are reordered. The
+// Game parameter replaces the old single-letter G. Behaviour unchanged.
 
-import * as THREE from 'three';
-import { STORY, CHAPTERS, ZONES, MONITOR_ZONE, MONITOR_GRACE_SECS } from './story.js';
-import { PLACES, nearestRoad } from './config.js';
 import { makeCar } from './vehicles.js';
+import { PLACES, nearestRoad } from './config.js';
+import { STORY, CHAPTERS, ZONES, MONITOR_ZONE, MONITOR_GRACE_SECS } from './story.js';
+import * as THREE from 'three';
 
-export function createMissions(G) {
-  // 3D beacon: a glowing column + a bobbing diamond over the current target.
-  const beaconMat = new THREE.MeshBasicMaterial({ color: 0xffd23f, transparent: true, opacity: 0.28, depthWrite: false });
-  const beacon = new THREE.Mesh(new THREE.CylinderGeometry(2.2, 2.2, 30, 16, 1, true), beaconMat);
-  beacon.position.y = 15;
-  beacon.visible = false;
-  G.scene.add(beacon);
-  const diamond = new THREE.Mesh(new THREE.OctahedronGeometry(1.1),
+export function createMissions(Game) {
+  // 3D markerBeam: a glowing column + a bobbing markerGem over the current target.
+  const markerMat = new THREE.MeshBasicMaterial({ color: 0xffd23f, transparent: true, opacity: 0.28, depthWrite: false });
+  const markerBeam = new THREE.Mesh(new THREE.CylinderGeometry(2.2, 2.2, 30, 16, 1, true), markerMat);
+  markerBeam.position.y = 15;
+  markerBeam.visible = false;
+  Game.scene.add(markerBeam);
+  const markerGem = new THREE.Mesh(new THREE.OctahedronGeometry(1.1),
     new THREE.MeshBasicMaterial({ color: 0xffd23f }));
-  diamond.visible = false;
-  G.scene.add(diamond);
+  markerGem.visible = false;
+  Game.scene.add(markerGem);
 
   const M = {
     index: 0,               // current mission (0..90); 91 = story complete
@@ -69,7 +72,7 @@ export function createMissions(G) {
     },
 
     // ---- Manual marker: other systems (stunts, strangers, collectibles,
-    // cheats) point the player at a target with a named beacon. ----
+    // cheats) point the player at a target with a named markerBeam. ----
     setMarker(x, z, label) {
       this.marker = { x, z, label: label || 'Target' };
       return this.marker;
@@ -94,32 +97,32 @@ export function createMissions(G) {
       this.drops = [];
       this.reachedThreeStars = false;
       this.hasPackage = false;
-      this.startCopsDown = G.stats.copsDown;
+      this.startCopsDown = Game.stats.copsDown;
       this.stealDelivered = 0;
       this.chaseRams = 0;
       this.monitorOutsideSecs = 0;
       this.monitorWarned = false;
       this.cleanupTargets();
       // The mission's playable protagonist takes the wheel.
-      G.setCharacter(m.who);
+      Game.setCharacter(m.who);
       // Chapter 2 starts at home in Port Gellhorn — Lucia lives there, and
       // the ankle monitor only gives 30 s outside the zone, so a mission
       // must never begin with the player stranded across town.
       if (m.ch === 2) {
-        if (G.player.car) G.driving.exitCar();
-        G.player.pos.set(320, 0, -80);
-        G.player.heading = Math.PI;
-        G.player.camYaw = 0;
+        if (Game.player.car) Game.driving.exitCar();
+        Game.player.pos.set(320, 0, -80);
+        Game.player.heading = Math.PI;
+        Game.player.camYaw = 0;
       }
-      G.hud.showDialog(m.contact.toUpperCase(), m.beat, 9000);
-      G.hud.toast(`Mission ${m.id}: ${m.title} — $${m.reward.toLocaleString()}`);
-      G.audio.pickup();
+      Game.hud.showDialog(m.contact.toUpperCase(), m.beat, 9000);
+      Game.hud.toast(`Mission ${m.id}: ${m.title} — $${m.reward.toLocaleString()}`);
+      Game.audio.pickup();
       if (m.type === 'delivery') this.drops = this.makeDrops(m);
       if (m.type === 'tail') this.spawnTargetCar(m);
       if (m.type === 'chase') this.spawnChaseTarget(m);
       if (m.type === 'combat') {
         // The fight comes to the player: heat spawns the officers.
-        G.police.addHeat(30, 'started a fight');
+        Game.police.addHeat(30, 'started a fight');
       }
       this.placeMarkerForStage();
     },
@@ -184,22 +187,22 @@ export function createMissions(G) {
       }));
       let bestIdx = 0, bestD = 1e9;
       loop.forEach((wp, i) => {
-        const d = Math.hypot(wp.x - G.player.pos.x, wp.z - G.player.pos.z);
+        const d = Math.hypot(wp.x - Game.player.pos.x, wp.z - Game.player.pos.z);
         if (d < bestD) { bestD = d; bestIdx = i; }
       });
       const start = loop[bestIdx];
-      const car = makeCar(G, 'coupe', start.x, start.z, Math.PI / 2, 'target');
+      const car = makeCar(Game, 'coupe', start.x, start.z, Math.PI / 2, 'target');
       car.colorHex = 0xff7a1a;
       car.mesh.children[0].material = new THREE.MeshLambertMaterial({ color: 0xff7a1a });
       car.route = { loop, loopIdx: bestIdx, targetSpeed: 11 };
       car.speed = 11;
       this.targetCar = car;
-      G.hud.showDialog(m.contact.toUpperCase(), 'That\'s him — orange coupe. Don\'t let him see you.', 6000);
+      Game.hud.showDialog(m.contact.toUpperCase(), 'That\'s him — orange coupe. Don\'t let him see you.', 6000);
     },
 
     // The chase target: a car that flees from the player until rammed to a stop.
     spawnChaseTarget(m) {
-      const car = makeCar(G, 'sedan', m.x, m.z, 0, 'flee');
+      const car = makeCar(Game, 'sedan', m.x, m.z, 0, 'flee');
       car.colorHex = 0xcc2222;
       car.mesh.children[0].material = new THREE.MeshLambertMaterial({ color: 0xcc2222 });
       car.health = 1.0;
@@ -214,28 +217,28 @@ export function createMissions(G) {
     },
 
     near(x, z, r) {
-      return Math.hypot(G.player.pos.x - x, G.player.pos.z - z) < r;
+      return Math.hypot(Game.player.pos.x - x, Game.player.pos.z - z) < r;
     },
 
     update(dt) {
-      // Beacon + diamond hover over the current marker.
+      // Beacon + markerGem hover over the current marker.
       this.bobPhase += dt;
       if (this.marker && this.active) {
-        beacon.visible = true;
-        diamond.visible = true;
-        beacon.position.set(this.marker.x, 15, this.marker.z);
-        diamond.position.set(this.marker.x, 6 + Math.sin(this.bobPhase * 2.5) * 0.6, this.marker.z);
-        diamond.rotation.y += dt * 1.5;
+        markerBeam.visible = true;
+        markerGem.visible = true;
+        markerBeam.position.set(this.marker.x, 15, this.marker.z);
+        markerGem.position.set(this.marker.x, 6 + Math.sin(this.bobPhase * 2.5) * 0.6, this.marker.z);
+        markerGem.rotation.y += dt * 1.5;
       } else {
-        beacon.visible = false;
-        diamond.visible = false;
+        markerBeam.visible = false;
+        markerGem.visible = false;
       }
       if (!this.active || this.storyComplete) return;
       const m = this.current;
 
       // ---- Ankle monitor (Chapter 2, missions 23–32; mission 33 lifts it) ----
       if (m.ch === 2 && m.id !== 33) this.updateMonitor(dt);
-      else G.hud.setMonitor(null);
+      else Game.hud.setMonitor(null);
 
       // ---- Timers (timed + delivery missions) ----
       if ((m.type === 'timed' || m.type === 'delivery') && this.timer > 0) {
@@ -251,19 +254,19 @@ export function createMissions(G) {
         }
         case 'steal': {
           // Stage 0: get in a car (any stolen street car). Stage 1: deliver it.
-          if (this.stage === 0 && !G.player.onFoot) {
+          if (this.stage === 0 && !Game.player.onFoot) {
             this.stage = 1;
-            G.hud.toast('Now deliver it to the garage on Marina Row.');
+            Game.hud.toast('Now deliver it to the garage on Marina Row.');
           }
-          if (this.stage === 1 && G.player.inCar && this.near(m.x, m.z, 9) && G.player.speed < 3) {
+          if (this.stage === 1 && Game.player.inCar && this.near(m.x, m.z, 9) && Game.player.speed < 3) {
             this.stealDelivered++;
             const need = m.count || 1;
             if (this.stealDelivered >= need) this.complete();
             else {
               // More cars to steal: drop this one, go find another.
-              G.driving.exitCar();
+              Game.driving.exitCar();
               this.stage = 0;
-              G.hud.toast(`Car ${this.stealDelivered} of ${need} delivered — steal another.`);
+              Game.hud.toast(`Car ${this.stealDelivered} of ${need} delivered — steal another.`);
             }
           }
           break;
@@ -272,19 +275,19 @@ export function createMissions(G) {
           const d = this.drops[this.dropIndex];
           if (d && this.near(d.x, d.z, 8)) {
             this.dropIndex++;
-            G.audio.cash();
+            Game.audio.cash();
             if (this.dropIndex >= this.drops.length) this.complete();
-            else { this.placeMarkerForStage(); G.hud.toast(`Drop ${this.dropIndex} done — ${this.drops.length - this.dropIndex} to go.`); }
+            else { this.placeMarkerForStage(); Game.hud.toast(`Drop ${this.dropIndex} done — ${this.drops.length - this.dropIndex} to go.`); }
           }
           break;
         }
         case 'fetch': {
           if (this.stage === 0) {
-            if (G.player.onFoot && this.near(m.x, m.z, 6)) {
+            if (Game.player.onFoot && this.near(m.x, m.z, 6)) {
               this.hasPackage = true;
               this.stage = 1;
-              G.audio.pickup();
-              G.hud.toast('Package picked up — bring it home.');
+              Game.audio.pickup();
+              Game.hud.toast('Package picked up — bring it home.');
               this.placeMarkerForStage();
             }
           } else {
@@ -302,12 +305,12 @@ export function createMissions(G) {
           } else {
             t.route.targetSpeed = 11;
           }
-          const d = Math.hypot(G.player.pos.x - t.pos.x, G.player.pos.z - t.pos.z);
+          const d = Math.hypot(Game.player.pos.x - t.pos.x, Game.player.pos.z - t.pos.z);
           if (d < 12 && this.spottedTimer <= 0) {
             this.spottedTimer = 10;
             this.tailTime = 0;
-            G.hud.toast('SPOTTED! He made you — back off!');
-            G.audio.blip(140, 0.5, 'sawtooth', 0.2);
+            Game.hud.toast('SPOTTED! He made you — back off!');
+            Game.audio.blip(140, 0.5, 'sawtooth', 0.2);
           }
           if (d > 90) {
             this.lostTimer += dt;
@@ -321,23 +324,23 @@ export function createMissions(G) {
           break;
         }
         case 'escape': {
-          if (!this.reachedThreeStars && G.police.stars >= 3) {
+          if (!this.reachedThreeStars && Game.police.stars >= 3) {
             this.reachedThreeStars = true;
             this.stage = 1;
-            G.hud.toast('Three stars! Now lose them all.');
-            G.hud.showDialog(m.contact.toUpperCase(), 'Beautiful chaos. Now vanish — ditch the car, the helicopter can\'t track you on foot. Break line of sight and stay hidden.', 6000);
+            Game.hud.toast('Three stars! Now lose them all.');
+            Game.hud.showDialog(m.contact.toUpperCase(), 'Beautiful chaos. Now vanish — ditch the car, the helicopter can\'t track you on foot. Break line of sight and stay hidden.', 6000);
           }
-          if (this.reachedThreeStars && G.police.stars === 0 && G.police.heat === 0) this.complete();
+          if (this.reachedThreeStars && Game.police.stars === 0 && Game.police.heat === 0) this.complete();
           break;
         }
         case 'heist': {
           if (this.stage === 0) {
-            if (G.player.onFoot && this.near(m.x, m.z, 5)) {
+            if (Game.player.onFoot && this.near(m.x, m.z, 5)) {
               this.hasPackage = true;
               this.stage = 1;
-              G.audio.pickup();
-              G.police.addHeat(38, 'grabbed the package');
-              G.hud.toast('Package secured! Get back to safety — the bay is hunting you.');
+              Game.audio.pickup();
+              Game.police.addHeat(38, 'grabbed the package');
+              Game.hud.toast('Package secured! Get back to safety — the bay is hunting you.');
               this.placeMarkerForStage();
             }
           } else {
@@ -347,7 +350,7 @@ export function createMissions(G) {
           break;
         }
         case 'combat': {
-          const down = G.stats.copsDown - this.startCopsDown;
+          const down = Game.stats.copsDown - this.startCopsDown;
           const need = m.count || 4;
           if (down >= need) this.complete();
           break;
@@ -356,7 +359,7 @@ export function createMissions(G) {
           const t = this.chaseTarget;
           if (!t) break;
           // The target flees directly away from the player.
-          const dx = t.pos.x - G.player.pos.x, dz = t.pos.z - G.player.pos.z;
+          const dx = t.pos.x - Game.player.pos.x, dz = t.pos.z - Game.player.pos.z;
           const d = Math.hypot(dx, dz) || 1;
           const want = Math.atan2(dx / d, dz / d);
           let dh = want - t.heading;
@@ -369,12 +372,12 @@ export function createMissions(G) {
           t.mesh.position.copy(t.pos);
           t.mesh.rotation.y = t.heading;
           // A hard ram (player car, fast, close) damages the target.
-          if (G.player.inCar && G.player.speed > 5 && d < 4.5) {
+          if (Game.player.inCar && Game.player.speed > 5 && d < 4.5) {
             this.chaseRams++;
             t.health -= 0.25;
-            G.effects.sparks(t.pos.x, 1, t.pos.z, 8);
-            G.effects.addShake(0.3);
-            G.audio.crash(0.6);
+            Game.effects.sparks(t.pos.x, 1, t.pos.z, 8);
+            Game.effects.addShake(0.3);
+            Game.audio.crash(0.6);
             // Push the target a little so the next ram needs a fresh approach.
             t.pos.x += Math.sin(t.heading) * 2;
             t.pos.z += Math.cos(t.heading) * 2;
@@ -388,25 +391,25 @@ export function createMissions(G) {
 
     // ---- Ankle monitor: outside Port Gellhorn the countdown runs. ----
     updateMonitor(dt) {
-      const p = G.player.pos;
+      const p = Game.player.pos;
       const inside = p.x >= MONITOR_ZONE.x0 && p.x <= MONITOR_ZONE.x1 &&
         p.z >= MONITOR_ZONE.z0 && p.z <= MONITOR_ZONE.z1;
       if (inside) {
         this.monitorOutsideSecs = 0;
         this.monitorWarned = false;
-        G.hud.setMonitor({ inside: true });
+        Game.hud.setMonitor({ inside: true });
         return;
       }
       this.monitorOutsideSecs += dt;
       const left = Math.max(0, MONITOR_GRACE_SECS - this.monitorOutsideSecs);
-      G.hud.setMonitor({ inside: false, secondsLeft: Math.ceil(left) });
+      Game.hud.setMonitor({ inside: false, secondsLeft: Math.ceil(left) });
       if (!this.monitorWarned) {
         this.monitorWarned = true;
-        G.hud.toast('ANKLE MONITOR: you left Port Gellhorn — get back inside the zone!');
-        G.audio.blip(220, 0.4, 'sawtooth', 0.2);
+        Game.hud.toast('ANKLE MONITOR: you left Port Gellhorn — get back inside the zone!');
+        Game.audio.blip(220, 0.4, 'sawtooth', 0.2);
       }
       // Wanted rises while the monitor is violated.
-      G.police.addHeat(6 * dt, 'ankle monitor violation');
+      Game.police.addHeat(6 * dt, 'ankle monitor violation');
       if (this.monitorOutsideSecs >= MONITOR_GRACE_SECS) {
         this.fail('The ankle monitor reported you — the job is blown.');
       }
@@ -415,46 +418,50 @@ export function createMissions(G) {
     complete() {
       const m = this.current;
       this.completed[this.index] = true;
-      G.money += m.reward;
-      G.stats.missionsDone++;
+      Game.money += m.reward;
+      // FIX (round 3): mission rewards now sweep the wallet cap too, like
+      // fence sales do — overflow goes to BuckMe savings, so a player who
+      // banks money as intended can actually reach the good1 threshold.
+      if (Game.economy) Game.economy.enforceWalletCap();
+      Game.stats.missionsDone++;
       // The duo's bond grows when they work together across missions.
-      if (G.stats.lastMissionWho && G.stats.lastMissionWho !== m.who) {
-        G.stats.relationship = Math.min(100, (G.stats.relationship || 40) + 2);
+      if (Game.stats.lastMissionWho && Game.stats.lastMissionWho !== m.who) {
+        Game.stats.relationship = Math.min(100, (Game.stats.relationship || 40) + 2);
       }
-      G.stats.lastMissionWho = m.who;
-      G.audio.cash();
-      G.hud.cashPopup(`+$${m.reward.toLocaleString()}`);
-      G.hud.showDialog(m.contact.toUpperCase(), `Clean work. $${m.reward.toLocaleString()} is in your pocket.`, 6000);
+      Game.stats.lastMissionWho = m.who;
+      Game.audio.cash();
+      Game.hud.cashPopup(`+$${m.reward.toLocaleString()}`);
+      Game.hud.showDialog(m.contact.toUpperCase(), `Clean work. $${m.reward.toLocaleString()} is in your pocket.`, 6000);
       // Wanted cools off between jobs.
-      G.police.heat = 0;
-      G.police.stars = 0;
-      if (G.player.car) G.player.car.health = 1;
+      Game.police.heat = 0;
+      Game.police.stars = 0;
+      if (Game.player.car) Game.player.car.health = 1;
       this.cleanupTargets();
       this.active = false;
       this.marker = null;
-      G.hud.setMonitor(null);
+      Game.hud.setMonitor(null);
       const wasFinale = this.index === STORY.length - 1;
       this.index++;
-      G.saveGame();
+      Game.saveGame();
       if (wasFinale) {
         this.showEnding();
         return;
       }
-      G.hud.toast(`Mission complete — ${STORY[this.index].title} is next.`);
+      Game.hud.toast(`Mission complete — ${STORY[this.index].title} is next.`);
       const token = this._autoToken;
-      setTimeout(() => { if (G.mode === 'playing' && this._autoToken === token && !this.active) this.start(); }, 2500);
+      setTimeout(() => { if (Game.mode === 'playing' && this._autoToken === token && !this.active) this.start(); }, 2500);
     },
 
     fail(reason) {
       const m = this.current;
       this.active = false;
       this.marker = null;
-      G.hud.setMonitor(null);
+      Game.hud.setMonitor(null);
       this.cleanupTargets();
-      G.hud.showDialog(m ? m.contact.toUpperCase() : 'CREW', `That went sideways — ${reason} Shake it off, we run it again.`, 6000);
-      G.hud.toast(`Mission failed: ${reason}`);
+      Game.hud.showDialog(m ? m.contact.toUpperCase() : 'CREW', `That went sideways — ${reason} Shake it off, we run it again.`, 6000);
+      Game.hud.toast(`Mission failed: ${reason}`);
       const token = this._autoToken;
-      setTimeout(() => { if (G.mode === 'playing' && this._autoToken === token && !this.active) this.start(); }, 2500);
+      setTimeout(() => { if (Game.mode === 'playing' && this._autoToken === token && !this.active) this.start(); }, 2500);
     },
 
     // ---- Criminal Profile (Bab 11): five profiles, from how you play ----
@@ -467,10 +474,10 @@ export function createMissions(G) {
     // body count is near the Irredeemable line, the game warns the player
     // that one more spree seals the profile for good.
     criminalProfile() {
-      const kills = G.stats.copsDown || 0;
-      const stuns = G.stats.stuns || 0;
-      const civ = G.stats.civiliansHurt || 0;
-      if (G.stats.psycho) return 'Psycho';
+      const kills = Game.stats.copsDown || 0;
+      const stuns = Game.stats.stuns || 0;
+      const civ = Game.stats.civiliansHurt || 0;
+      if (Game.stats.psycho) return 'Psycho';
       if (kills >= 50 || civ >= 30) return 'Irredeemable';
       if (kills >= 25 || civ >= 15) return 'Psycho';
       if (kills >= 8 || civ >= 5) return 'Violent & Dangerous';
@@ -479,28 +486,33 @@ export function createMissions(G) {
     },
     // True when the player is one spree away from Irredeemable.
     breakingPoint() {
-      const kills = G.stats.copsDown || 0;
-      const civ = G.stats.civiliansHurt || 0;
+      const kills = Game.stats.copsDown || 0;
+      const civ = Game.stats.civiliansHurt || 0;
       if (this.criminalProfile() === 'Irredeemable') return false;
       return kills >= 40 || civ >= 24;
     },
     warnBreakingPoint() {
       if (this.breakingPoint() && !this._bpWarned) {
         this._bpWarned = true;
-        G.hud.showDialog('STREET', 'You\'re at the breaking point. One more spree and there is no coming back — the city will never see you as anything but a monster.', 8000);
+        Game.hud.showDialog('STREET', 'You\'re at the breaking point. One more spree and there is no coming back — the city will never see you as anything but a monster.', 8000);
       }
       if (!this.breakingPoint()) this._bpWarned = false;
     },
 
     // ---- The ending: organic, from four factors across the whole game ----
-    // BuckMe savings (G.money), the Jason–Lucia relationship, the criminal
-    // profile (lethal vs non-lethal play), and mission choices (tracked in
-    // G.stats.choices by key missions; neutral until those moments exist).
+    // BuckMe savings (Game.economy.clean — the banked family money, NOT the
+    // wallet), the Jason–Lucia relationship, the criminal profile (lethal vs
+    // non-lethal play), and mission choices (tracked in Game.stats.choices by
+    // key missions; neutral until those moments exist).
     computeEnding() {
-      const savings = G.money;
-      const rel = G.stats.relationship || 40;
+      // FIX (round 3): good1 used to read Game.money, but the wallet is
+      // capped at WALLET_MAX = $20,000 with the overflow swept to BuckMe —
+      // so a $40,000 cash check could never pass. The spec says endings are
+      // determined by BuckMe SAVINGS, so that is what the check reads now.
+      const savings = Game.economy ? Game.economy.clean : 0;
+      const rel = Game.stats.relationship || 40;
       const profile = this.criminalProfile();
-      const choices = G.stats.choices || {};
+      const choices = Game.stats.choices || {};
       // An Irredeemable run ends the Bonnie & Clyde way, whatever the money says.
       if (profile === 'Irredeemable' || profile === 'Psycho') return { key: 'bad2', name: 'No Surrender', desc: 'No surrender. The last stand on the bridge, guns out, together to the end.' };
       if (savings >= 40000 && rel >= 60) return { key: 'good1', name: 'Top of the World', desc: 'Both of them alive, both of them free — the money, the plan, and the road out of Leonida.' };
@@ -512,13 +524,13 @@ export function createMissions(G) {
     showEnding() {
       const e = this.computeEnding();
       this.endingShown = true;
-      G.hud.showEndCard(`THE END — ${e.name}`, `${e.desc} — Story complete: 91 missions. The game rewinds to before the final mission; free roam is yours, or run it again for another ending.`);
-      G.hud.toast('Story complete — 91 missions. Free roam unlocked.');
+      Game.hud.showEndCard(`THE END — ${e.name}`, `${e.desc} — Story complete: 91 missions. The game rewinds to before the final mission; free roam is yours, or run it again for another ending.`);
+      Game.hud.toast('Story complete — 91 missions. Free roam unlocked.');
       // Post-game rewind: back to before the final mission, so another
       // ending can be chased without losing the story.
       this.index = STORY.length - 1;
       this.completed[this.index] = false;
-      G.saveGame();
+      Game.saveGame();
     },
 
     // HUD objective line for the current mission.
@@ -538,10 +550,17 @@ export function createMissions(G) {
         case 'tail': return `Tail the orange coupe: ${Math.floor(this.tailTime)}/45s — stay 15–60m, never under 12m`;
         case 'escape': return this.reachedThreeStars ? 'Lose the cops — break line of sight and hide' : 'Reach 3 wanted stars (steal, crash, shoot)';
         case 'heist': return this.stage === 0 ? 'Go to the marker and grab the package (on foot)' : 'Escape to the safehouse with the package';
-        case 'combat': return `${m.title}: officers down ${G.stats.copsDown - this.startCopsDown}/${m.count || 4}`;
+        case 'combat': return `${m.title}: officers down ${Game.stats.copsDown - this.startCopsDown}/${m.count || 4}`;
         case 'chase': return 'Ram the fleeing car until it stops';
         default: return m.objective;
       }
+    },
+    // Round 3: story progress counts (HUD + debug snapshot).
+    completedCount() {
+      return (this.completed || []).filter(Boolean).length;
+    },
+    remainingCount() {
+      return 91 - this.completedCount();
     },
   };
   return M;

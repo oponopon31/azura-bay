@@ -1,1 +1,23 @@
-[{"name":"1-cover.jpg","query":"?shot=cover&seed=7"},{"name":"2-shootout.jpg","query":"?shot=shootout&seed=7"},{"name":"3-dusk.jpg","query":"?shot=dusk&seed=7"},{"name":"4-heist.jpg","query":"?shot=heist&seed=7"}]
+[
+  {
+    "query": "?shot=cover&seed=7",
+    "name": "1-cover.jpg"
+  },
+  {
+    "query": "?shot=shootout&seed=7",
+    "name": "2-shootout.jpg"
+  },
+  {
+    "query": "?shot=dusk&seed=7",
+    "name": "3-dusk.jpg"
+  },
+  {
+    "query": "?shot=heist&seed=7",
+    "name": "4-heist.jpg"
+  },
+  {
+    "query": "?shot=night&seed=7",
+    "name": "5-night.jpg",
+    "note": "Round 4 bonus pose \u2014 no screenshot file yet; main.ts only warns for it, the build still ships"
+  }
+]

@@ -1,2 +1,8 @@
+# Local build outputs from `node main.ts` — written by the build, never committed.
+out/
 out1/
 out2/
+node_modules/
+coverage/
+*.log
+.DS_Store

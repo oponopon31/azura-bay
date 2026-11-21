@@ -9,47 +9,76 @@
 // Cheats are also entered here: D-Pad Up opens the phone, hold L1+R1 /
 // LB+RB, then a D-Pad combo — here: type the combo as arrow keys while
 // the phone is open.
+// Round 5: table rows re-expressed one field per line. Values unchanged.
 
 export const PHONE_APPS = [
   'BuckMe', 'WhatUp!', 'Lifeinvader', 'Eyefind', 'Music',
   'Camera', 'RydeMe', 'Wink App', 'Scooter Bros', 'Snapmatic',
 ];
 
-export function createPhone(G) {
+export function createPhone(Game) {
   const P = {
     apps: PHONE_APPS,
     currentApp: 'BuckMe',
     scooters: [], // up to 10 registered scooters / light bikes
     messages: [
-      { from: 'Lucia', text: 'We good? The Keys job paid out. Meet at Brian\'s.', time: '09:12' },
-      { from: 'Jason', text: 'On my way. Bring the car, not the attitude.', time: '09:14' },
-      { from: 'Cal', text: 'THE COAST GUARD IS LISTENING. Also I need beer.', time: '10:02' },
-      { from: 'Boobie', text: 'Jack of Hearts tonight. Don\'t be late, don\'t be broke.', time: '11:30' },
+      {
+        from: 'Lucia',
+        text: 'We good? The Keys job paid out. Meet at Brian\'s.',
+        time: '09:12',
+      },
+      {
+        from: 'Jason',
+        text: 'On my way. Bring the car, not the attitude.',
+        time: '09:14',
+      },
+      {
+        from: 'Cal',
+        text: 'THE COAST GUARD IS LISTENING. Also I need beer.',
+        time: '10:02',
+      },
+      {
+        from: 'Boobie',
+        text: 'Jack of Hearts tonight. Don\'t be late, don\'t be broke.',
+        time: '11:30',
+      },
     ],
     feed: [
-      { user: '@vicecitydrifter', text: 'Somebody just jumped the drawbridge in a stolen Banshee??', likes: 412 },
-      { user: '@leonidawild', text: 'Skunk Ape sighting in Grassrivers. AGAIN. I have photos.', likes: 1203 },
-      { user: '@onlyrawrecords', text: 'Real Dimez in the studio tonight. New heat dropping.', likes: 8900 },
+      {
+        user: '@vicecitydrifter',
+        text: 'Somebody just jumped the drawbridge in a stolen Banshee??',
+        likes: 412,
+      },
+      {
+        user: '@leonidawild',
+        text: 'Skunk Ape sighting in Grassrivers. AGAIN. I have photos.',
+        likes: 1203,
+      },
+      {
+        user: '@onlyrawrecords',
+        text: 'Real Dimez in the studio tonight. New heat dropping.',
+        likes: 8900,
+      },
     ],
     // ---- App renderers (each returns HTML for the phone panel) ----
     render(el) {
       const app = this.currentApp;
       let body = '';
       if (app === 'BuckMe') {
-        const e = G.economy;
-        body = `<b>BuckMe — Joint Savings</b><br>Savings: $${Math.floor(e ? e.clean : 0).toLocaleString()}<br>Cash: $${Math.floor(G.money).toLocaleString()}<br>Marked bills: $${e ? Math.floor(e.marked).toLocaleString() : 0}<br><span style="color:#9fb8c8">Savings + your bond with Lucia shape the ending.</span><br><br><button data-act="deposit" style="margin:2px;padding:6px 10px">Deposit $1,000</button> <button data-act="withdraw" style="margin:2px;padding:6px 10px">Withdraw $1,000</button>`;
+        const e = Game.economy;
+        body = `<b>BuckMe — Joint Savings</b><br>Savings: $${Math.floor(e ? e.clean : 0).toLocaleString()}<br>Cash: $${Math.floor(Game.money).toLocaleString()}<br>Marked bills: $${e ? Math.floor(e.marked).toLocaleString() : 0}<br><span style="color:#9fb8c8">Savings + your bond with Lucia shape the ending.</span><br><br><button data-act="deposit" style="margin:2px;padding:6px 10px">Deposit $1,000</button> <button data-act="withdraw" style="margin:2px;padding:6px 10px">Withdraw $1,000</button>`;
       } else if (app === 'WhatUp!') {
         body = `<b>WhatUp!</b><br>` + this.messages.map((m) => `<div style="margin:6px 0"><b>${m.from}</b> <span style="color:#9fb8c8">${m.time}</span><br>${m.text}</div>`).join('');
       } else if (app === 'Lifeinvader') {
         body = `<b>Lifeinvader</b><br>` + this.feed.map((f) => `<div style="margin:6px 0"><b>${f.user}</b><br>${f.text}<br><span style="color:#ff7fa8">♥ ${f.likes}</span></div>`).join('');
       } else if (app === 'Eyefind') {
-        const stars = G.police.stars;
+        const stars = Game.police.stars;
         body = `<b>Eyefind</b><br>Top story: ${stars > 0 ? `Wanted duo spotted in Vice City — ${stars} star${stars > 1 ? 's' : ''} and counting.` : 'Vice City quiet tonight. For once.'}<br><br>Vehicle listings: <button data-act="buy-car" style="margin:2px;padding:6px 10px">Buy a Sultan — $48,000</button>`;
       } else if (app === 'Music') {
-        const r = G.radio;
+        const r = Game.radio;
         body = `<b>Music / Radio</b><br>Now playing: ${r ? r.current.name : '—'} — ${r ? r.current.genre : ''}<br><span style="color:#9fb8c8">Headphones on — radio works on foot too.</span><br><br><button data-act="radio-next" style="margin:2px;padding:6px 10px">Next station (V)</button>`;
       } else if (app === 'Camera') {
-        const f = G.fishing;
+        const f = Game.fishing;
         body = `<b>Camera & Wildlife Logbook</b><br>Species logged: ${f ? f.compendiumCount() : 0} / 232<br>Fish: ${f ? f.logbookCount() : 0} / 35<br><br><button data-act="snap" style="margin:2px;padding:6px 10px">Take a photo</button>`;
       } else if (app === 'RydeMe') {
         body = `<b>RydeMe — Rides</b><br>Paid fast travel across Leonida.<br><br><button data-act="ryde-safehouse" style="margin:2px;padding:6px 10px">Ride to safehouse — $25</button> <button data-act="ryde-beach" style="margin:2px;padding:6px 10px">Ride to Ocean Beach — $40</button>`;
@@ -69,38 +98,38 @@ export function createPhone(G) {
       });
     },
     act(action, el) {
-      if (action === 'deposit') { if (G.economy) G.economy.deposit(1000); }
-      else if (action === 'withdraw') { if (G.economy) G.economy.withdraw(1000); }
-      else if (action === 'radio-next') { if (G.radio) G.radio.next(); }
+      if (action === 'deposit') { if (Game.economy) Game.economy.deposit(1000); }
+      else if (action === 'withdraw') { if (Game.economy) Game.economy.withdraw(1000); }
+      else if (action === 'radio-next') { if (Game.radio) Game.radio.next(); }
       else if (action === 'snap') {
-        G.hud.toast('Photo taken — saved to Snapmatic.');
-        if (G.world) G.world.takePhoto();
+        Game.hud.toast('Photo taken — saved to Snapmatic.');
+        if (Game.world) Game.world.takePhoto();
       }
       else if (action === 'ryde-safehouse' || action === 'ryde-beach') {
         const cost = action === 'ryde-safehouse' ? 25 : 40;
-        if (G.money < cost) { G.hud.toast('Not enough cash for a RydeMe.'); return; }
-        G.money -= cost;
+        if (Game.money < cost) { Game.hud.toast('Not enough cash for a RydeMe.'); return; }
+        Game.money -= cost;
         const dest = action === 'ryde-safehouse' ? { x: 0, z: 0 } : { x: 300, z: 300 };
-        G.player.pos.set(dest.x, 0, dest.z);
-        G.hud.toast(`RydeMe dropped you off — $${cost}.`);
+        Game.player.pos.set(dest.x, 0, dest.z);
+        Game.hud.toast(`RydeMe dropped you off — $${cost}.`);
       }
       else if (action === 'wink') {
-        const car = G.driving ? G.driving.nearestEnterable() : null;
+        const car = Game.driving ? Game.driving.nearestEnterable() : null;
         const res = el.querySelector('#wink-result');
         if (!car) { if (res) res.textContent = 'No car nearby to scan.'; return; }
         if (res) res.textContent = `${car.model || car.kind}: ${car.tracker ? 'GPS TRACKER — will call the police if stolen' : 'No tracker'} · Security tier ${car.securityTier} · Fuel ${Math.round(car.fuel * 100)}%`;
       }
       else if (action === 'scooter-add') {
-        if (this.scooters.length >= 10) { G.hud.toast('Scooter Bros is full (10).'); return; }
-        const car = G.player.car;
-        if (!car) { G.hud.toast('Get on a scooter or light bike first.'); return; }
+        if (this.scooters.length >= 10) { Game.hud.toast('Scooter Bros is full (10).'); return; }
+        const car = Game.player.car;
+        if (!car) { Game.hud.toast('Get on a scooter or light bike first.'); return; }
         this.scooters.push(car.model || car.kind);
-        G.hud.toast(`Registered ${car.model || car.kind} with Scooter Bros (${this.scooters.length}/10).`);
+        Game.hud.toast(`Registered ${car.model || car.kind} with Scooter Bros (${this.scooters.length}/10).`);
       }
       else if (action === 'buy-car') {
-        if (G.money < 48000) { G.hud.toast('You need $48,000 for the Sultan.'); return; }
-        G.money -= 48000;
-        G.hud.toast('Bought a Karin Sultan via Eyefind — pick it up at your garage.');
+        if (Game.money < 48000) { Game.hud.toast('You need $48,000 for the Sultan.'); return; }
+        Game.money -= 48000;
+        Game.hud.toast('Bought a Karin Sultan via Eyefind — pick it up at your garage.');
       }
       this.render(el);
     },
@@ -111,11 +140,15 @@ export function createPhone(G) {
       if (!dir) return;
       this._combo = (this._combo || '') + dir + ' ';
       const combo = this._combo.trim();
-      if (G.cheats) {
-        const hit = G.cheats.activateByCombo(combo);
+      if (Game.cheats) {
+        const hit = Game.cheats.activateByCombo(combo);
         if (hit) this._combo = '';
       }
       if (combo.split(' ').length >= 10) this._combo = '';
+    },
+    // Round 3: the phone's app names, in install order (HUD app grid).
+    appNames() {
+      return this.apps.map((a) => a.name || a.id);
     },
     // ---- Save / load ----
     serialize() {

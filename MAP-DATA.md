@@ -9,6 +9,7 @@ ATURAN FILE INI: hanya nama lokasi yang terverifikasi dari gtabase (atau halaman
 yang ditautkannya) yang masuk bagian utama. Nama dari sumber lain / dari spek user
 yang TIDAK ketemu di teks gtabase dicatat terpisah di bagian (f) dengan label jelas.
 TIDAK ADA nama lokasi karangan di file ini.
+Catatan round 4: koordinat (g) dibaca dari kursor pojok kanan bawah peta gtabase — popup marker tidak menampilkan koordinat.
 
 ---
 
@@ -407,3 +408,20 @@ STATUS: pekerjaan peta DIHENTIKAN SEMENTARA atas perintah user 2026-11-21
 10:21 WIB ("udah aja kalo map, entar aja diterusin, asal lu simpen di memory").
 Koordinat di atas tersimpan di file ini + MEMORY.md. Lanjutkan nanti: bangun
 peta 2D game dari koordinat ini (ganti layout relatif 0–1000 di bagian (e)).
+
+---
+## ROUND 3 (2026-11-21) — tidak ada perubahan data peta
+
+- Koordinat 27 titik di atas TIDAK berubah; peta 2D game tetap memakai
+  layout relatif bagian (e) + 26 titik terukur bagian (g).
+- Satu-satunya tambahan terkait peta: nightclub Ocean Drive di
+  `game/src/config.js` (`PLACES.nightclub`, x 120 / z −240, koordinat
+  kota game relatif — BUKAN koordinat gtabase, ditempatkan koordinator
+  untuk pose shot `night`). Bukan marker gtabase baru.
+
+## ROUND 3 — HUD (2026-11-21) — tidak ada perubahan data peta
+
+- Koordinat 27 titik di atas TIDAK berubah.
+- Minimap HUD (Bab 29) menggambar rute GPS pink dari pemain ke marker
+  misi mengikuti jalan (`nearestRoad` di `hud.js`); data peta yang
+  dipakai tetap layout relatif bagian (e) + 26 titik terukur bagian (g).

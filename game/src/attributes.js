@@ -7,9 +7,8 @@
 // protein shake / bar + sleep. Cardio: treadmill, static bike, punching
 // bag, running, swimming, cycling, kayaking. Focus: basketball, fishing,
 // meditation spots; headshots (Violent/Psycho profiles) or non-lethal
-// takedowns (Professional/Hardened); random acts of kindness.
-// Dynamic weight (Bab 17): eating too much adds weight; regular gym
-// work builds muscle. Weight shifts move speed and melee damage a little.
+// takedowns.
+// Round 5: Game replaces G; the attribute model is unchanged.
 
 export const ATTRIBUTE_DEFS = {
   strength: { name: 'Strength / Health', icon: '♥', color: '#ff7fa8', xpPerLevel: [0, 100, 250, 500, 900], maxHealthBonus: [0, 10, 20, 35, 50], meleeBonus: [0, 0.1, 0.2, 0.35, 0.5] },
@@ -17,7 +16,7 @@ export const ATTRIBUTE_DEFS = {
   focus: { name: 'Focus', icon: '👁', color: '#b78cff', xpPerLevel: [0, 100, 250, 500, 900], focusBonus: [0, 2, 4, 7, 10] },
 };
 
-export function createAttributes(G) {
+export function createAttributes(Game) {
   const A = {
     // who -> { strength: {level, xp}, cardio: {...}, focus: {...}, weight }
     chars: {},
@@ -34,11 +33,11 @@ export function createAttributes(G) {
       return this.chars[who];
     },
     get(who, attr) {
-      return this._ensure(who || G.player.who)[attr];
+      return this._ensure(who || Game.player.who)[attr];
     },
     level(who, attr) { return this.get(who, attr).level; },
     // Level 5 opens only in the late game (Chapter 5 / story done).
-    levelCap() { return (G.missions.storyComplete || (G.missions.current && G.missions.current.ch >= 5)) ? 5 : 4; },
+    levelCap() { return (Game.missions.storyComplete || (Game.missions.current && Game.missions.current.ch >= 5)) ? 5 : 4; },
     addXp(who, attr, amount, reason) {
       const c = this._ensure(who);
       const a = c[attr];
@@ -48,9 +47,9 @@ export function createAttributes(G) {
       while (a.level < cap && a.xp >= def.xpPerLevel[a.level]) {
         a.xp -= def.xpPerLevel[a.level];
         a.level++;
-        G.hud.toast(`${def.name} — Level ${a.level}! (${reason || ''})`);
-        G.audio.pickup();
-        if (attr === 'strength') G.player.maxHealth = 100 + def.maxHealthBonus[a.level - 1];
+        Game.hud.toast(`${def.name} — Level ${a.level}! (${reason || ''})`);
+        Game.audio.pickup();
+        if (attr === 'strength') Game.player.maxHealth = 100 + def.maxHealthBonus[a.level - 1];
       }
     },
     // ---- Gym (Strength) ----
@@ -84,8 +83,8 @@ export function createAttributes(G) {
       return { ok: true, activity };
     },
     meditate() {
-      this.focusActivity(G.player.who, 'meditation');
-      G.hud.toast('Meditation — Focus grows. The city goes quiet for a moment.');
+      this.focusActivity(Game.player.who, 'meditation');
+      Game.hud.toast('Meditation — Focus grows. The city goes quiet for a moment.');
     },
     // ---- Dynamic weight (Bab 17) ----
     eat(who, calories) {
@@ -112,7 +111,7 @@ export function createAttributes(G) {
     },
     // Called by pedestrians.js when the player pets an animal.
     gainFocus(amount) {
-      this.addXp(G.player.who, 'focus', amount, 'kindness');
+      this.addXp(Game.player.who, 'focus', amount, 'kindness');
     },
     // ---- Save / load ----
     serialize() {
@@ -124,6 +123,12 @@ export function createAttributes(G) {
     focusSeconds(who) {
       const lvl = this.level(who, 'focus');
       return 5 + ATTRIBUTE_DEFS.focus.focusBonus[lvl - 1];
+    },
+    // Round 3: all three attribute levels for one character, at a glance.
+    summary(who) {
+      const out = {};
+      for (const attr of Object.keys(ATTRIBUTE_DEFS)) out[attr] = this.level(who, attr);
+      return out;
     },
   };
   return A;

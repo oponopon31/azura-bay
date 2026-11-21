@@ -9,10 +9,7 @@
 // Tiers: tier 0 = melee, 1 = basic, 2 = advanced, 3 = heavy/special.
 // Chapter-tied unlocks: tier 1 from Chapter 1, tier 2 from Chapter 3,
 // tier 3 from Chapter 4 (heavy weapons need the story to progress).
-// 8 attachment categories (Bab 27): Grips, Magazines, Optics, Suppressors,
-// Muzzle/Tactical Attachments, Flashlights, Cosmetic Finishes — the spec
-// lists 7 names for 8 categories; the 8th is Barrels (the missing slot).
-// Shopping challenges (Bab 27): Well Armed, Stylishly Armed, Heavily Armed.
+// Round 5: table rows re-expressed one field per line. Values unchanged.
 
 import { WEAPON_BY_ID, ALL_WEAPONS } from './weapons.js';
 
@@ -23,31 +20,223 @@ export const ATTACHMENT_CATEGORIES = [
 
 export const GUN_SHOPS = [
   // ---- 6 Expanded (named in the spec) ----
-  { id: 'woodhatch', name: 'Woodhatch Arms', town: 'Capri', expanded: true, tier: 3, x: -320, z: 300 },
-  { id: 'bigshots', name: 'Big Shots', town: 'Hamlet', expanded: true, tier: 3, x: -280, z: -200 },
-  { id: 'phil', name: "Phil's Ammu-Nation", town: 'Vice City', expanded: true, tier: 3, x: -40, z: -40 },
-  { id: 'blackeagle', name: 'Black Eagle', town: 'Vice City', expanded: true, tier: 3, x: 80, z: 120 },
-  { id: 'ironoak', name: 'Iron & Oak', town: 'Ambrosia', expanded: true, tier: 3, x: -200, z: 260 },
-  { id: 'prestige', name: 'Prestige Firearms', town: 'Ocean Beach', expanded: true, tier: 3, x: 300, z: 300 },
+  {
+    id: 'woodhatch',
+    name: 'Woodhatch Arms',
+    x: -320,
+    z: 300,
+    tier: 3,
+    expanded: true,
+    town: 'Capri',
+  },
+  {
+    id: 'bigshots',
+    name: 'Big Shots',
+    x: -280,
+    z: -200,
+    tier: 3,
+    expanded: true,
+    town: 'Hamlet',
+  },
+  {
+    id: 'phil',
+    name: "Phil's Ammu-Nation",
+    x: -40,
+    z: -40,
+    tier: 3,
+    expanded: true,
+    town: 'Vice City',
+  },
+  {
+    id: 'blackeagle',
+    name: 'Black Eagle',
+    x: 80,
+    z: 120,
+    tier: 3,
+    expanded: true,
+    town: 'Vice City',
+  },
+  {
+    id: 'ironoak',
+    name: 'Iron & Oak',
+    x: -200,
+    z: 260,
+    tier: 3,
+    expanded: true,
+    town: 'Ambrosia',
+  },
+  {
+    id: 'prestige',
+    name: 'Prestige Firearms',
+    x: 300,
+    z: 300,
+    tier: 3,
+    expanded: true,
+    town: 'Ocean Beach',
+  },
   // ---- 18 Standard ----
-  { id: 'stronghold', name: 'Stronghold Ammunition', town: 'Vice City', expanded: false, tier: 2, x: 120, z: -80 },
-  { id: 'pawnandgun', name: 'Pawn and Gun', town: 'Vice City', expanded: false, tier: 2, x: -120, z: 160 },
-  { id: 'gellhorn', name: 'Gellhorn Gunworks', town: 'Port Gellhorn', expanded: false, tier: 2, x: 320, z: -80 },
-  { id: 'watson', name: 'Watson Bay Firearms', town: 'Watson Bay', expanded: false, tier: 2, x: -320, z: -280 },
-  { id: 'keylento', name: 'Key Lento Outfitters', town: 'Key Lento', expanded: false, tier: 1, x: 200, z: -320 },
-  { id: 'waning', name: 'Waning Sands Arms', town: 'Waning Sands', expanded: false, tier: 1, x: -160, z: 320 },
-  { id: 'millport', name: 'Millport Gun & Tackle', town: 'Millport', expanded: false, tier: 1, x: -240, z: 240 },
-  { id: 'gloriana', name: 'Gloriana Key Arms', town: 'Gloriana Key', expanded: false, tier: 1, x: 240, z: -200 },
-  { id: 'leonidakeys', name: 'Leonida Keys Gun Room', town: 'Leonida Keys', expanded: false, tier: 1, x: -80, z: -320 },
-  { id: 'vicebeach', name: 'Vice Beach Firearms', town: 'Vice Beach', expanded: false, tier: 2, x: 320, z: 160 },
-  { id: 'laperle', name: 'La Perle Arms', town: 'Vice City', expanded: false, tier: 2, x: -80, z: 200 },
-  { id: 'salton', name: 'Salton Gun Supply', town: 'Vice City', expanded: false, tier: 1, x: 160, z: 80 },
-  { id: 'bayside', name: 'Bayside Outfitters', town: 'Vice City', expanded: false, tier: 1, x: 40, z: 240 },
-  { id: 'southside', name: 'Southside Arms', town: 'Vice City', expanded: false, tier: 1, x: -200, z: -120 },
-  { id: 'balsero', name: 'Balsero Gunworks', town: 'Vice City', expanded: false, tier: 1, x: 200, z: 40 },
-  { id: 'decordistrict', name: 'Decor District Arms', town: 'Vice City', expanded: false, tier: 2, x: 0, z: 280 },
-  { id: 'emeraldsprings', name: 'Emerald Springs Hunting', town: 'Emerald Springs', expanded: false, tier: 1, x: -280, z: 120 },
-  { id: 'ambrosia2', name: 'Ambrosia Gun & Pawn', town: 'Ambrosia', expanded: false, tier: 1, x: -160, z: 280 },
+  {
+    id: 'stronghold',
+    name: 'Stronghold Ammunition',
+    x: 120,
+    z: -80,
+    tier: 2,
+    expanded: false,
+    town: 'Vice City',
+  },
+  {
+    id: 'pawnandgun',
+    name: 'Pawn and Gun',
+    x: -120,
+    z: 160,
+    tier: 2,
+    expanded: false,
+    town: 'Vice City',
+  },
+  {
+    id: 'gellhorn',
+    name: 'Gellhorn Gunworks',
+    x: 320,
+    z: -80,
+    tier: 2,
+    expanded: false,
+    town: 'Port Gellhorn',
+  },
+  {
+    id: 'watson',
+    name: 'Watson Bay Firearms',
+    x: -320,
+    z: -280,
+    tier: 2,
+    expanded: false,
+    town: 'Watson Bay',
+  },
+  {
+    id: 'keylento',
+    name: 'Key Lento Outfitters',
+    x: 200,
+    z: -320,
+    tier: 1,
+    expanded: false,
+    town: 'Key Lento',
+  },
+  {
+    id: 'waning',
+    name: 'Waning Sands Arms',
+    x: -160,
+    z: 320,
+    tier: 1,
+    expanded: false,
+    town: 'Waning Sands',
+  },
+  {
+    id: 'millport',
+    name: 'Millport Gun & Tackle',
+    x: -240,
+    z: 240,
+    tier: 1,
+    expanded: false,
+    town: 'Millport',
+  },
+  {
+    id: 'gloriana',
+    name: 'Gloriana Key Arms',
+    x: 240,
+    z: -200,
+    tier: 1,
+    expanded: false,
+    town: 'Gloriana Key',
+  },
+  {
+    id: 'leonidakeys',
+    name: 'Leonida Keys Gun Room',
+    x: -80,
+    z: -320,
+    tier: 1,
+    expanded: false,
+    town: 'Leonida Keys',
+  },
+  {
+    id: 'vicebeach',
+    name: 'Vice Beach Firearms',
+    x: 320,
+    z: 160,
+    tier: 2,
+    expanded: false,
+    town: 'Vice Beach',
+  },
+  {
+    id: 'laperle',
+    name: 'La Perle Arms',
+    x: -80,
+    z: 200,
+    tier: 2,
+    expanded: false,
+    town: 'Vice City',
+  },
+  {
+    id: 'salton',
+    name: 'Salton Gun Supply',
+    x: 160,
+    z: 80,
+    tier: 1,
+    expanded: false,
+    town: 'Vice City',
+  },
+  {
+    id: 'bayside',
+    name: 'Bayside Outfitters',
+    x: 40,
+    z: 240,
+    tier: 1,
+    expanded: false,
+    town: 'Vice City',
+  },
+  {
+    id: 'southside',
+    name: 'Southside Arms',
+    x: -200,
+    z: -120,
+    tier: 1,
+    expanded: false,
+    town: 'Vice City',
+  },
+  {
+    id: 'balsero',
+    name: 'Balsero Gunworks',
+    x: 200,
+    z: 40,
+    tier: 1,
+    expanded: false,
+    town: 'Vice City',
+  },
+  {
+    id: 'decordistrict',
+    name: 'Decor District Arms',
+    x: 0,
+    z: 280,
+    tier: 2,
+    expanded: false,
+    town: 'Vice City',
+  },
+  {
+    id: 'emeraldsprings',
+    name: 'Emerald Springs Hunting',
+    x: -280,
+    z: 120,
+    tier: 1,
+    expanded: false,
+    town: 'Emerald Springs',
+  },
+  {
+    id: 'ambrosia2',
+    name: 'Ambrosia Gun & Pawn',
+    x: -160,
+    z: 280,
+    tier: 1,
+    expanded: false,
+    town: 'Ambrosia',
+  },
 ];
 
 // Chapter-tied tier unlocks: tier 1 from Chapter 1, tier 2 from Chapter 3,
@@ -58,21 +247,21 @@ export function tierUnlocked(chapter) {
   return 1;
 }
 
-export function createGunshops(G) {
+export function createGunshops(Game) {
   const S = {
     shops: GUN_SHOPS,
     // What this shop sells right now (chapter + shop tier limit it).
     stock(shopId) {
       const shop = GUN_SHOPS.find((s) => s.id === shopId);
       if (!shop) return [];
-      const chapter = (G.missions.current && G.missions.current.ch) || 1;
+      const chapter = (Game.missions.current && Game.missions.current.ch) || 1;
       const maxTier = Math.min(shop.tier, tierUnlocked(chapter));
       return ALL_WEAPONS.filter((w) => (w.tier || 0) <= maxTier && (w.tier || 0) > 0 || (w.tier === 0 && shop.expanded));
     },
     nearestShop() {
       let best = null, bestD = 1e9;
       for (const s of GUN_SHOPS) {
-        const d = Math.hypot(G.player.pos.x - s.x, G.player.pos.z - s.z);
+        const d = Math.hypot(Game.player.pos.x - s.x, Game.player.pos.z - s.z);
         if (d < bestD) { bestD = d; best = s; }
       }
       return bestD < 25 ? best : null;
@@ -82,30 +271,30 @@ export function createGunshops(G) {
       const w = WEAPON_BY_ID[weaponId];
       const shop = GUN_SHOPS.find((s) => s.id === shopId);
       if (!w || !shop) return { ok: false, reason: 'Unknown shop or weapon.' };
-      if (G.weapons.has(weaponId)) return { ok: false, reason: 'You already own that.' };
-      if (G.money < w.price) return { ok: false, reason: `You need $${w.price.toLocaleString()} — you have $${Math.floor(G.money).toLocaleString()}.` };
-      G.money -= w.price;
-      G.weapons.give(weaponId);
-      G.stats.spentAtGunshops = (G.stats.spentAtGunshops || 0) + w.price;
-      G.stats.weaponsBought = (G.stats.weaponsBought || 0) + 1;
+      if (Game.weapons.has(weaponId)) return { ok: false, reason: 'You already own that.' };
+      if (Game.money < w.price) return { ok: false, reason: `You need $${w.price.toLocaleString()} — you have $${Math.floor(Game.money).toLocaleString()}.` };
+      Game.money -= w.price;
+      Game.weapons.give(weaponId);
+      Game.stats.spentAtGunshops = (Game.stats.spentAtGunshops || 0) + w.price;
+      Game.stats.weaponsBought = (Game.stats.weaponsBought || 0) + 1;
       this.checkChallenges();
-      G.audio.cash();
-      G.hud.toast(`Bought ${w.name} for $${w.price.toLocaleString()}.`);
+      Game.audio.cash();
+      Game.hud.toast(`Bought ${w.name} for $${w.price.toLocaleString()}.`);
       return { ok: true, weapon: w };
     },
     // Buy reserve ammo for a weapon the player owns.
     buyAmmo(weaponId, rounds) {
       const w = WEAPON_BY_ID[weaponId];
       // Ownership = the collection (see buyAttachment).
-      const owned = G.weapons.ownedAll ? G.weapons.ownedAll().includes(weaponId) : G.weapons.has(weaponId);
+      const owned = Game.weapons.ownedAll ? Game.weapons.ownedAll().includes(weaponId) : Game.weapons.has(weaponId);
       if (!w || !owned) return { ok: false, reason: 'You do not own that weapon.' };
       if (w.capped === false) return { ok: false, reason: 'That weapon is uncapped — no ammo to buy.' };
       const cost = Math.ceil((rounds / 10) * 25);
-      if (G.money < cost) return { ok: false, reason: `Ammo costs $${cost} — you have $${Math.floor(G.money).toLocaleString()}.` };
-      G.money -= cost;
-      G.weapons.ammo[weaponId] = (G.weapons.ammo[weaponId] || 0) + rounds;
-      G.stats.spentAtGunshops = (G.stats.spentAtGunshops || 0) + cost;
-      G.audio.cash();
+      if (Game.money < cost) return { ok: false, reason: `Ammo costs $${cost} — you have $${Math.floor(Game.money).toLocaleString()}.` };
+      Game.money -= cost;
+      Game.weapons.ammo[weaponId] = (Game.weapons.ammo[weaponId] || 0) + rounds;
+      Game.stats.spentAtGunshops = (Game.stats.spentAtGunshops || 0) + cost;
+      Game.audio.cash();
       return { ok: true, cost, rounds };
     },
     // Buy an attachment (one of the 8 categories) for the active weapon.
@@ -114,18 +303,18 @@ export function createGunshops(G) {
       const w = WEAPON_BY_ID[weaponId];
       // Ownership = the collection, not the 5 wheel slots: a weapon you
       // own but are not currently carrying can still be fitted.
-      const owned = G.weapons.ownedAll ? G.weapons.ownedAll().includes(weaponId) : G.weapons.has(weaponId);
+      const owned = Game.weapons.ownedAll ? Game.weapons.ownedAll().includes(weaponId) : Game.weapons.has(weaponId);
       if (!w || !owned) return { ok: false, reason: 'You do not own that weapon.' };
       const cost = 800;
-      if (G.money < cost) return { ok: false, reason: `Attachments cost $${cost}.` };
-      G.money -= cost;
-      G.stats.attachments = G.stats.attachments || {};
-      G.stats.attachments[weaponId] = G.stats.attachments[weaponId] || [];
-      if (G.stats.attachments[weaponId].includes(category)) return { ok: false, reason: 'Already fitted.' };
-      G.stats.attachments[weaponId].push(category);
-      G.stats.weaponsBought = (G.stats.weaponsBought || 0);
+      if (Game.money < cost) return { ok: false, reason: `Attachments cost $${cost}.` };
+      Game.money -= cost;
+      Game.stats.attachments = Game.stats.attachments || {};
+      Game.stats.attachments[weaponId] = Game.stats.attachments[weaponId] || [];
+      if (Game.stats.attachments[weaponId].includes(category)) return { ok: false, reason: 'Already fitted.' };
+      Game.stats.attachments[weaponId].push(category);
+      Game.stats.weaponsBought = (Game.stats.weaponsBought || 0);
       this.checkChallenges();
-      G.hud.toast(`${category} fitted to ${w.name}.`);
+      Game.hud.toast(`${category} fitted to ${w.name}.`);
       return { ok: true, category };
     },
     // Shopping challenges (Bab 27): Well Armed (own 10 weapons),
@@ -135,33 +324,37 @@ export function createGunshops(G) {
       // Well Armed and Heavily Armed count the OWNED collection (every
       // weapon ever picked up), not the 5 wheel slots — ownedList() can
       // never exceed 5, so slot-based counts made both unreachable.
-      const owned = G.weapons.ownedAll ? G.weapons.ownedAll().length : G.weapons.ownedList().length;
-      const fitted = Object.keys(G.stats.attachments || {}).length;
-      const heavy = (G.weapons.ownedAll ? G.weapons.ownedAll() : G.weapons.ownedList())
+      const owned = Game.weapons.ownedAll ? Game.weapons.ownedAll().length : Game.weapons.ownedList().length;
+      const fitted = Object.keys(Game.stats.attachments || {}).length;
+      const heavy = (Game.weapons.ownedAll ? Game.weapons.ownedAll() : Game.weapons.ownedList())
         .some((id) => (WEAPON_BY_ID[id].tier || 0) >= 3);
-      const done = G.stats.shopChallenges || (G.stats.shopChallenges = {});
+      const done = Game.stats.shopChallenges || (Game.stats.shopChallenges = {});
       if (!done.wellArmed && owned >= 10) {
         done.wellArmed = true;
-        G.money += 1000;
-        G.hud.toast('Challenge complete: WELL ARMED — +$1,000.');
+        Game.money += 1000;
+        Game.hud.toast('Challenge complete: WELL ARMED — +$1,000.');
       }
       if (!done.stylishlyArmed && fitted >= 5) {
         done.stylishlyArmed = true;
-        G.money += 2000;
-        G.hud.toast('Challenge complete: STYLISHLY ARMED — +$2,000.');
+        Game.money += 2000;
+        Game.hud.toast('Challenge complete: STYLISHLY ARMED — +$2,000.');
       }
       if (!done.heavilyArmed && heavy) {
         done.heavilyArmed = true;
-        G.money += 5000;
-        G.hud.toast('Challenge complete: HEAVILY ARMED — +$5,000.');
+        Game.money += 5000;
+        Game.hud.toast('Challenge complete: HEAVILY ARMED — +$5,000.');
       }
     },
     // The green weapon locker (Bab 23): at Expanded stores, the player's
     // owned weapons are stored here — a loadout that survives death.
     // Returns the full owned collection, not just the 5 wheel slots.
     locker() {
-      const ids = G.weapons.ownedAll ? G.weapons.ownedAll() : G.weapons.ownedList();
+      const ids = Game.weapons.ownedAll ? Game.weapons.ownedAll() : Game.weapons.ownedList();
       return ids.map((id) => WEAPON_BY_ID[id].name);
+    },
+    // Round 3: how many of the 24 shops are Expanded (full stock + locker).
+    expandedCount() {
+      return this.shops.filter((s) => s.expanded).length;
     },
   };
   return S;

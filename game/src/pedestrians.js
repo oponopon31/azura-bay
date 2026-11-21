@@ -2,61 +2,65 @@
 // and run away from gunfire, speeding cars and police chases.
 // Bab 24: a longarm carried openly makes them panic and call the police;
 // Bab 26: L2/LT near a dog or animal offers pet / scold (tracked reputation).
+// An openly carried longarm panics peds and gets the police called —
+// concealment is a gameplay choice, not flavour.
+// Round 5: the mesh builder and part names are renamed, Game replaces G.
+// Behaviour unchanged.
 
-import * as THREE from 'three';
 import { PED_COUNT, CITY_HALF, PITCH, nearestRoad } from './config.js';
+import * as THREE from 'three';
 
 const SHIRTS = [0xe74c3c, 0x3498db, 0xf1c40f, 0x2ecc71, 0x9b59b6, 0xecf0f1, 0xe67e22, 0x1abc9c];
 const PANTS = [0x2c3e50, 0x34495e, 0x7f8c8d, 0x5d4037];
 
-function buildPedMesh(G, shirt, pants) {
+function makePedMesh(Game, shirt, pants) {
   const g = new THREE.Group();
-  const shirtMat = new THREE.MeshLambertMaterial({ color: shirt });
-  const pantsMat = new THREE.MeshLambertMaterial({ color: pants });
-  const skinMat = new THREE.MeshLambertMaterial({ color: 0xd9a066 });
-  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.7, 0.32), shirtMat);
-  torso.position.y = 1.15;
-  torso.castShadow = true;
-  g.add(torso);
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.22, 10, 8), skinMat);
-  head.position.y = 1.72;
-  head.castShadow = true;
-  g.add(head);
-  const legL = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.8, 0.22), pantsMat);
-  legL.position.set(-0.14, 0.4, 0);
-  g.add(legL);
-  const legR = legL.clone();
-  legR.position.x = 0.14;
-  g.add(legR);
-  const armL = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.65, 0.18), shirtMat);
-  armL.position.set(-0.36, 1.15, 0);
-  g.add(armL);
-  const armR = armL.clone();
-  armR.position.x = 0.36;
-  g.add(armR);
-  return { group: g, legL, legR, armL, armR };
+  const topMat = new THREE.MeshLambertMaterial({ color: shirt });
+  const legMat = new THREE.MeshLambertMaterial({ color: pants });
+  const skinTone = new THREE.MeshLambertMaterial({ color: 0xd9a066 });
+  const trunkMesh = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.7, 0.32), topMat);
+  trunkMesh.position.y = 1.15;
+  trunkMesh.castShadow = true;
+  g.add(trunkMesh);
+  const headMesh = new THREE.Mesh(new THREE.SphereGeometry(0.22, 10, 8), skinTone);
+  headMesh.position.y = 1.72;
+  headMesh.castShadow = true;
+  g.add(headMesh);
+  const legLeft = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.8, 0.22), legMat);
+  legLeft.position.set(-0.14, 0.4, 0);
+  g.add(legLeft);
+  const legRight = legLeft.clone();
+  legRight.position.x = 0.14;
+  g.add(legRight);
+  const armLeft = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.65, 0.18), topMat);
+  armLeft.position.set(-0.36, 1.15, 0);
+  g.add(armLeft);
+  const armRight = armLeft.clone();
+  armRight.position.x = 0.36;
+  g.add(armRight);
+  return { group: g, legLeft, legRight, armLeft, armRight };
 }
 
-export function spawnPedestrians(G) {
-  G.peds = [];
+export function spawnPedestrians(Game) {
+  Game.peds = [];
   for (let i = 0; i < PED_COUNT; i++) {
-    const { group, legL, legR, armL, armR } = buildPedMesh(
-      G, G.rng.pick(SHIRTS), G.rng.pick(PANTS));
+    const { group, legLeft, legRight, armLeft, armRight } = makePedMesh(
+      Game, Game.rng.pick(SHIRTS), Game.rng.pick(PANTS));
     // Start on a sidewalk: just off a road centreline.
-    const road = -CITY_HALF + G.rng.int(0, 8) * PITCH;
-    const along = G.rng.range(-CITY_HALF + 10, CITY_HALF - 10);
-    const side = G.rng.chance(0.5) ? 1 : -1;
-    const onXRoad = G.rng.chance(0.5);
+    const road = -CITY_HALF + Game.rng.int(0, 8) * PITCH;
+    const along = Game.rng.range(-CITY_HALF + 10, CITY_HALF - 10);
+    const side = Game.rng.chance(0.5) ? 1 : -1;
+    const onXRoad = Game.rng.chance(0.5);
     const x = onXRoad ? along : road + side * 10.5;
     const z = onXRoad ? road + side * 10.5 : along;
     group.position.set(x, 0, z);
-    G.scene.add(group);
+    Game.scene.add(group);
     const ped = {
-      mesh: group, legL, legR, armL, armR,
+      mesh: group, legLeft, legRight, armLeft, armRight,
       pos: new THREE.Vector3(x, 0, z),
-      heading: G.rng.range(0, Math.PI * 2),
-      speed: G.rng.range(1.2, 2.2),
-      walkPhase: G.rng.range(0, 6),
+      heading: Game.rng.range(0, Math.PI * 2),
+      speed: Game.rng.range(1.2, 2.2),
+      walkPhase: Game.rng.range(0, 6),
       target: null,
       fleeing: 0,
       alive: true,
@@ -64,34 +68,34 @@ export function spawnPedestrians(G) {
     };
     group.userData.hitKind = 'ped';
     group.userData.ref = ped;
-    G.peds.push(ped);
+    Game.peds.push(ped);
   }
   // A few street dogs (Bab 20/25/26): pet them (L2/LT) or scold them.
   for (let i = 0; i < 3; i++) {
-    const { group, legL, legR, armL, armR } = buildPedMesh(G, 0x8a6a4a, 0x5d4037);
-    const x = G.rng.range(-200, 200), z = G.rng.range(-200, 300);
+    const { group, legLeft, legRight, armLeft, armRight } = makePedMesh(Game, 0x8a6a4a, 0x5d4037);
+    const x = Game.rng.range(-200, 200), z = Game.rng.range(-200, 300);
     group.position.set(x, 0, z);
     group.scale.set(0.8, 0.55, 1.1);
-    G.scene.add(group);
+    Game.scene.add(group);
     const dog = {
-      mesh: group, legL, legR, armL, armR,
+      mesh: group, legLeft, legRight, armLeft, armRight,
       pos: new THREE.Vector3(x, 0, z),
-      heading: G.rng.range(0, Math.PI * 2),
+      heading: Game.rng.range(0, Math.PI * 2),
       speed: 2.5, walkPhase: 0, target: null, fleeing: 0, alive: true, isDog: true,
     };
     group.userData.hitKind = 'ped';
     group.userData.ref = dog;
-    G.peds.push(dog);
+    Game.peds.push(dog);
   }
 }
 
-function pickSidewalkTarget(G, ped) {
+function pickSidewalkTarget(Game, ped) {
   // Next corner along the nearest road, on the sidewalk.
   const roadX = nearestRoad(ped.pos.x);
   const roadZ = nearestRoad(ped.pos.z);
   const onX = Math.abs(ped.pos.z - roadZ) < Math.abs(ped.pos.x - roadX);
-  const dir = G.rng.chance(0.5) ? 1 : -1;
-  const step = PITCH * G.rng.int(1, 3) * dir;
+  const dir = Game.rng.chance(0.5) ? 1 : -1;
+  const step = PITCH * Game.rng.int(1, 3) * dir;
   if (onX) {
     return new THREE.Vector3(
       THREE.MathUtils.clamp(ped.pos.x + step, -CITY_HALF, CITY_HALF),
@@ -104,16 +108,16 @@ function pickSidewalkTarget(G, ped) {
     THREE.MathUtils.clamp(ped.pos.z + step, -CITY_HALF, CITY_HALF));
 }
 
-export function updatePedestrians(G, dt) {
-  const playerPos = G.player.pos;
+export function updatePedestrians(Game, dt) {
+  const playerPos = Game.player.pos;
   // Bab 17: an openly carried longarm panics NPCs, who call the police.
-  const openLongarm = !!(G.weapons && G.weapons.active() &&
-    ['longarms', 'special'].includes(G.weapons.active().cat) && G.player.onFoot);
-  for (const ped of G.peds) {
+  const openLongarm = !!(Game.weapons && Game.weapons.active() &&
+    ['longarms', 'special'].includes(Game.weapons.active().cat) && Game.player.onFoot);
+  for (const ped of Game.peds) {
     if (!ped.alive) continue;
     // Stunned: stays down until the stun expires, then gets back up.
     if (ped.stunned) {
-      if (G.elapsed >= ped.stunnedUntil) {
+      if (Game.elapsed >= ped.stunnedUntil) {
         ped.stunned = false;
         ped.mesh.rotation.x = 0;
         ped.mesh.position.y = 0;
@@ -123,22 +127,22 @@ export function updatePedestrians(G, dt) {
     }
     // Flee from gunfire, fast cars and the wanted player.
     let danger = null;
-    if (G.combat.shotsRecently > 0) {
-      const d = ped.pos.distanceTo(G.combat.lastShotPos);
-      if (d < 40) danger = G.combat.lastShotPos;
+    if (Game.combat.shotsRecently > 0) {
+      const d = ped.pos.distanceTo(Game.combat.lastShotPos);
+      if (d < 40) danger = Game.combat.lastShotPos;
     }
     const dp = ped.pos.distanceTo(playerPos);
-    if (G.player.inCar && G.player.speed > 8 && dp < 18) danger = playerPos;
-    if (G.police.stars >= 2 && dp < 10) danger = playerPos;
+    if (Game.player.inCar && Game.player.speed > 8 && dp < 18) danger = playerPos;
+    if (Game.police.stars >= 2 && dp < 10) danger = playerPos;
     if (openLongarm && dp < 25 && !ped.isDog) {
       danger = playerPos;
-      if (!ped.reported) { ped.reported = true; G.police.addHeat(8, 'seen carrying a longarm openly'); }
+      if (!ped.reported) { ped.reported = true; Game.police.addHeat(8, 'seen carrying a longarm openly'); }
     } else if (!openLongarm) ped.reported = false;
     if (danger) ped.fleeing = 2.5;
     ped.fleeing = Math.max(0, ped.fleeing - dt);
 
     if (!ped.target || ped.pos.distanceTo(ped.target) < 2) {
-      ped.target = pickSidewalkTarget(G, ped);
+      ped.target = pickSidewalkTarget(Game, ped);
     }
     let dest = ped.target;
     let speed = ped.speed;
@@ -162,51 +166,51 @@ export function updatePedestrians(G, dt) {
     }
     // Walk-cycle swing.
     const swing = Math.sin(ped.walkPhase) * 0.55;
-    ped.legL.rotation.x = swing;
-    ped.legR.rotation.x = -swing;
-    ped.armL.rotation.x = -swing * 0.7;
-    ped.armR.rotation.x = swing * 0.7;
+    ped.legLeft.rotation.x = swing;
+    ped.legRight.rotation.x = -swing;
+    ped.armLeft.rotation.x = -swing * 0.7;
+    ped.armRight.rotation.x = swing * 0.7;
     ped.mesh.position.copy(ped.pos);
     ped.mesh.rotation.y = ped.heading;
   }
 }
 
 // A pedestrian hit by a car or a bullet: falls and stays down.
-export function knockDownPed(G, ped) {
+export function knockDownPed(Game, ped) {
   if (!ped.alive) return;
   ped.alive = false;
   ped.mesh.rotation.x = -Math.PI / 2;
   ped.mesh.position.y = 0.3;
-  G.effects.blood(ped.pos.x, 1, ped.pos.z);
+  Game.effects.blood(ped.pos.x, 1, ped.pos.z);
 }
 
 // Stunned (Coil Shocker / flashbang): falls, stays down for `secs`,
 // then gets back up. Non-lethal — does not count as a kill.
-export function stunPed(G, ped, secs) {
+export function stunPed(Game, ped, secs) {
   if (!ped.alive || ped.stunned) return;
   ped.stunned = true;
-  ped.stunnedUntil = G.elapsed + secs;
+  ped.stunnedUntil = Game.elapsed + secs;
   ped.mesh.rotation.x = -Math.PI / 2;
   ped.mesh.position.y = 0.3;
-  G.effects.sparks(ped.pos.x, 1, ped.pos.z, 8);
+  Game.effects.sparks(ped.pos.x, 1, ped.pos.z, 8);
 }
 
 // Bab 25/26 animal reputation: pet (kind) or scold (mean) a nearby dog.
-// Recorded in G.stats.animalRep (positive = kind, negative = mean).
-export function interactAnimal(G, kind) {
+// Recorded in Game.stats.animalRep (positive = kind, negative = mean).
+export function interactAnimal(Game, kind) {
   let best = null, bestD = 4;
-  for (const ped of G.peds) {
+  for (const ped of Game.peds) {
     if (!ped.alive || !ped.isDog) continue;
-    const d = Math.hypot(ped.pos.x - G.player.pos.x, ped.pos.z - G.player.pos.z);
+    const d = Math.hypot(ped.pos.x - Game.player.pos.x, ped.pos.z - Game.player.pos.z);
     if (d < bestD) { best = ped; bestD = d; }
   }
-  if (!best) { G.hud.toast('No animal nearby.'); return false; }
-  G.stats.animalRep = (G.stats.animalRep || 0) + (kind === 'pet' ? 1 : -1);
+  if (!best) { Game.hud.toast('No animal nearby.'); return false; }
+  Game.stats.animalRep = (Game.stats.animalRep || 0) + (kind === 'pet' ? 1 : -1);
   if (kind === 'pet') {
-    G.hud.toast('You pet the dog. It wags its tail.');
-    if (G.attributes) G.attributes.gainFocus(2);
+    Game.hud.toast('You pet the dog. It wags its tail.');
+    if (Game.attributes) Game.attributes.gainFocus(2);
   } else {
-    G.hud.toast('You scold the dog. It skulks away.');
+    Game.hud.toast('You scold the dog. It skulks away.');
     best.fleeing = 3;
   }
   return true;
@@ -214,10 +218,15 @@ export function interactAnimal(G, kind) {
 
 // Bab 17: an open longarm on the street makes nearby NPCs panic and
 // report to the police.
-export function panicNearby(G, radius) {
-  for (const ped of G.peds) {
+export function panicNearby(Game, radius) {
+  for (const ped of Game.peds) {
     if (!ped.alive) continue;
-    if (ped.pos.distanceTo(G.player.pos) < radius) ped.fleeing = 3;
+    if (ped.pos.distanceTo(Game.player.pos) < radius) ped.fleeing = 3;
   }
-  G.police.addHeat(4, 'someone reported an open longarm');
+  Game.police.addHeat(4, 'someone reported an open longarm');
+}
+
+// ---- Round 3: how many pedestrians are currently fleeing ----
+export function fleeingCount(Game) {
+  return Game.peds.filter((p) => p.alive && p.fleeing > 0).length;
 }

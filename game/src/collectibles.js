@@ -10,28 +10,119 @@
 // Placement is deterministic: a dedicated seeded RNG (mulberry32, fixed
 // seed per category) so every run puts every item in the same place.
 // Cards can be sold to Vice City Pawn & Pawn Stash (Bab 5).
+// Round 5: table rows re-expressed one field per line. Values unchanged.
 
 import { makeRng } from './rng.js';
 
 export const CARD_SETS = [
-  { id: 'flamingos', name: 'Vice City Flamingos', count: 24, cat: 'Sports' },
-  { id: 'narcos', name: 'Narcos', count: 24, cat: 'Sports' },
-  { id: 'manatees', name: 'Manatees', count: 24, cat: 'Sports' },
-  { id: 'clubfutbol', name: 'Club De Fútbol', count: 30, cat: 'Sports' },
-  { id: 'swingers', name: 'Liberty City Swingers', count: 24, cat: 'Sports' },
-  { id: 'penetrators', name: 'Penetrators', count: 24, cat: 'Sports' },
-  { id: 'wrath', name: 'Wrath', count: 24, cat: 'Sports' },
-  { id: 'corkers', name: 'Los Santos Corkers', count: 24, cat: 'Sports' },
-  { id: 'panic', name: 'Panic', count: 24, cat: 'Sports' },
-  { id: 'pounders', name: 'Pounders', count: 24, cat: 'Sports' },
-  { id: 'backyard', name: 'Backyard Wrestling', count: 12, cat: 'Entertainment' },
-  { id: 'tophooker', name: "America's Next Top Hooker", count: 24, cat: 'Entertainment' },
-  { id: 'delights', name: 'Delights Dancers', count: 18, cat: 'Entertainment' },
-  { id: 'jackhearts', name: 'Jack of Hearts Dancers', count: 36, cat: 'Entertainment' },
-  { id: 'nine1nine', name: 'Nine1Nine Dancers', count: 36, cat: 'Entertainment' },
-  { id: 'ratface', name: 'The Legends of Ratface', count: 36, cat: 'Entertainment' },
-  { id: 'rightwing', name: "Right Wing: America's Hero", count: 36, cat: 'Entertainment' },
-  { id: 'edcomics', name: 'Ed Comics Universe', count: 36, cat: 'Entertainment' },
+  {
+    id: 'flamingos',
+    name: 'Vice City Flamingos',
+    count: 24,
+    cat: 'Sports',
+  },
+  {
+    id: 'narcos',
+    name: 'Narcos',
+    count: 24,
+    cat: 'Sports',
+  },
+  {
+    id: 'manatees',
+    name: 'Manatees',
+    count: 24,
+    cat: 'Sports',
+  },
+  {
+    id: 'clubfutbol',
+    name: 'Club De Fútbol',
+    count: 30,
+    cat: 'Sports',
+  },
+  {
+    id: 'swingers',
+    name: 'Liberty City Swingers',
+    count: 24,
+    cat: 'Sports',
+  },
+  {
+    id: 'penetrators',
+    name: 'Penetrators',
+    count: 24,
+    cat: 'Sports',
+  },
+  {
+    id: 'wrath',
+    name: 'Wrath',
+    count: 24,
+    cat: 'Sports',
+  },
+  {
+    id: 'corkers',
+    name: 'Los Santos Corkers',
+    count: 24,
+    cat: 'Sports',
+  },
+  {
+    id: 'panic',
+    name: 'Panic',
+    count: 24,
+    cat: 'Sports',
+  },
+  {
+    id: 'pounders',
+    name: 'Pounders',
+    count: 24,
+    cat: 'Sports',
+  },
+  {
+    id: 'backyard',
+    name: 'Backyard Wrestling',
+    count: 12,
+    cat: 'Entertainment',
+  },
+  {
+    id: 'tophooker',
+    name: "America's Next Top Hooker",
+    count: 24,
+    cat: 'Entertainment',
+  },
+  {
+    id: 'delights',
+    name: 'Delights Dancers',
+    count: 18,
+    cat: 'Entertainment',
+  },
+  {
+    id: 'jackhearts',
+    name: 'Jack of Hearts Dancers',
+    count: 36,
+    cat: 'Entertainment',
+  },
+  {
+    id: 'nine1nine',
+    name: 'Nine1Nine Dancers',
+    count: 36,
+    cat: 'Entertainment',
+  },
+  {
+    id: 'ratface',
+    name: 'The Legends of Ratface',
+    count: 36,
+    cat: 'Entertainment',
+  },
+  {
+    id: 'rightwing',
+    name: "Right Wing: America's Hero",
+    count: 36,
+    cat: 'Entertainment',
+  },
+  {
+    id: 'edcomics',
+    name: 'Ed Comics Universe',
+    count: 36,
+    cat: 'Entertainment',
+  },
 ];
 
 export const COLLECTIBLE_COUNTS = {
@@ -72,7 +163,7 @@ function placeItems(seed, count, opts) {
   return items;
 }
 
-export function createCollectibles(G) {
+export function createCollectibles(Game) {
   const items = {
     flamingos: placeItems(0xF1A1, 125, {}),
     watches: placeItems(0x7A7C, 34, {}),
@@ -123,36 +214,36 @@ export function createCollectibles(G) {
       let best = null, bestD = 1e9;
       for (const it of this.items[cat] || []) {
         if (it.found) continue;
-        const d = Math.hypot(G.player.pos.x - it.x, G.player.pos.z - it.z);
+        const d = Math.hypot(Game.player.pos.x - it.x, Game.player.pos.z - it.z);
         if (d < bestD) { bestD = d; best = it; }
       }
       return best ? { ...best, dist: bestD } : null;
     },
     // ---- Pickup: called every frame; on-foot pickup within 3 m. ----
     update() {
-      if (!G.player.onFoot) return;
-      const p = G.player.pos;
+      if (!Game.player.onFoot) return;
+      const p = Game.player.pos;
       for (const cat of Object.keys(this.items)) {
         for (const it of this.items[cat]) {
           if (it.found) continue;
           if (Math.hypot(p.x - it.x, p.z - it.z) < 3) {
             it.found = true;
             const label = cat === 'cards' ? `Card: ${it.setName} #${it.idx + 1}` : `${cat} #${it.idx + 1}`;
-            G.hud.toast(`Collected: ${label} (${this.foundCount()}/${this.total})`);
-            G.audio.pickup();
+            Game.hud.toast(`Collected: ${label} (${this.foundCount()}/${this.total})`);
+            Game.audio.pickup();
             if (cat === 'cards') {
               const sp = this.setProgress(it.set);
-              if (sp.complete) G.hud.toast(`Set complete: ${sp.set.name}! Sell it at Vice City Pawn.`);
+              if (sp.complete) Game.hud.toast(`Set complete: ${sp.set.name}! Sell it at Vice City Pawn.`);
             }
             if (cat === 'watches') {
               const n = this.foundCount('watches');
-              if (n === 10) G.hud.toast('Cheat unlocked: Move Time Forward (10 watches).');
-              if (n === 20) G.hud.toast('Cheat unlocked: Pause Time (20 watches).');
+              if (n === 10) Game.hud.toast('Cheat unlocked: Move Time Forward (10 watches).');
+              if (n === 20) Game.hud.toast('Cheat unlocked: Pause Time (20 watches).');
             }
             if (cat === 'meditation') {
-              if (G.attributes) G.attributes.meditate();
+              if (Game.attributes) Game.attributes.meditate();
             }
-            G.saveGame();
+            Game.saveGame();
             return; // one pickup per frame
           }
         }
@@ -163,19 +254,23 @@ export function createCollectibles(G) {
       const sp = this.setProgress(setId);
       if (!sp || !sp.complete) return { ok: false, reason: 'Set is not complete yet.' };
       const value = sp.total * 250;
-      G.money += value;
+      Game.money += value;
       for (const c of this.items.cards) if (c.set === setId) c.found = false;
-      G.audio.cash();
-      G.hud.cashPopup(`+$${value.toLocaleString()}`);
-      G.hud.toast(`Sold the ${sp.set.name} set for $${value.toLocaleString()}.`);
+      Game.audio.cash();
+      Game.hud.cashPopup(`+$${value.toLocaleString()}`);
+      Game.hud.toast(`Sold the ${sp.set.name} set for $${value.toLocaleString()}.`);
       return { ok: true, value };
     },
     sellSingleCard(card) {
       if (!card.found) return { ok: false, reason: 'Not collected.' };
       card.found = false;
-      G.money += 50;
-      G.audio.cash();
+      Game.money += 50;
+      Game.audio.cash();
       return { ok: true, value: 50 };
+    },
+    // Round 3: collection progress as a whole percent (HUD tracker).
+    progressPct() {
+      return this.total ? Math.round((this.foundCount() / this.total) * 100) : 0;
     },
     // ---- Save / load ----
     serialize() {

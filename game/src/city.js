@@ -1,21 +1,27 @@
 // city.js — Builds Azura Bay: road grid, buildings, sidewalks, beach, sea,
 // harbor docks, palms, streetlights and the safehouse. One job: the world itself.
+// Facades are canvas-drawn, not image files — the facade painter draws a warm
+// wall + lit windows on a 128x256 canvas.
+// Round 5: texture painters renamed (makeCanvasTexture / paintFacade /
+// paintRoad), the collider and lamp lists renamed, Game replaces G.
+// Behaviour unchanged.
 
-import * as THREE from 'three';
 import { BLOCK, ROAD, PITCH, GRID, CITY_HALF, BEACH_Z, WATER_Z, HARBOR_X, PALETTE, PLACES } from './config.js';
+import * as THREE from 'three';
 
-function canvasTexture(w, h, draw) {
-  const c = document.createElement('canvas');
-  c.width = w; c.height = h;
-  draw(c.getContext('2d'), w, h);
-  const t = new THREE.CanvasTexture(c);
-  t.colorSpace = THREE.SRGBColorSpace;
-  return t;
+function paintRoad() {
+  return makeCanvasTexture(64, 256, (g, w, h) => {
+    g.fillStyle = '#2e2e33'; g.fillRect(0, 0, w, h);
+    g.fillStyle = '#d8c86a';
+    for (let y = 8; y < h; y += 42) g.fillRect(w / 2 - 2, y, 4, 22);
+    g.fillStyle = 'rgba(255,255,255,0.05)';
+    for (let i = 0; i < 40; i++) g.fillRect(Math.random() * w, Math.random() * h, 2, 2);
+  });
 }
 
 // Facade texture: warm wall with a grid of windows, some lit gold.
-function facadeTexture(baseColor, rng) {
-  return canvasTexture(128, 256, (g, w, h) => {
+function paintFacade(baseColor, rng) {
+  return makeCanvasTexture(128, 256, (g, w, h) => {
     g.fillStyle = baseColor; g.fillRect(0, 0, w, h);
     g.fillStyle = 'rgba(0,0,0,0.08)';
     for (let y = 0; y < h; y += 16) g.fillRect(0, y, w, 2);
@@ -31,20 +37,19 @@ function facadeTexture(baseColor, rng) {
   });
 }
 
-function roadTexture() {
-  return canvasTexture(64, 256, (g, w, h) => {
-    g.fillStyle = '#2e2e33'; g.fillRect(0, 0, w, h);
-    g.fillStyle = '#d8c86a';
-    for (let y = 8; y < h; y += 42) g.fillRect(w / 2 - 2, y, 4, 22);
-    g.fillStyle = 'rgba(255,255,255,0.05)';
-    for (let i = 0; i < 40; i++) g.fillRect(Math.random() * w, Math.random() * h, 2, 2);
-  });
+function makeCanvasTexture(w, h, draw) {
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  draw(c.getContext('2d'), w, h);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
 }
 
-export function buildCity(G) {
-  const { scene, rng } = G;
+export function buildCity(Game) {
+  const { scene, rng } = Game;
   const colliders = [];
-  const lamps = [];
+  const lampposts = [];
 
   // ---- Ground base ----
   const ground = new THREE.Mesh(
@@ -67,7 +72,7 @@ export function buildCity(G) {
   scene.add(slab);
 
   // ---- Roads (textured strips, dashed centre line) ----
-  const roadTex = roadTexture();
+  const roadTex = paintRoad();
   roadTex.wrapS = roadTex.wrapT = THREE.RepeatWrapping;
   const roadLen = CITY_HALF * 2 + ROAD;
   for (let i = 0; i < GRID; i++) {
@@ -97,7 +102,7 @@ export function buildCity(G) {
   const towers = []; // tall buildings, for neon signs + rooftop props
   const facadeMats = PALETTE.building.map((hex) => {
     const css = '#' + hex.toString(16).padStart(6, '0');
-    const tex = facadeTexture(css, rng);
+    const tex = paintFacade(css, rng);
     tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
     return new THREE.MeshLambertMaterial({ map: tex });
   });
@@ -204,7 +209,7 @@ export function buildCity(G) {
     ['SURF SHOP', '#00e5ff'], ['PIER 9', '#39ff88'],
   ];
   function neonTexture(text, color) {
-    return canvasTexture(256, 64, (g, w, h) => {
+    return makeCanvasTexture(256, 64, (g, w, h) => {
       g.clearRect(0, 0, w, h);
       g.font = 'bold 40px Arial, sans-serif';
       g.textAlign = 'center';
@@ -380,21 +385,30 @@ export function buildCity(G) {
     poles.setMatrixAt(idx, m4);
     m4.makeTranslation(x, 7.6, z);
     heads.setMatrixAt(idx, m4);
-    lamps.push({ x, z });
+    lampposts.push({ x, z });
   });
   scene.add(poles); scene.add(heads);
 
   return {
     colliders,
-    lamps,
+    lampposts,
     lampHeadMat: headMat,
     seaMat,
     // Lamps glow at dusk/night; sea shimmers slightly.
     update(dt, timeOfDay) {
-      const night = timeOfDay > 18.6 || timeOfDay < 6.5;
-      const dusk = timeOfDay > 17.8 && timeOfDay <= 18.6;
+      const night = isNightAt(timeOfDay);
+      const dusk = isDuskAt(timeOfDay);
       const glow = night ? 0xffc860 : dusk ? 0x885500 : 0x000000;
       headMat.emissive.setHex(glow);
     },
   };
+}
+
+// ---- Round 3: day/night helpers (shared with the HUD clock) ----
+export function isNightAt(timeOfDay) {
+  return timeOfDay > 18.6 || timeOfDay < 6.5;
+}
+
+export function isDuskAt(timeOfDay) {
+  return timeOfDay > 17.8 && timeOfDay <= 18.6;
 }

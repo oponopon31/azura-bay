@@ -2,6 +2,8 @@
 // same keys a player would, drives the road grid to each mission marker, shoots,
 // and checks every system. Run with ?selftest=1. Results land in
 // window.__testResults and console as [SELFTEST] lines.
+// Round 4: 41 steps in one run — every step logs a row into window.__testResults, so the result is data, not console text.
+// Round 5: 42 steps — the r5 HUD step checks the four corners, the 16 sidearm names, the ES18 burst and the good1 BuckMe fix.
 // Round 2: the 18 round-1 tests are kept (with round-2 fixes: magAmmo is a
 // scalar now, the stun gun id is 'stungun', weapon categories come from
 // WEAPON_BY_ID + kind), plus 20 new tests for the round-2 systems
@@ -15,6 +17,9 @@ import { STORY, CHAPTERS, validateStory } from './story.js';
 import { WEAPON_BY_ID } from './weapons.js';
 import { createCollectibles } from './collectibles.js';
 import { gtabaseToMap } from './leonidamap.js';
+import { weaponDps } from './weapons.js';
+import { makeRng } from './rng.js';
+import { applyShot } from './shots.js';
 
 // Weapon kind -> category (the data tables store `kind`, not `cat`).
 function catOf(w) {
@@ -1164,6 +1169,75 @@ export function createSelfTest(G) {
       return null;
     },
     timeout: 20,
+  });
+
+  // ---- Round 3: new helpers + systems + night pose ----
+  steps.push({
+    name: 'r3 helpers: weaponDps, melee variants, cheat lookup, deterministic shuffle',
+    run() {
+      const dps = weaponDps('es9');
+      const meleeOk = WEAPON_BY_ID.bat && Array.isArray(WEAPON_BY_ID.bat.variants)
+        && WEAPON_BY_ID.bat.variants.length === 3;
+      const a = makeRng(7).shuffle([1, 2, 3, 4, 5]);
+      const b = makeRng(7).shuffle([1, 2, 3, 4, 5]);
+      const same = a.length === 5 && a.every((v, i) => v === b[i]) && a.slice().sort().join() === '1,2,3,4,5';
+      const cheat = G.cheats.byId('money250k');
+      const ok = dps > 0 && meleeOk && same && cheat && cheat.name === 'Uang $250.000'
+        && G.cheats.comboParts('money250k').length === 10;
+      return ok ? 'done' : 'fail';
+    },
+    timeout: 5,
+  });
+  steps.push({
+    name: 'r3 systems: totalWealth, expandedShops, mission counts, night pose stages',
+    run() {
+      const wealthOk = typeof G.economy.totalWealth() === 'number' && G.economy.totalWealth() >= 0;
+      const shopsOk = G.gunshops.expandedCount() === 6;
+      const missionsOk = G.missions.completedCount() + G.missions.remainingCount() === 91;
+      applyShot(G, 'night');
+      const poseOk = G.mode === 'playing';
+      const ok = wealthOk && shopsOk && missionsOk && poseOk;
+      return ok ? 'done' : 'fail';
+    },
+    timeout: 5,
+  });
+  steps.push({
+    name: 'r5 hud: four corners render from live state + sidearm names + good1 reads BuckMe',
+    run() {
+      // Bab 29: the four corner panels exist and the read helper mirrors live state.
+      const cornersOk = ['hud-status', 'hud-topright', 'hud-vehicle', 'hud-profile']
+        .every((id) => document.getElementById(id));
+      const c = G.hud.hudCorners();
+      const healthFill = document.getElementById('hud-health-fill');
+      const stateOk = c.health === Math.max(0, Math.round(G.player.health))
+        && c.walletMax === 20000
+        && c.buckme === (G.economy ? G.economy.clean : 0)
+        && ['Professional', 'Hardened', 'Violent & Dangerous', 'Psycho', 'Irredeemable'].includes(c.profile)
+        && c.relationship >= 0 && c.relationship <= 100
+        && healthFill && healthFill.style.width !== '';
+      // FIX 1: the 16 sidearms are the user's exact SPEC §2a names.
+      const want = ['Scorpio Nipper .38', 'Girardi ES9', 'Klose K17', 'Duke Arms 1992', 'Girardi ES18', 'Klose K17 MCD', 'Schlamm DRX', 'Fairview Kalinga .50', 'Coil Shocker', 'Wortham WCR-1', 'Hawk & Little .38', 'Duke Mustang .357', 'Hawk & Little Morgan', 'Scorpio Akulus', 'Capo Pistol', 'Beretta-style Service Pistol'];
+      const sidearms = Object.values(WEAPON_BY_ID).filter((w) => w.kind === 'pistol' || w.kind === 'revolver');
+      const namesOk = sidearms.length === 16 && want.every((n) => sidearms.some((w) => w.name === n));
+      const rolesOk = WEAPON_BY_ID.es18.mode === 'burst'
+        && WEAPON_BY_ID.stungun.name === 'Coil Shocker' && WEAPON_BY_ID.stungun.stun === true
+        && WEAPON_BY_ID.akulus.damage === 52
+        && WEAPON_BY_ID.kalinga50.damage === 50;
+      // ES18 burst: one pull spends three rounds.
+      G.weapons.give('es18'); G.weapons.equip('es18');
+      G.weapons.magAmmo = WEAPON_BY_ID.es18.mag;
+      G.weapons.triggerDown();
+      const burstOk = G.weapons.magAmmo === WEAPON_BY_ID.es18.mag - 3;
+      // FIX 2: good1 reads BuckMe savings, not the capped wallet — with only
+      // $100 cash but $50,000 banked and a Professional profile, the escape
+      // together must be the ending (the old cash check returned good2 here).
+      G.stats.copsDown = 0; G.stats.civiliansHurt = 0; G.stats.stuns = 5; G.stats.psycho = false;
+      G.money = 100; G.economy.clean = 50000; G.stats.relationship = 80;
+      const endingOk = G.missions.computeEnding().key === 'good1';
+      const ok = cornersOk && stateOk && namesOk && rolesOk && burstOk && endingOk;
+      return ok ? 'done' : 'fail';
+    },
+    timeout: 5,
   });
 
   let done = false;

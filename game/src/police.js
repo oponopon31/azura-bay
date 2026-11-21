@@ -3,33 +3,16 @@
 // Bab 12: Heat is the police memory — outfit, vehicle, weapon, partner — and
 // stars have five states (hollow / solid / blinking / red / 6-star manhunt).
 // Bab 21: at 1–2 stars the police order the player to surrender first.
+// At 1–2 stars the police order a surrender first — Y surrenders, and the
+// order comes before the shooting.
+// Round 5: mesh builders renamed (makeCopMesh / makeHeliMesh), the cop
+// uniform material renamed, Game replaces G. Behaviour unchanged.
 
-import * as THREE from 'three';
-import { WANTED, starsFromHeat, policeCarCount, helicopterAt, CITY_HALF, PITCH, GRID, onRoad, nearestRoad } from './config.js';
 import { makeCar } from './vehicles.js';
+import { WANTED, starsFromHeat, policeCarCount, helicopterAt, CITY_HALF, PITCH, GRID, onRoad, nearestRoad } from './config.js';
+import * as THREE from 'three';
 
-function buildCopMesh() {
-  const g = new THREE.Group();
-  const uniform = new THREE.MeshLambertMaterial({ color: 0x1a2f5e });
-  const skin = new THREE.MeshLambertMaterial({ color: 0xd9a066 });
-  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.75, 0.36), uniform);
-  torso.position.y = 1.18; torso.castShadow = true;
-  g.add(torso);
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.24, 12, 10), skin);
-  head.position.y = 1.78; head.castShadow = true;
-  g.add(head);
-  const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.26, 0.1, 12), uniform);
-  cap.position.y = 1.98;
-  g.add(cap);
-  const legL = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.85, 0.24), uniform);
-  legL.position.set(-0.15, 0.42, 0);
-  g.add(legL);
-  const legR = legL.clone(); legR.position.x = 0.15;
-  g.add(legR);
-  return g;
-}
-
-function buildHeliMesh() {
+function makeHeliMesh() {
   const g = new THREE.Group();
   const bodyMat = new THREE.MeshLambertMaterial({ color: 0x223344 });
   const body = new THREE.Mesh(new THREE.BoxGeometry(2.2, 1.4, 4.6), bodyMat);
@@ -53,7 +36,28 @@ function buildHeliMesh() {
   return { group: g, rotor, spot };
 }
 
-export function createPolice(G) {
+function makeCopMesh() {
+  const g = new THREE.Group();
+  const copUniform = new THREE.MeshLambertMaterial({ color: 0x1a2f5e });
+  const skin = new THREE.MeshLambertMaterial({ color: 0xd9a066 });
+  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.75, 0.36), copUniform);
+  torso.position.y = 1.18; torso.castShadow = true;
+  g.add(torso);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.24, 12, 10), skin);
+  head.position.y = 1.78; head.castShadow = true;
+  g.add(head);
+  const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.26, 0.1, 12), copUniform);
+  cap.position.y = 1.98;
+  g.add(cap);
+  const legL = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.85, 0.24), copUniform);
+  legL.position.set(-0.15, 0.42, 0);
+  g.add(legL);
+  const legR = legL.clone(); legR.position.x = 0.15;
+  g.add(legR);
+  return g;
+}
+
+export function createPolice(Game) {
   const P = {
     heat: 0,
     stars: 0,
@@ -72,35 +76,35 @@ export function createPolice(G) {
     escapes3Star: 0,   // counted for the Raise Heat Level cheat unlock
 
     addHeat(amount, why) {
-      if (G.mode !== 'playing') return;
+      if (Game.mode !== 'playing') return;
       if (amount <= 0) return;
       const before = this.stars;
       this.heat = Math.min(WANTED.maxHeat, this.heat + amount);
       this.stars = starsFromHeat(this.heat);
       if (this.stars > before) {
-        G.hud.toast(`Wanted level up — ${this.stars} star${this.stars > 1 ? 's' : ''}!`);
-        G.audio.blip(440, 0.2, 'square', 0.12);
+        Game.hud.toast(`Wanted level up — ${this.stars} star${this.stars > 1 ? 's' : ''}!`);
+        Game.audio.blip(440, 0.2, 'square', 0.12);
       }
-      this.lastSeen = G.elapsed;
-      G.stats.crimes++;
+      this.lastSeen = Game.elapsed;
+      Game.stats.crimes++;
     },
 
     // Bab 12: the police remember the current outfit / vehicle / weapon.
     // Changing them after the stars clear breaks recognition.
     rememberClues() {
-      this.memory.outfit = G.wardrobe ? G.wardrobe.currentOutfit() : 'default';
-      this.memory.vehicle = G.player.car ? G.player.car.model : null;
-      this.memory.weapon = G.weapons ? G.weapons.active().id : null;
-      this.memory.partner = !!(G.stats.partnerNearby);
+      this.memory.outfit = Game.wardrobe ? Game.wardrobe.currentOutfit() : 'default';
+      this.memory.vehicle = Game.player.car ? Game.player.car.model : null;
+      this.memory.weapon = Game.weapons ? Game.weapons.active().id : null;
+      this.memory.partner = !!(Game.stats.partnerNearby);
     },
     // Recognition check: same outfit + same car after the stars clear =
     // the police spot the player again ("RECOGNIZED").
     checkRecognition() {
       if (this.stars > 0) return false;
-      const sameOutfit = this.memory.outfit && this.memory.outfit === (G.wardrobe ? G.wardrobe.currentOutfit() : 'default');
-      const sameCar = this.memory.vehicle && G.player.car && G.player.car.model === this.memory.vehicle;
-      if ((sameOutfit || sameCar) && G.police.cops.some((c) => c.alive && c.pos.distanceTo(G.player.pos) < 25)) {
-        G.hud.toast('RECOGNIZED! The police remember that outfit / car!');
+      const sameOutfit = this.memory.outfit && this.memory.outfit === (Game.wardrobe ? Game.wardrobe.currentOutfit() : 'default');
+      const sameCar = this.memory.vehicle && Game.player.car && Game.player.car.model === this.memory.vehicle;
+      if ((sameOutfit || sameCar) && Game.police.cops.some((c) => c.alive && c.pos.distanceTo(Game.player.pos) < 25)) {
+        Game.hud.toast('RECOGNIZED! The police remember that outfit / car!');
         this.addHeat(20, 'recognized by police');
         return true;
       }
@@ -110,14 +114,14 @@ export function createPolice(G) {
     // swap cars, Pay 'n' Spray, call Joey, or loot a police trunk.
     clearMemory(why) {
       this.memory = { outfit: null, vehicle: null, weapon: null, partner: false, cctv: false };
-      G.hud.toast(`Heat memory cleared — ${why}.`);
+      Game.hud.toast(`Heat memory cleared — ${why}.`);
     },
     lootPoliceTrunk() {
-      const pc = G.cars.find((c) => c.driver === 'police' && c.pos.distanceTo(G.player.pos) < 6);
-      if (!pc) { G.hud.toast('No police car nearby to loot.'); return false; }
-      G.hud.toast('Police trunk looted: Body Armor + shotgun shells.');
-      if (G.weapons) { G.weapons.give('morland850'); G.weapons.magAmmo.morland850 = 6; }
-      if (G.world) G.world.addBodyArmor(50);
+      const pc = Game.cars.find((c) => c.driver === 'police' && c.pos.distanceTo(Game.player.pos) < 6);
+      if (!pc) { Game.hud.toast('No police car nearby to loot.'); return false; }
+      Game.hud.toast('Police trunk looted: Body Armor + shotgun shells.');
+      if (Game.weapons) { Game.weapons.give('morland850'); Game.weapons.magAmmo.morland850 = 6; }
+      if (Game.world) Game.world.addBodyArmor(50);
       return true;
     },
 
@@ -126,17 +130,17 @@ export function createPolice(G) {
     // the player is hidden unless a unit is right on top of them (< 12 m).
     // That is what makes losing the cops possible.
     anyPoliceSeesPlayer() {
-      const p = G.player.pos;
+      const p = Game.player.pos;
       // Smoke: standing inside a smoke cloud hides the player from every unit.
-      if (G.combat) {
-        for (const cloud of G.combat.smokeClouds) {
+      if (Game.combat) {
+        for (const cloud of Game.combat.smokeClouds) {
           if (Math.hypot(p.x - cloud.pos.x, p.z - cloud.pos.z) < cloud.radius) return false;
         }
       }
       // Hide in Car (Bab 18): ducked down in the car, the police eye passes over.
-      if (G.world && G.world.hiddenInCar) return false;
-      const hidden = G.player.onFoot && !onRoad(p.x, p.z);
-      for (const car of G.cars) {
+      if (Game.world && Game.world.hiddenInCar) return false;
+      const hidden = Game.player.onFoot && !onRoad(p.x, p.z);
+      for (const car of Game.cars) {
         if (car.driver === 'police') {
           const d = car.pos.distanceTo(p);
           if (d < 70 && (!hidden || d < 12)) return true;
@@ -148,7 +152,7 @@ export function createPolice(G) {
           if (d < 40 && (!hidden || d < 12)) return true;
         }
       }
-      if (this.heli && !G.player.onFoot && this.heli.pos.distanceTo(p) < 120) return true;
+      if (this.heli && !Game.player.onFoot && this.heli.pos.distanceTo(p) < 120) return true;
       return false;
     },
 
@@ -156,15 +160,15 @@ export function createPolice(G) {
       // Heat decays only after being unseen for a while.
       this.seenNow = this.anyPoliceSeesPlayer();
       if (this.seenNow) {
-        this.lastSeen = G.elapsed;
+        this.lastSeen = Game.elapsed;
         if (!this.lastSeenPos) this.lastSeenPos = new THREE.Vector3();
-        this.lastSeenPos.copy(G.player.pos);
+        this.lastSeenPos.copy(Game.player.pos);
       }
-      if (this.stars > 0 && G.elapsed - this.lastSeen > WANTED.decayDelay) {
+      if (this.stars > 0 && Game.elapsed - this.lastSeen > WANTED.decayDelay) {
         this.heat = Math.max(0, this.heat - WANTED.decayRate * dt);
         const s = starsFromHeat(this.heat);
         if (s < this.stars) {
-          G.hud.toast('The heat is cooling off…');
+          Game.hud.toast('The heat is cooling off…');
           if (s === 0 && this.stars >= 3) { this.escapes3Star++; this.rememberClues(); }
         }
         this.stars = s;
@@ -174,22 +178,22 @@ export function createPolice(G) {
       // blinking while out of sight, red while the area is being searched.
       this.starState = this.stars <= 0 ? 'none'
         : this.seenNow ? 'solid'
-        : (G.elapsed - this.lastSeen < 4 ? 'blinking' : 'red');
+        : (Game.elapsed - this.lastSeen < 4 ? 'blinking' : 'red');
       // Surrender (Bab 21): at 1–2 stars the police order the player to
       // give up before they open fire.
       if ((this.stars === 1 || this.stars === 2) && !this.surrenderOffered && this.seenNow) {
         this.surrenderOffered = true;
-        G.hud.toast('Police: "Hands up! Surrender now!" (press Y to give up)');
-        G.hud.showDialog('VCPD', '"Put your hands up and this ends clean. Keep running and it ends worse."', 5000);
+        Game.hud.toast('Police: "Hands up! Surrender now!" (press Y to give up)');
+        Game.hud.showDialog('VCPD', '"Put your hands up and this ends clean. Keep running and it ends worse."', 5000);
       }
       if (this.stars === 0) this.surrenderOffered = false;
       // Speeding past a police car adds a little heat (close and very fast only).
-      if (G.player.inCar && G.player.speed > 30) {
-        for (const car of G.cars) {
-          if (car.driver === 'police' && car.pos.distanceTo(G.player.pos) < 12) {
+      if (Game.player.inCar && Game.player.speed > 30) {
+        for (const car of Game.cars) {
+          if (car.driver === 'police' && car.pos.distanceTo(Game.player.pos) < 12) {
             this.heat = Math.min(WANTED.maxHeat, this.heat + 2 * dt);
             this.stars = starsFromHeat(this.heat);
-            this.lastSeen = G.elapsed;
+            this.lastSeen = Game.elapsed;
           }
         }
       }
@@ -201,23 +205,23 @@ export function createPolice(G) {
       let siren = 0;
       if (this.stars > 0) {
         let nearest = 1e9;
-        for (const car of G.cars) {
-          if (car.driver === 'police') nearest = Math.min(nearest, car.pos.distanceTo(G.player.pos));
+        for (const car of Game.cars) {
+          if (car.driver === 'police') nearest = Math.min(nearest, car.pos.distanceTo(Game.player.pos));
         }
         siren = nearest < 1e8 ? Math.max(0.15, 1 - nearest / 120) : 0.3;
       }
-      G.audio.setSiren(siren);
+      Game.audio.setSiren(siren);
     },
 
     // Bab 21 surrender: give up at 1–2 stars — a fine, no chase, story continues.
     surrender() {
-      if (this.stars < 1 || this.stars > 2) { G.hud.toast('Too hot to surrender now.'); return false; }
-      const fine = Math.min(G.money, 150);
-      G.money -= fine;
+      if (this.stars < 1 || this.stars > 2) { Game.hud.toast('Too hot to surrender now.'); return false; }
+      const fine = Math.min(Game.money, 150);
+      Game.money -= fine;
       this.heat = 0;
       this.stars = 0;
       this.starState = 'none';
-      G.hud.toast(`You surrendered. Fine $${fine}. The VCPD lets you walk.`);
+      Game.hud.toast(`You surrendered. Fine $${fine}. The VCPD lets you walk.`);
       return true;
     },
 
@@ -227,20 +231,20 @@ export function createPolice(G) {
       this.spawnCooldown = 1.0;
       // Police cars.
       const wantCars = policeCarCount(this.stars);
-      const haveCars = G.cars.filter((c) => c.driver === 'police').length;
+      const haveCars = Game.cars.filter((c) => c.driver === 'police').length;
       if (haveCars < wantCars) {
         this.spawnPoliceCar();
       } else if (haveCars > wantCars) {
-        const extra = G.cars.find((c) => c.driver === 'police');
+        const extra = Game.cars.find((c) => c.driver === 'police');
         if (extra) { extra.driver = 'parked'; extra.speed = 0; }
       }
       // Foot cops when the player is on foot and wanted.
-      const wantCops = G.player.onFoot ? Math.min(3, this.stars) : 0;
+      const wantCops = Game.player.onFoot ? Math.min(3, this.stars) : 0;
       const haveCops = this.cops.filter((c) => c.alive).length;
       if (haveCops < wantCops) this.spawnCop();
       // Heat gone: foot cops give up and leave.
       if (this.stars === 0 && this.cops.length > 0) {
-        for (const cop of this.cops) G.scene.remove(cop.mesh);
+        for (const cop of this.cops) Game.scene.remove(cop.mesh);
         this.cops = [];
       }
       // Helicopter at 3+ stars.
@@ -253,34 +257,34 @@ export function createPolice(G) {
 
     spawnPoliceCar() {
       // Reuse a traffic car when the city is already full of cars.
-      if (G.cars.length >= 40) {
-        const traffic = G.cars.find((c) => c.driver === 'traffic');
+      if (Game.cars.length >= 40) {
+        const traffic = Game.cars.find((c) => c.driver === 'traffic');
         if (traffic) {
           traffic.driver = 'police';
           traffic.speed = 10;
           return traffic;
         }
       }
-      const p = G.player.pos;
+      const p = Game.player.pos;
       // Spawn on a road 60–90 m away, roughly ahead of the player.
-      const road = -CITY_HALF + G.rng.int(0, GRID - 1) * PITCH;
-      const angle = G.rng.range(0, Math.PI * 2);
+      const road = -CITY_HALF + Game.rng.int(0, GRID - 1) * PITCH;
+      const angle = Game.rng.range(0, Math.PI * 2);
       const x = THREE.MathUtils.clamp(p.x + Math.cos(angle) * 75, -CITY_HALF, CITY_HALF);
       const z = THREE.MathUtils.clamp(p.z + Math.sin(angle) * 75, -CITY_HALF, CITY_HALF);
-      const car = makeCar(G, 'police', x, z, Math.atan2(p.x - x, p.z - z), 'police');
+      const car = makeCar(Game, 'police', x, z, Math.atan2(p.x - x, p.z - z), 'police');
       car.speed = 10;
       return car;
     },
 
     spawnCop() {
-      const p = G.player.pos;
-      const angle = G.rng.range(0, Math.PI * 2);
+      const p = Game.player.pos;
+      const angle = Game.rng.range(0, Math.PI * 2);
       const x = THREE.MathUtils.clamp(p.x + Math.cos(angle) * 22, -CITY_HALF, CITY_HALF);
       const z = THREE.MathUtils.clamp(p.z + Math.sin(angle) * 22, -CITY_HALF, CITY_HALF);
-      const mesh = buildCopMesh();
+      const mesh = makeCopMesh();
       mesh.position.set(x, 0, z);
       mesh.userData.hitKind = 'cop';
-      G.scene.add(mesh);
+      Game.scene.add(mesh);
       const cop = {
         mesh, pos: new THREE.Vector3(x, 0, z), heading: 0,
         health: 100, alive: true, shootCooldown: 1, bustedTimer: 0, walkPhase: 0,
@@ -295,8 +299,8 @@ export function createPolice(G) {
       cop.alive = false;
       cop.mesh.rotation.x = -Math.PI / 2;
       cop.mesh.position.y = 0.3;
-      G.effects.blood(cop.pos.x, 1, cop.pos.z);
-      G.stats.copsDown++;
+      Game.effects.blood(cop.pos.x, 1, cop.pos.z);
+      Game.stats.copsDown++;
     },
 
     // Stun (Coil Shocker / flashbang): the cop falls and stays down for
@@ -304,43 +308,43 @@ export function createPolice(G) {
     stunCop(cop, secs) {
       if (!cop.alive || cop.stunned) return;
       cop.stunned = true;
-      cop.stunnedUntil = G.elapsed + secs;
+      cop.stunnedUntil = Game.elapsed + secs;
       cop.mesh.rotation.x = -Math.PI / 2;
       cop.mesh.position.y = 0.3;
-      G.effects.sparks(cop.pos.x, 1, cop.pos.z, 8);
-      G.audio.zap();
-      G.hud.toast('Officer stunned.');
+      Game.effects.sparks(cop.pos.x, 1, cop.pos.z, 8);
+      Game.audio.zap();
+      Game.hud.toast('Officer stunned.');
     },
 
     spawnHeli() {
-      const { group, rotor, spot } = buildHeliMesh();
+      const { group, rotor, spot } = makeHeliMesh();
       group.userData.hitKind = 'heli';
-      const pos = G.player.pos.clone().add(new THREE.Vector3(20, 42, -20));
+      const pos = Game.player.pos.clone().add(new THREE.Vector3(20, 42, -20));
       group.position.copy(pos);
-      G.scene.add(group);
+      Game.scene.add(group);
       this.heli = { group, rotor, spot, pos, health: 200 };
       group.userData.ref = this.heli;
-      G.hud.toast('Police helicopter overhead!');
+      Game.hud.toast('Police helicopter overhead!');
     },
 
     removeHeli() {
       if (!this.heli) return;
-      G.scene.remove(this.heli.group);
+      Game.scene.remove(this.heli.group);
       this.heli = null;
     },
 
     downHelicopter() {
       if (!this.heli) return;
-      G.effects.sparks(this.heli.pos.x, this.heli.pos.y, this.heli.pos.z, 40);
-      G.effects.smoke(this.heli.pos.x, this.heli.pos.y, this.heli.pos.z, 20);
-      G.hud.toast('Helicopter down!');
-      G.audio.crash(1);
+      Game.effects.sparks(this.heli.pos.x, this.heli.pos.y, this.heli.pos.z, 40);
+      Game.effects.smoke(this.heli.pos.x, this.heli.pos.y, this.heli.pos.z, 20);
+      Game.hud.toast('Helicopter down!');
+      Game.audio.crash(1);
       this.removeHeli();
       this.addHeat(20, 'downed the helicopter');
     },
 
     spawnRoadblocks() {
-      const p = G.player.pos;
+      const p = Game.player.pos;
       const mat = new THREE.MeshLambertMaterial({ color: 0xff5533, emissive: 0x441100 });
       for (const off of [-14, 14]) {
         const barrier = new THREE.Mesh(new THREE.BoxGeometry(7, 1.1, 0.8), mat);
@@ -348,18 +352,18 @@ export function createPolice(G) {
         const z = p.z;
         barrier.position.set(x, 0.55, z);
         barrier.castShadow = true;
-        G.scene.add(barrier);
+        Game.scene.add(barrier);
         this.roadblocks.push({ mesh: barrier, x, z });
-        G.city.colliders.push({ minX: x - 3.5, maxX: x + 3.5, minZ: z - 0.5, maxZ: z + 0.5 });
+        Game.city.colliders.push({ minX: x - 3.5, maxX: x + 3.5, minZ: z - 0.5, maxZ: z + 0.5 });
       }
-      G.hud.toast('Roadblock ahead!');
+      Game.hud.toast('Roadblock ahead!');
     },
 
     clearRoadblocks() {
       for (const rb of this.roadblocks) {
-        G.scene.remove(rb.mesh);
-        const idx = G.city.colliders.findIndex((c) => Math.abs(c.minX - (rb.x - 3.5)) < 0.01);
-        if (idx >= 0) G.city.colliders.splice(idx, 1);
+        Game.scene.remove(rb.mesh);
+        const idx = Game.city.colliders.findIndex((c) => Math.abs(c.minX - (rb.x - 3.5)) < 0.01);
+        if (idx >= 0) Game.city.colliders.splice(idx, 1);
       }
       this.roadblocks = [];
     },
@@ -367,9 +371,9 @@ export function createPolice(G) {
     // Police cars steer toward the player and ram. When they lose sight they
     // drive to the last seen position, search, then give up and go back on patrol.
     updatePoliceCars(dt) {
-      const p = G.player.pos;
+      const p = Game.player.pos;
       const search = this.lastSeenPos || p;
-      for (const car of G.cars) {
+      for (const car of Game.cars) {
         if (car.driver !== 'police') continue;
         const dx = p.x - car.pos.x, dz = p.z - car.pos.z;
         const dist = Math.hypot(dx, dz);
@@ -404,28 +408,28 @@ export function createPolice(G) {
         // car per second, not one per frame: the old per-frame 0.02 wrecked
         // a car in under a second of contact, which made every chase end
         // in a dead car before the player could do anything.
-        if (G.player.inCar && G.player.car && dist < 5 && Math.abs(car.speed) > 6) {
-          if (G.elapsed - (car.lastRamAt || 0) > 1) {
-            car.lastRamAt = G.elapsed;
-            G.player.car.health = Math.max(0, G.player.car.health - 0.03);
-            G.effects.sparks(car.pos.x, 1, car.pos.z, 4);
+        if (Game.player.inCar && Game.player.car && dist < 5 && Math.abs(car.speed) > 6) {
+          if (Game.elapsed - (car.lastRamAt || 0) > 1) {
+            car.lastRamAt = Game.elapsed;
+            Game.player.car.health = Math.max(0, Game.player.car.health - 0.03);
+            Game.effects.sparks(car.pos.x, 1, car.pos.z, 4);
           }
         }
         // A police car that touches the player on foot busts them.
-        if (G.player.onFoot && dist < 2.5 && G.player.speed < 1.5) {
+        if (Game.player.onFoot && dist < 2.5 && Game.player.speed < 1.5) {
           this.bustedTimer += dt;
           if (this.bustedTimer > 1.2) this.busted();
-        } else if (G.player.onFoot && dist < 2.5) {
+        } else if (Game.player.onFoot && dist < 2.5) {
           // Cop car shoves the player.
-          G.player.pos.x += Math.sin(car.heading) * 3 * dt;
-          G.player.pos.z += Math.cos(car.heading) * 3 * dt;
+          Game.player.pos.x += Math.sin(car.heading) * 3 * dt;
+          Game.player.pos.z += Math.cos(car.heading) * 3 * dt;
         }
       }
-      if (!G.player.onFoot || G.player.speed > 1.5) this.bustedTimer = Math.max(0, this.bustedTimer - dt);
+      if (!Game.player.onFoot || Game.player.speed > 1.5) this.bustedTimer = Math.max(0, this.bustedTimer - dt);
     },
 
     updateCops(dt) {
-      const p = G.player.pos;
+      const p = Game.player.pos;
       const search = this.lastSeenPos || p;
       for (let i = this.cops.length - 1; i >= 0; i--) {
         const cop = this.cops[i];
@@ -433,7 +437,7 @@ export function createPolice(G) {
         // Stunned: stays down and does nothing until the stun expires,
         // then gets back up.
         if (cop.stunned) {
-          if (G.elapsed >= cop.stunnedUntil) {
+          if (Game.elapsed >= cop.stunnedUntil) {
             cop.stunned = false;
             cop.mesh.rotation.x = 0;
             cop.mesh.position.y = 0;
@@ -447,7 +451,7 @@ export function createPolice(G) {
         if (dist > 45) cop.lostTimer = (cop.lostTimer || 0) + dt;
         else cop.lostTimer = 0;
         if (cop.lostTimer > 6) {
-          G.scene.remove(cop.mesh);
+          Game.scene.remove(cop.mesh);
           this.cops.splice(i, 1);
           continue;
         }
@@ -468,7 +472,7 @@ export function createPolice(G) {
         cop.mesh.position.copy(cop.pos);
         cop.mesh.rotation.y = cop.heading;
         // Busted: a cop catches the player standing still on foot.
-        if (G.player.onFoot && dist < 2.2 && G.player.speed < 1.5) {
+        if (Game.player.onFoot && dist < 2.2 && Game.player.speed < 1.5) {
           cop.bustedTimer += dt;
           if (cop.bustedTimer > 1.5) this.busted();
         } else {
@@ -482,63 +486,67 @@ export function createPolice(G) {
       const h = this.heli;
       // The helicopter tracks the player in a car; on foot it circles the
       // last seen position, so ditching the car breaks its eye.
-      const anchor = G.player.onFoot ? (this.lastSeenPos || G.player.pos) : G.player.pos;
+      const anchor = Game.player.onFoot ? (this.lastSeenPos || Game.player.pos) : Game.player.pos;
       const target = anchor.clone().add(new THREE.Vector3(18, 42, -18));
       h.pos.lerp(target, Math.min(1, 1.2 * dt));
       h.group.position.copy(h.pos);
       h.rotor.rotation.y += dt * 22;
       h.spot.target.position.copy(anchor);
-      h.spot.intensity = G.timeOfDay > 18.4 ? 60 : 0;
+      h.spot.intensity = Game.timeOfDay > 18.4 ? 60 : 0;
       h.group.lookAt(anchor.x, h.pos.y, anchor.z);
     },
 
     // Caught: lose cash, stars cleared, respawn at the safehouse.
     // An active mission is blown — it restarts from the briefing.
     busted() {
-      if (G.mode !== 'playing') return;
-      const fine = Math.min(G.money, 300);
-      G.money -= fine;
+      if (Game.mode !== 'playing') return;
+      const fine = Math.min(Game.money, 300);
+      Game.money -= fine;
       this.heat = 0;
       this.stars = 0;
       this.starState = 'none';
       this.bustedTimer = 0;
-      G.hud.showEndCard('BUSTED', `The Azura Bay PD caught up with you. Fine: $${fine}. Your crew bailed you out.`);
-      G.mode = 'busted';
-      G.audio.setSiren(0);
-      G.audio.blip(220, 0.4, 'square', 0.15);
-      if (G.missions.active) G.missions.fail('You got caught.');
-      G.saveGame();
+      Game.hud.showEndCard('BUSTED', `The Azura Bay PD caught up with you. Fine: $${fine}. Your crew bailed you out.`);
+      Game.mode = 'busted';
+      Game.audio.setSiren(0);
+      Game.audio.blip(220, 0.4, 'square', 0.15);
+      if (Game.missions.active) Game.missions.fail('You got caught.');
+      Game.saveGame();
     },
 
     // Health hit zero: respawn at the safehouse with a hospital bill.
     wasted() {
-      if (G.mode !== 'playing') return;
-      const bill = Math.min(G.money, 200);
-      G.money -= bill;
+      if (Game.mode !== 'playing') return;
+      const bill = Math.min(Game.money, 200);
+      Game.money -= bill;
       this.heat = 0;
       this.stars = 0;
       this.starState = 'none';
-      G.hud.showEndCard('WASTED', `You flatlined in Azura Bay. Hospital bill: $${bill}. The crew patched you up.`);
-      G.mode = 'wasted';
-      G.audio.setSiren(0);
-      G.audio.blip(160, 0.5, 'sawtooth', 0.15);
-      if (G.missions.active) G.missions.fail('You flatlined.');
-      G.saveGame();
+      Game.hud.showEndCard('WASTED', `You flatlined in Azura Bay. Hospital bill: $${bill}. The crew patched you up.`);
+      Game.mode = 'wasted';
+      Game.audio.setSiren(0);
+      Game.audio.blip(160, 0.5, 'sawtooth', 0.15);
+      if (Game.missions.active) Game.missions.fail('You flatlined.');
+      Game.saveGame();
     },
 
     // After the end card, respawn at the safehouse.
     respawn() {
-      if (G.player.car) { G.player.car.driver = 'parked'; G.player.car.speed = 0; G.player.car = null; }
-      G.player.onFoot = true;
-      G.player.mesh.visible = true;
-      G.player.resetToSafehouse();
+      if (Game.player.car) { Game.player.car.driver = 'parked'; Game.player.car.speed = 0; Game.player.car = null; }
+      Game.player.onFoot = true;
+      Game.player.mesh.visible = true;
+      Game.player.resetToSafehouse();
       // Clear the pursuit.
-      for (const car of G.cars) if (car.driver === 'police') { car.driver = 'parked'; car.speed = 0; }
-      for (const cop of this.cops) { G.scene.remove(cop.mesh); }
+      for (const car of Game.cars) if (car.driver === 'police') { car.driver = 'parked'; car.speed = 0; }
+      for (const cop of this.cops) { Game.scene.remove(cop.mesh); }
       this.cops = [];
       if (this.heli) this.removeHeli();
       this.clearRoadblocks();
-      G.mode = 'playing';
+      Game.mode = 'playing';
+    },
+    // Round 3: average heat per wanted star (HUD wanted tooltip).
+    heatPerStar() {
+      return this.stars > 0 ? Math.round(this.heat / this.stars) : 0;
     },
   };
   return P;

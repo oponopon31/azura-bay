@@ -10,40 +10,206 @@
 // + Millport + Emerald Springs clusters + Goose Key + Gellhorn
 // International Raceway (Landmark) + Breakwater Quarry (Under the Bridge
 // collectible, NOT a town) + Lake Leonida + VCIA + Vice City Port.
-// 23 map icons, waypoint + Map Index + quick-nav + Fog of War.
+// Round 5: table rows re-expressed one field per line. Values unchanged.
 
 export const MAP_POINTS = [
   // 10 Cities & Towns (gtabase)
-  { name: 'Key Lento', x: -2366, y: -5992, kind: 'town', region: 'Leonida Keys' },
-  { name: 'Hamlet', x: -2864, y: -3120, kind: 'town', region: 'Leonida Keys' },
-  { name: 'Watson Bay', x: -4862, y: -3404, kind: 'town', region: 'Leonida Keys' },
-  { name: 'Capri', x: -7088, y: 202, kind: 'town', region: 'Leonida Keys' },
-  { name: 'Gloriana Key', x: 722, y: -1398, kind: 'town', region: 'Leonida Keys' },
-  { name: 'Vice City', x: -220, y: 756, kind: 'town', region: 'Vice City' },
-  { name: 'Vice Beach', x: 1530, y: 896, kind: 'town', region: 'Vice City' },
-  { name: 'Waning Sands', x: -244, y: 4028, kind: 'town', region: 'Vice City' },
-  { name: 'Ambrosia', x: -3040, y: 4234, kind: 'town', region: 'Leonida Keys' },
-  { name: 'Port Gellhorn', x: -6560, y: 4264, kind: 'town', region: 'Port Gellhorn' },
+  {
+    name: 'Key Lento',
+    x: -2366,
+    y: -5992,
+    kind: 'town',
+    region: 'Leonida Keys',
+  },
+  {
+    name: 'Hamlet',
+    x: -2864,
+    y: -3120,
+    kind: 'town',
+    region: 'Leonida Keys',
+  },
+  {
+    name: 'Watson Bay',
+    x: -4862,
+    y: -3404,
+    kind: 'town',
+    region: 'Leonida Keys',
+  },
+  {
+    name: 'Capri',
+    x: -7088,
+    y: 202,
+    kind: 'town',
+    region: 'Leonida Keys',
+  },
+  {
+    name: 'Gloriana Key',
+    x: 722,
+    y: -1398,
+    kind: 'town',
+    region: 'Leonida Keys',
+  },
+  {
+    name: 'Vice City',
+    x: -220,
+    y: 756,
+    kind: 'town',
+    region: 'Vice City',
+  },
+  {
+    name: 'Vice Beach',
+    x: 1530,
+    y: 896,
+    kind: 'town',
+    region: 'Vice City',
+  },
+  {
+    name: 'Waning Sands',
+    x: -244,
+    y: 4028,
+    kind: 'town',
+    region: 'Vice City',
+  },
+  {
+    name: 'Ambrosia',
+    x: -3040,
+    y: 4234,
+    kind: 'town',
+    region: 'Leonida Keys',
+  },
+  {
+    name: 'Port Gellhorn',
+    x: -6560,
+    y: 4264,
+    kind: 'town',
+    region: 'Port Gellhorn',
+  },
   // Vice City district labels (NOT towns)
-  { name: 'Millport', x: -712, y: 6244, kind: 'district', region: 'Vice City', note: 'Town label + 12 locations' },
-  { name: 'Emerald Springs', x: -3960, y: 2164, kind: 'district', region: 'Leonida Keys', note: '5-location cluster' },
-  { name: 'La Perle', x: -762, y: 1776, kind: 'district', region: 'Vice City' },
-  { name: 'Bayside', x: -440, y: 1298, kind: 'district', region: 'Vice City' },
-  { name: 'Salton', x: -1414, y: -536, kind: 'district', region: 'Vice City' },
-  { name: 'Southside', x: -1632, y: -2122, kind: 'district', region: 'Vice City' },
-  { name: 'Balsero', x: -2218, y: 460, kind: 'district', region: 'Vice City' },
-  { name: 'Decor District', x: -296, y: 2168, kind: 'district', region: 'Vice City' },
-  { name: 'Goose Key', x: -6226, y: -6470, kind: 'island', region: 'Leonida Keys', note: 'Island label; its own airfield, NOT VCIA' },
+  {
+    name: 'Millport',
+    x: -712,
+    y: 6244,
+    kind: 'district',
+    region: 'Vice City',
+    note: 'Town label + 12 locations',
+  },
+  {
+    name: 'Emerald Springs',
+    x: -3960,
+    y: 2164,
+    kind: 'district',
+    region: 'Leonida Keys',
+    note: '5-location cluster',
+  },
+  {
+    name: 'La Perle',
+    x: -762,
+    y: 1776,
+    kind: 'district',
+    region: 'Vice City',
+  },
+  {
+    name: 'Bayside',
+    x: -440,
+    y: 1298,
+    kind: 'district',
+    region: 'Vice City',
+  },
+  {
+    name: 'Salton',
+    x: -1414,
+    y: -536,
+    kind: 'district',
+    region: 'Vice City',
+  },
+  {
+    name: 'Southside',
+    x: -1632,
+    y: -2122,
+    kind: 'district',
+    region: 'Vice City',
+  },
+  {
+    name: 'Balsero',
+    x: -2218,
+    y: 460,
+    kind: 'district',
+    region: 'Vice City',
+  },
+  {
+    name: 'Decor District',
+    x: -296,
+    y: 2168,
+    kind: 'district',
+    region: 'Vice City',
+  },
+  {
+    name: 'Goose Key',
+    x: -6226,
+    y: -6470,
+    kind: 'island',
+    region: 'Leonida Keys',
+    note: 'Island label; its own airfield, NOT VCIA',
+  },
   // Landmarks
-  { name: 'Gellhorn International Raceway', x: -6718, y: 2376, kind: 'landmark', region: 'Port Gellhorn' },
-  { name: 'Leonida Keys', x: -4166, y: -6422, kind: 'region', region: 'Leonida Keys' },
-  { name: 'Grassrivers', x: -3280, y: -4270, kind: 'region', region: 'Leonida Keys' },
-  { name: 'Mount Kalaga', x: -3396, y: 6440, kind: 'landmark', region: 'Mount Kalaga' },
-  { name: 'Lake Leonida', x: -1948, y: 4794, kind: 'lake', region: 'Leonida Keys' },
-  { name: 'VCIA', x: -2118, y: -662, kind: 'airport', region: 'Vice City' },
-  { name: 'Vice City Port', x: 854, y: -390, kind: 'port', region: 'Vice City' },
+  {
+    name: 'Gellhorn International Raceway',
+    x: -6718,
+    y: 2376,
+    kind: 'landmark',
+    region: 'Port Gellhorn',
+  },
+  {
+    name: 'Leonida Keys',
+    x: -4166,
+    y: -6422,
+    kind: 'region',
+    region: 'Leonida Keys',
+  },
+  {
+    name: 'Grassrivers',
+    x: -3280,
+    y: -4270,
+    kind: 'region',
+    region: 'Leonida Keys',
+  },
+  {
+    name: 'Mount Kalaga',
+    x: -3396,
+    y: 6440,
+    kind: 'landmark',
+    region: 'Mount Kalaga',
+  },
+  {
+    name: 'Lake Leonida',
+    x: -1948,
+    y: 4794,
+    kind: 'lake',
+    region: 'Leonida Keys',
+  },
+  {
+    name: 'VCIA',
+    x: -2118,
+    y: -662,
+    kind: 'airport',
+    region: 'Vice City',
+  },
+  {
+    name: 'Vice City Port',
+    x: 854,
+    y: -390,
+    kind: 'port',
+    region: 'Vice City',
+  },
   // Collectible, NOT a town
-  { name: 'Breakwater Quarry', x: -4462, y: -922, kind: 'collectible', region: 'Leonida Keys', note: 'Under the Bridge 177/202 — NOT a town' },
+  {
+    name: 'Breakwater Quarry',
+    x: -4462,
+    y: -922,
+    kind: 'collectible',
+    region: 'Leonida Keys',
+    note: 'Under the Bridge 177/202 — NOT a town',
+  },
 ];
 
 export const MAP_REGIONS = ['Vice City', 'Leonida Keys', 'Port Gellhorn', 'Mount Kalaga', 'Grassrivers', 'Ambrosia'];
@@ -66,7 +232,7 @@ export function gtabaseToMap(x, y, w, h) {
   return { px, py };
 }
 
-export function createLeonidaMap(G) {
+export function createLeonidaMap(Game) {
   const LM = {
     points: MAP_POINTS,
     regions: MAP_REGIONS,
@@ -82,15 +248,15 @@ export function createLeonidaMap(G) {
       if (!this.fog[region]) {
         this.fog[region] = true;
         this.exploredPercent = Math.round((Object.keys(this.fog).length / MAP_REGIONS.length) * 100);
-        G.hud.toast(`Map explored: ${region} (${this.exploredPercent}% of Leonida).`);
-        if (G.stats) G.stats.mapExplored = this.exploredPercent;
+        Game.hud.toast(`Map explored: ${region} (${this.exploredPercent}% of Leonida).`);
+        if (Game.stats) Game.stats.mapExplored = this.exploredPercent;
       }
     },
     setWaypoint(name) {
       const p = MAP_POINTS.find((q) => q.name === name);
       if (!p) return null;
       this.waypoint = { x: p.x, y: p.y, name: p.name };
-      G.hud.toast(`Waypoint set: ${p.name}.`);
+      Game.hud.toast(`Waypoint set: ${p.name}.`);
       return this.waypoint;
     },
     clearWaypoint() { this.waypoint = null; },
@@ -153,13 +319,17 @@ export function createLeonidaMap(G) {
       ctx.beginPath(); ctx.arc(pp.px, pp.py, 5, 0, Math.PI * 2); ctx.fill();
       ctx.strokeStyle = '#111';
       ctx.stroke();
-      el.querySelector('#map-close').addEventListener('click', () => G.hud.showMap(false));
+      el.querySelector('#map-close').addEventListener('click', () => Game.hud.showMap(false));
       el.querySelectorAll('[data-map-point]').forEach((s) => {
         s.addEventListener('click', () => this.setWaypoint(s.dataset.mapPoint));
       });
       el.querySelectorAll('[data-nav]').forEach((b) => {
         b.addEventListener('click', () => { this.setWaypoint(b.dataset.nav); this.render(el); });
       });
+    },
+    // Round 3: the current waypoint's name, or null when none is set.
+    waypointName() {
+      return this.waypoint ? this.waypoint.name : null;
     },
   };
   return LM;

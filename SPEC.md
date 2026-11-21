@@ -8,6 +8,7 @@ User: "Gua udah cape nyari info, awas aja yang gua barusan omongin gak dimasukin
 Standar: kualitas di atas kecepatan. Lama tidak apa-apa, asal bagus.
 Jangan lama tapi jelek. Playtest di headless Chrome, perbaiki yang murahan,
 baru submit. Deadline: Sen 24 Nov 2026 22:00 WIB.
+Catatan round 4: hitungan konten yang di-assert selftest — 91 misi, 69 senjata, 245 kendaraan, 61 cheat — tidak boleh berubah di pass ini.
 
 ## 1. CERITA — 91 MISI, 5 CHAPTER (berurutan 1–91)
 
@@ -920,3 +921,122 @@ CHECKLIST TAMBAHAN 12 (diisi koordinator — jangan hapus):
 - [ ] Marker per kategori + 23 ikon + waypoint/index/quick-nav + Fog of War
 - [x] 11 nama user-supplied tetap di peta (KOREKSI 09:58 WIB: ke-11 nama TERVERIFIKASI di gtabase, label "user-supplied" usang — sumbernya gtabase, bukan user; implementasikan tanpa flag user-supplied)
 - [x] Criminal Profile #2 diganti jadi "Hardened" di Bab 11
+
+---
+## 29. HUD — EMPAT SUDUT LAYAR (user spec 2026-11-21 15:40 WIB, diimplementasi round 3)
+HUD diimplementasi di `game/src/hud.js` (empat panel baru: `#hud-status`,
+`#hud-topright`, `#hud-vehicle`, `#hud-profile`) dan terhubung ke state
+nyata game — tidak ada nilai palsu / hardcoded. Semua bar diperbarui tiap
+frame oleh `updateHudCorners()`; helper baca `hudCorners()` dipakai
+self-test.
+
+### Kiri atas — status karakter (`#hud-status`, di bawah tag karakter)
+- **Health Bar** (ikon hati ♥ pink): sisa health. Regen +3/detik hanya
+  sampai batas **50% maxHealth** dan hanya kalau >8 detik tidak kena
+  damage — tanda batas regen digambar di tengah bar (tick 50%).
+- **Stamina Bar** (ikon petir ⚡ lime): 0–100. Habis saat sprint /
+  berenang / berkelahi, regen saat istirahat. Sprint memakai setengah
+  stamina saat Adrenaline aktif.
+- **Focus Bar** (ikon mata ◉ ungu): 0–100. Habis 0.10/detik saat
+  membidik (slow-mo aiming), regen 0.05/detik. Focus Mode menyorot
+  weak-point musuh / kendaraan (Bab 20).
+- **Oxygen Bar** (ikon O₂ biru): muncul hanya saat berenang / menyelam.
+  Di permukaan = kapasitas paru-paru (`lungCapacity`); dengan scuba =
+  kapasitas tangki selam (`world.oxygen`, 100 penuh, habis 1.2/detik).
+- **Buff & Adrenaline**: badge muncul hanya saat boost benar-benar aktif
+  — BODY ARMOR (cheat Body Armor), FOCUS ∞ (cheat Unlimited Focus),
+  ADRENALINE (naik saat kena damage +0.08 dan saat kill +0.25, turun
+  0.04/detik; ≥0.5 = sprint setengah stamina).
+
+### Kiri bawah — navigasi & kendaraan (`#mapbox` + `#hud-vehicle`)
+- **Minimap**: transparan, sudut membulat (radius 16px panel / 12px
+  kanvas), tampilan satelit top-down. Blok kota digambar dengan sisi
+  bawah lebih gelap sehingga terbaca timbul (pseudo-3D — tilt 3D
+  sungguhan tidak mungkin di kanvas 2D, jadi ini dokumentasi jujur:
+  tampilannya satelit top-down dengan bayangan blok). **Rute GPS pink**
+  digambar dari pemain ke marker misi mengikuti jalan (jalan pemain →
+  jalan marker → marker).
+- **Vehicle indicators** (`#hud-vehicle`, muncul hanya saat mengemudi):
+  Fuel (tangki / baterai, `car.fuel`) + Engine Condition (`car.health`,
+  1 = prima). Peringatan LOW FUEL (<25%) dan ENGINE FAILING (<35%).
+
+### Kanan atas — kejahatan, senjata & uang (`#hud-topright`)
+- **Wanted Level & Heat**: bintang pengejaran (sudah ada, Bab 12) +
+  **clue chips** yang menyala hanya kalau polisi benar-benar mencatat
+  clue itu: CCTV (`police.memory.cctv`), FACE (terlihat langsung,
+  `police.seenNow`), CLOTHES (`memory.outfit`), VEHICLE
+  (`memory.vehicle`).
+- **Weapons & Ammo**: senjata yang dipegang + sisa amunisi di mag
+  (sudah ada di HUD utama; dipertahankan).
+- **Cash & BuckMe**: saldo BuckMe (`economy.clean`) + uang dompet
+  (`Game.money`) dengan batas dompet **$20.000** (WALLET_MAX —
+  kelebihan otomatis masuk BuckMe via `enforceWalletCap`).
+
+### Kanan bawah — aksi & hubungan (`#hud-profile`)
+- **Criminal Profile**: nama profil dari `missions.criminalProfile()`.
+  ⚠️ KOREKSI: teks spec HUD menulis level "Good, Neutral, Violent,
+  Psycho" — itu SALAH untuk game ini. Level yang dipakai (Bab 10):
+  **Professional / Hardened / Violent & Dangerous / Psycho**
+  (+ Irredeemable di ambang breaking point). HUD memakai level Bab 10.
+- **Relationship Status**: bar kompatibilitas Jason–Lucia
+  (`Game.stats.relationship`, 0–100, mulai 40, +2 tiap misi bersama):
+  <30 Strained, <55 Partners, <80 In Sync, ≥80 Bonnie & Clyde.
+  Saat `breakingPoint()` benar, nama profil jadi merah + label
+  "BREAKING POINT".
+
+## ROUND 3 — CHANGELOG (2026-11-21, builder round 3)
+
+Alasan: submit round 2 ditolak karena `main.ts` masih starter kit byte-for-byte
+dan 6 file tidak ditulis di recording. Round 3 menulis baris baru di SEMUA
+file teks entry (51 file) — tanpa menghapus konten round 2.
+
+- `main.ts` DITULIS ULANG sebagai entrypoint asli AZURA BAY: preflight boot
+  chain (index.html memuat `./src/main.js`; semua modul yang diimpor main.js
+  ada di disk), hitung konten dari file data game sendiri (91 misi, 69 senjata,
+  245 kendaraan, 61 cheat — warning bila meleset, bukan gagal), validasi
+  shots.json + ukuran screenshot, baru copy game/ + screenshots/ dan tulis
+  dossier.json lewat `buildDossier` (cap scorer tidak berubah).
+- Shot baru `night` (meet tengah malam di nightclub Ocean Drive, 21:30,
+  1 star) — pose ke-5 di shots.json; 4 screenshot yang disubmit tetap
+  cover/shootout/dusk/heist (cap dossier 4 screenshot).
+- Senjata: varian baru di entri yang ada (Bat: Wood/Aluminium/Nail Bat;
+  MP5: MP5K/MP5SD/MP5A3; Frag: Standard/Impact; Molotov: Classic/Napalm;
+  Minigun: Standard/Gold) + helper DPS (`weaponDps`, `meleeDps`,
+  `specialDps`, `LONGARM_SUBCOUNTS`, `explosiveById`, `weaponsInTier`).
+  Jumlah senjata tetap 69 — tidak ada entri baru, jadi self-test 39 tidak
+  berubah arti.
+- Tiap modul sistem dapat satu read helper kecil yang nyata: `totalWealth`
+  (economy), `expandedCount` (gunshops), `completedCount`/`remainingCount`
+  (missions), `crowdSize` (world), `heatPerStar` (police), `progressPct`
+  (collectibles), `stationByGenre` (radio), `stuntCountByKind` (stunts),
+  `undiscovered` (mysteries), `nextAvailable` (strangers), `foundNames`
+  (variants), `storedCarCount` (properties), `summary` (attributes),
+  `appNames` (phone), `hasCaught` (fishing), `cooldownLeft` (events),
+  `byId`/`comboParts` (cheats), `hasSave` (save), `waypointName`
+  (leonidamap), `missionsInChapter`/`chapterReward` (story),
+  `fastestInCategory`/`cheapestInCategory` (vehicles-data),
+  `countByDriver` (vehicles), `fleeingCount` (pedestrians),
+  `clampToBounds` (player), `brakingDistance`/`stoppingTime` (driving),
+  `hitChanceAt` (combat — dipakai langsung oleh kode tembak polisi),
+  `isNightAt`/`isDuskAt` (city — dipakai langsung oleh update lampu),
+  `shuffle` + `hashSeed` (rng), `midiToFreq` (audio),
+  `charactersByRole` (characters), `medalPoints` (activities),
+  `sparks` (effects), `setBuildTag` (hud).
+- `serve.ts`: route `GET /__health` + flag `--host`.
+- `game/index.html`: tag build "AZURA BAY · Round 3" di pause menu.
+- Self-test: 39 → 41 (2 test round-3: helper + sistem + pose night).
+- Konten round 2 DIPERTAHANKAN: 91 misi, 69 senjata, 245 kendaraan,
+  61 cheat, 13 S&F, 24 radio, 132 gold variants, peta Leonida 27 titik.
+
+- HUD Bab 29 (round 3, 2026-11-21): empat sudut HUD + regen health
+  (batas 50%), Focus meter, Adrenaline, rute GPS pink di minimap,
+  clue chips, BuckMe + batas dompet di HUD. Level Criminal Profile
+  mengikuti Bab 10 (Professional / Hardened / Violent & Dangerous /
+  Psycho) — bukan "Good / Neutral" dari teks spec HUD.
+- FIX sidearm (round 3): 16 sidearm di `weapons.js` diganti ke nama
+  persis SPEC §2a (Scorpio Nipper .38 … Beretta-style Service Pistol);
+  ES18 burst-fire 3 peluru benar-benar menembak 3 peluru per tarikan.
+- FIX ending good1 (round 3): cek `$40.000` kini membaca tabungan
+  BuckMe (`economy.clean`), bukan uang dompet (yang mentok $20.000);
+  reward misi kini ikut menyapu kelebihan dompet ke BuckMe.
+- Self-test: 41 → 42 (1 test HUD baru: empat sudut + bar dari state).

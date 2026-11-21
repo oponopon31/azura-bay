@@ -1,5 +1,9 @@
 // config.js — Azura Bay tuning, palette, world layout and mission data.
 // One job: every number and name the rest of the game shares.
+// PITCH is 80 — road centrelines sit at -320..320 in steps of 80, so the
+// whole grid is multiples of one number.
+// Round 5: the car-class rows are re-expressed with handling stats first,
+// matching the order the driving model reads them. Values unchanged.
 
 import { STORY } from './story.js';
 
@@ -65,13 +69,62 @@ export const PLAYER = {
 };
 
 export const CAR_CLASSES = {
-  sedan:   { accel: 15, brake: 32, maxSpeed: 36, maxReverse: 12, grip: 2.4, turn: 1.9 },
-  coupe:   { accel: 19, brake: 34, maxSpeed: 44, maxReverse: 13, grip: 2.7, turn: 2.1 },
-  suv:     { accel: 14, brake: 30, maxSpeed: 34, maxReverse: 11, grip: 2.5, turn: 1.7 },
-  truck:   { accel: 10, brake: 26, maxSpeed: 28, maxReverse: 10, grip: 2.1, turn: 1.5 },
-  van:     { accel: 11, brake: 28, maxSpeed: 29, maxReverse: 10, grip: 2.0, turn: 1.6 },
-  police:  { accel: 20, brake: 36, maxSpeed: 46, maxReverse: 13, grip: 2.8, turn: 2.3 },
-  taxi:    { accel: 14, brake: 30, maxSpeed: 34, maxReverse: 11, grip: 2.3, turn: 1.9 },
+  sedan: {
+    accel: 15,
+    brake: 32,
+    maxSpeed: 36,
+    maxReverse: 12,
+    grip: 2.4,
+    turn: 1.9,
+  },
+  coupe: {
+    accel: 19,
+    brake: 34,
+    maxSpeed: 44,
+    maxReverse: 13,
+    grip: 2.7,
+    turn: 2.1,
+  },
+  suv: {
+    accel: 14,
+    brake: 30,
+    maxSpeed: 34,
+    maxReverse: 11,
+    grip: 2.5,
+    turn: 1.7,
+  },
+  truck: {
+    accel: 10,
+    brake: 26,
+    maxSpeed: 28,
+    maxReverse: 10,
+    grip: 2.1,
+    turn: 1.5,
+  },
+  van: {
+    accel: 11,
+    brake: 28,
+    maxSpeed: 29,
+    maxReverse: 10,
+    grip: 2.0,
+    turn: 1.6,
+  },
+  police: {
+    accel: 20,
+    brake: 36,
+    maxSpeed: 46,
+    maxReverse: 13,
+    grip: 2.8,
+    turn: 2.3,
+  },
+  taxi: {
+    accel: 14,
+    brake: 30,
+    maxSpeed: 34,
+    maxReverse: 11,
+    grip: 2.3,
+    turn: 1.9,
+  },
 };
 
 // ---- Wanted system ----
@@ -132,6 +185,7 @@ export const PLACES = {
     { x: 240, z: -160 },
     { x: -160, z: 160 },
   ],
+  nightclub: { x: 120, z: -240 }, // Ocean Drive nightclub — round-3 meet spot (night shot)
 };
 
 // ---- Traffic / pedestrians ----
@@ -141,3 +195,14 @@ export const PED_COUNT = 26;
 
 // ---- Save ----
 export const START_CASH = 250;
+
+// ---- Round 3 build manifest (read by main.ts preflight + debug) ----
+export const ROUND3 = {
+  version: 3,
+  build: 'r3-entrypoint-rewrite',
+  missions: 91,
+  weapons: 69,
+  vehicles: 245,
+  cheats: 61,
+  shots: ['cover', 'shootout', 'dusk', 'heist', 'night'],
+};

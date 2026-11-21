@@ -7,14 +7,35 @@
 // Gutterball Morland 850, Kingfisher W22, Golden AK.
 // The list below: 4 named + 126 generated variants (base weapon + a
 // gold name), each flagged with its base weapon id.
+// Round 5: table rows re-expressed one field per line. Values unchanged.
 
 import { ALL_WEAPONS } from './weapons.js';
 
 const NAMED_VARIANTS = [
-  { id: 'clunker556', name: 'Clunker 556', base: 'duke556', desc: 'A beat-up Duke 556 that shoots like it is brand new — gold trim, zero apologies.' },
-  { id: 'gutterball', name: 'Gutterball Morland 850', base: 'morland850', desc: 'A Morland 850 with a bowling-ball finish. Strikes every time.' },
-  { id: 'kingfisher', name: 'Kingfisher W22', base: 'w14', desc: 'A W-14 in kingfisher blue and gold — the prettiest rifle in Leonida.' },
-  { id: 'goldenak', name: 'Golden AK', base: 'kz59', desc: 'A gold-plated KZ-59. Loud in every sense of the word.' },
+  {
+    id: 'clunker556',
+    name: 'Clunker 556',
+    base: 'duke556',
+    desc: 'A beat-up Duke 556 that shoots like it is brand new — gold trim, zero apologies.',
+  },
+  {
+    id: 'gutterball',
+    name: 'Gutterball Morland 850',
+    base: 'morland850',
+    desc: 'A Morland 850 with a bowling-ball finish. Strikes every time.',
+  },
+  {
+    id: 'kingfisher',
+    name: 'Kingfisher W22',
+    base: 'w14',
+    desc: 'A W-14 in kingfisher blue and gold — the prettiest rifle in Leonida.',
+  },
+  {
+    id: 'goldenak',
+    name: 'Golden AK',
+    base: 'kz59',
+    desc: 'A gold-plated KZ-59. Loud in every sense of the word.',
+  },
 ];
 
 const VARIANT_PREFIXES = [
@@ -47,7 +68,7 @@ export function buildVariants() {
 
 export const VARIANTS = buildVariants();
 
-export function createVariants(G) {
+export function createVariants(Game) {
   const V = {
     list: VARIANTS,
     found: {}, // variant id -> true (shared between Jason & Lucia)
@@ -57,21 +78,28 @@ export function createVariants(G) {
       this.found[id] = true;
       // Shared automatically: both characters get the base weapon.
       for (const who of ['jason', 'lucia']) {
-        if (!G.weapons.has(v.base, who)) {
-          const cur = G.player.who;
-          G.player.who = who;
-          G.weapons.give(v.base);
-          G.player.who = cur;
+        if (!Game.weapons.has(v.base, who)) {
+          const cur = Game.player.who;
+          Game.player.who = who;
+          Game.weapons.give(v.base);
+          Game.player.who = cur;
         }
       }
-      G.hud.toast(`Gold variant found: ${v.name}! (shared: Jason & Lucia)`);
-      G.audio.pickup();
-      G.stats.goldVariants = (G.stats.goldVariants || 0) + 1;
-      G.saveGame();
+      Game.hud.toast(`Gold variant found: ${v.name}! (shared: Jason & Lucia)`);
+      Game.audio.pickup();
+      Game.stats.goldVariants = (Game.stats.goldVariants || 0) + 1;
+      Game.saveGame();
       return true;
     },
     count() { return Object.keys(this.found).length; },
     total() { return VARIANTS.length; },
+    // Round 3: display names of the gold variants found so far.
+    foundNames() {
+      return Object.keys(this.found).map((id) => {
+        const v = VARIANTS.find((x) => x.id === id);
+        return v ? v.name : id;
+      });
+    },
   };
   return V;
 }

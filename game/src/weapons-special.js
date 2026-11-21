@@ -5,9 +5,78 @@
 // and its one line in weapons.js — every other system keeps working.
 // Minigun spins up before firing; Railgun is a charge shot that penetrates;
 // Firework Launcher lobs colourful explosive rockets.
+// Round 5: rows re-expressed one field per line, keys grouped by meaning.
+// Values unchanged.
 
 export const SPECIAL = [
-  { id: 'minigun', name: 'Minigun', kind: 'special', damage: 22, rpm: 1200, mag: 200, mode: 'auto', spinUp: 0.5, handling: 0.50, range: 130, recoil: 0.80, spread: 0.030, reloadMs: 4000, moveSlow: 0.60, tracer: 0xffe9a8, price: 25000, tier: 3, desc: 'A gatling gun — spin it up and hold the trigger. Everything in front of you has a bad day.' },
-  { id: 'railgun', name: 'Railgun', kind: 'special', damage: 150, rpm: 30, mag: 1, mode: 'charge', handling: 0.60, range: 250, recoil: 2.00, spread: 0.001, reloadMs: 3000, penetrate: true, tracer: 0x7fd4ff, price: 30000, tier: 3, desc: 'A railgun — hold to charge, release to put a hole through whatever is downrange.' },
-  { id: 'firework', name: 'Firework Launcher', kind: 'special', damage: 0, blast: 6, blastDamage: 80, rpm: 90, mag: 6, mode: 'semi', handling: 0.65, range: 100, recoil: 1.00, spread: 0.010, reloadMs: 2400, projectile: true, projSpeed: 55, projGravity: 4, tracer: 0xff7ad9, price: 12000, tier: 3, desc: 'A firework launcher — explosive, colourful, and completely unserious.' },
+  {
+    id: 'minigun',
+    name: 'Minigun',
+    kind: 'special',
+    damage: 22,
+    rpm: 1200,
+    mag: 200,
+    mode: 'auto',
+    handling: 0.50,
+    range: 130,
+    recoil: 0.80,
+    spread: 0.030,
+    reloadMs: 4000,
+    moveSlow: 0.60,
+    variants: ['Standard', 'Gold'],
+    tracer: 0xffe9a8,
+    price: 25000,
+    tier: 3,
+    desc: 'A gatling gun — spin it up and hold the trigger. Everything in front of you has a bad day.',
+    spinUp: 0.5,
+  },
+  {
+    id: 'railgun',
+    name: 'Railgun',
+    kind: 'special',
+    damage: 150,
+    rpm: 30,
+    mag: 1,
+    mode: 'charge',
+    handling: 0.60,
+    range: 250,
+    recoil: 2.00,
+    spread: 0.001,
+    reloadMs: 3000,
+    tracer: 0x7fd4ff,
+    price: 30000,
+    tier: 3,
+    desc: 'A railgun — hold to charge, release to put a hole through whatever is downrange.',
+    penetrate: true,
+  },
+  {
+    id: 'firework',
+    name: 'Firework Launcher',
+    kind: 'special',
+    damage: 0,
+    rpm: 90,
+    mag: 6,
+    mode: 'semi',
+    handling: 0.65,
+    range: 100,
+    recoil: 1.00,
+    spread: 0.010,
+    reloadMs: 2400,
+    blast: 6,
+    blastDamage: 80,
+    projectile: true,
+    projSpeed: 55,
+    projGravity: 4,
+    tracer: 0xff7ad9,
+    price: 12000,
+    tier: 3,
+    desc: 'A firework launcher — explosive, colourful, and completely unserious.',
+  },
 ];
+
+// ---- Round 3: direct-damage DPS for Specials (blast weapons rate 0 here,
+// same rule as weaponDps in weapons.js) ----
+export function specialDps(w) {
+  if (!w || !w.damage || !w.rpm) return 0;
+  return Math.round((w.damage * w.rpm) / 60);
+}

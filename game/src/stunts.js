@@ -7,8 +7,8 @@
 // 8 big vaults), 20 Jewelry, 15 Pawn, 14 Liquor, 7 Payday Loans.
 // Robbery rules (Bab 19): ALWAYS bring your partner (Jason + Lucia
 // together). If you go in alone and the guards number more than 2, the
-// guards shoot without warning. Disarm the guards FIRST, before you
-// threaten civilians — otherwise you get shot in the back.
+// robbery fails.
+// Round 5: the placement helper is renamed, Game replaces G. Values unchanged.
 
 import { makeRng } from './rng.js';
 
@@ -21,7 +21,7 @@ export const ROBBERY_COUNTS = {
 };
 export const ROBBERY_TOTAL = 175;
 
-function placeStunts(seed, count, kind) {
+function scatterStunts(seed, count, kind) {
   const rng = makeRng(seed);
   const out = [];
   for (let i = 0; i < count; i++) {
@@ -35,12 +35,12 @@ function placeStunts(seed, count, kind) {
   return out;
 }
 
-export function createStunts(G) {
+export function createStunts(Game) {
   const stunts = [
-    ...placeStunts(0x5A1, 130, 'jump'),
-    ...placeStunts(0xB21D, 202, 'bridge'),
-    ...placeStunts(0xA11F, 40, 'knife'),
-    ...placeStunts(0xBA53, 25, 'base'),
+    ...scatterStunts(0x5A1, 130, 'jump'),
+    ...scatterStunts(0xB21D, 202, 'bridge'),
+    ...scatterStunts(0xA11F, 40, 'knife'),
+    ...scatterStunts(0xBA53, 25, 'base'),
   ];
   const robberies = [];
   for (const [kind, count] of Object.entries(ROBBERY_COUNTS)) {
@@ -66,9 +66,9 @@ export function createStunts(G) {
     // passing under its marker; a knife flight when flying low through
     // the gap; a base jump when falling from height with a parachute.
     update() {
-      const p = G.player.pos;
-      const speed = Math.abs(G.player.speed || 0);
-      const inCar = !G.player.onFoot;
+      const p = Game.player.pos;
+      const speed = Math.abs(Game.player.speed || 0);
+      const inCar = !Game.player.onFoot;
       for (const s of this.stunts) {
         if (s.done) continue;
         const d = Math.hypot(p.x - s.x, p.z - s.z);
@@ -77,13 +77,13 @@ export function createStunts(G) {
         if (s.kind === 'jump') ok = inCar && speed > 18;
         else if (s.kind === 'bridge') ok = true;
         else if (s.kind === 'knife') ok = inCar && speed > 22;
-        else if (s.kind === 'base') ok = G.player.falling || p.y > 20;
+        else if (s.kind === 'base') ok = Game.player.falling || p.y > 20;
         if (ok) {
           s.done = true;
-          G.hud.toast(`Stunt complete: ${s.id} (${this.stuntTotal()}/${STUNT_TOTAL})`);
-          G.audio.pickup();
-          G.money += 500;
-          G.saveGame();
+          Game.hud.toast(`Stunt complete: ${s.id} (${this.stuntTotal()}/${STUNT_TOTAL})`);
+          Game.audio.pickup();
+          Game.money += 500;
+          Game.saveGame();
         }
       }
     },
@@ -91,7 +91,7 @@ export function createStunts(G) {
       let best = null, bestD = 1e9;
       for (const s of this.stunts) {
         if (s.done) continue;
-        const d = Math.hypot(G.player.pos.x - s.x, G.player.pos.z - s.z);
+        const d = Math.hypot(Game.player.pos.x - s.x, Game.player.pos.z - s.z);
         if (d < bestD) { bestD = d; best = s; }
       }
       return best ? { ...best, dist: bestD } : null;
@@ -101,7 +101,7 @@ export function createStunts(G) {
       let best = null, bestD = 1e9;
       for (const r of this.robberies) {
         if (r.done) continue;
-        const d = Math.hypot(G.player.pos.x - r.x, G.player.pos.z - r.z);
+        const d = Math.hypot(Game.player.pos.x - r.x, Game.player.pos.z - r.z);
         if (d < bestD) { bestD = d; best = r; }
       }
       return best ? { ...best, dist: bestD } : null;
@@ -112,37 +112,41 @@ export function createStunts(G) {
     attemptRobbery(partnerPresent, guardsDisarmed) {
       const site = this.nearestRobbery();
       if (!site || site.dist > 12) return { ok: false, reason: 'No robbery target nearby.' };
-      if (G.elapsed < site.cooldownUntil) return { ok: false, reason: 'This place was just hit — come back later.' };
+      if (Game.elapsed < site.cooldownUntil) return { ok: false, reason: 'This place was just hit — come back later.' };
       // Duo rule (Bab 19): alone + more than 2 guards = they shoot first.
       if (!partnerPresent && site.guards > 2) {
-        G.police.addHeat(40, 'robbery gone wrong — guards opened fire');
-        G.player.health -= 20;
-        G.hud.flashDamage();
-        G.hud.toast('The guards opened fire — you came alone and they outnumber you!');
+        Game.police.addHeat(40, 'robbery gone wrong — guards opened fire');
+        Game.player.health -= 20;
+        Game.hud.flashDamage();
+        Game.hud.toast('The guards opened fire — you came alone and they outnumber you!');
         return { ok: false, reason: 'Guards shot first: bring your partner when guards > 2.' };
       }
       // Disarm first (Bab 19): threaten civilians before the guards are
       // down and you get shot in the back.
       if (!guardsDisarmed && site.guards > 0) {
-        G.police.addHeat(30, 'robbery alarm');
-        G.hud.toast('Disarm the guards FIRST — otherwise they shoot you in the back!');
+        Game.police.addHeat(30, 'robbery alarm');
+        Game.hud.toast('Disarm the guards FIRST — otherwise they shoot you in the back!');
         return { ok: false, reason: 'Disarm the guards first.' };
       }
       const base = { minimarket: 800, fastfood: 600, bank: 8000, jewelry: 5000, pawn: 1200, liquor: 900, payday: 2500 }[site.kind];
       const take = site.vault ? base * 3 : base;
       site.done = true;
-      site.cooldownUntil = G.elapsed + 3600;
-      G.money += take;
-      G.audio.cash();
-      G.hud.cashPopup(`+$${take.toLocaleString()}`);
-      G.police.addHeat(site.vault ? 45 : 25, `robbed a ${site.kind}`);
-      G.stats.robberies = (G.stats.robberies || 0) + 1;
-      if (site.vault) G.stats.bigVaults = (G.stats.bigVaults || 0) + 1;
-      G.hud.toast(`Robbed the ${site.kind} — $${take.toLocaleString()}. Lose the heat!`);
-      G.saveGame();
+      site.cooldownUntil = Game.elapsed + 3600;
+      Game.money += take;
+      Game.audio.cash();
+      Game.hud.cashPopup(`+$${take.toLocaleString()}`);
+      Game.police.addHeat(site.vault ? 45 : 25, `robbed a ${site.kind}`);
+      Game.stats.robberies = (Game.stats.robberies || 0) + 1;
+      if (site.vault) Game.stats.bigVaults = (Game.stats.bigVaults || 0) + 1;
+      Game.hud.toast(`Robbed the ${site.kind} — $${take.toLocaleString()}. Lose the heat!`);
+      Game.saveGame();
       return { ok: true, take, site };
     },
     robberyDone() { return this.robberies.filter((r) => r.done).length; },
+    // Round 3: stunts done of one kind (jump / bridge / knife / base).
+    stuntCountByKind(kind) {
+      return this.stunts.filter((s) => s.kind === kind && s.done).length;
+    },
   };
   return S;
 }

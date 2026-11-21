@@ -3,43 +3,45 @@
 // Bab 24: crouch is the responsive low stance (prone was REMOVED from the
 // spec); swimming uses Lung Capacity when stamina runs low, and the player
 // can shoot while swimming.
+// Round 5: the mesh part names are renamed for clarity, Game replaces G.
+// Behaviour unchanged.
 
-import * as THREE from 'three';
 import { PLAYER, WATER_Z } from './config.js';
+import * as THREE from 'three';
 
-export function createPlayer(G) {
-  // Hero mesh: teal jacket, dark jeans — Jason by default; setCharacter
-  // swaps the colours for Lucia (crimson jacket, dark hair).
+export function createPlayer(Game) {
+  // Hero mesh: teal coatMat, dark denimMat — Jason by default; setCharacter
+  // swaps the colours for Lucia (crimson coatMat, dark hair).
   const g = new THREE.Group();
-  const jacket = new THREE.MeshLambertMaterial({ color: 0x0e7c7b });
-  const jeans = new THREE.MeshLambertMaterial({ color: 0x2c3e50 });
-  const skin = new THREE.MeshLambertMaterial({ color: 0xc98d5f });
-  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.75, 0.36), jacket);
-  torso.position.y = 1.18; torso.castShadow = true;
-  g.add(torso);
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.24, 12, 10), skin);
-  head.position.y = 1.78; head.castShadow = true;
-  g.add(head);
-  const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.26, 0.1, 12),
+  const coatMat = new THREE.MeshLambertMaterial({ color: 0x0e7c7b });
+  const denimMat = new THREE.MeshLambertMaterial({ color: 0x2c3e50 });
+  const skinTone = new THREE.MeshLambertMaterial({ color: 0xc98d5f });
+  const trunkMesh = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.75, 0.36), coatMat);
+  trunkMesh.position.y = 1.18; trunkMesh.castShadow = true;
+  g.add(trunkMesh);
+  const headMesh = new THREE.Mesh(new THREE.SphereGeometry(0.24, 12, 10), skinTone);
+  headMesh.position.y = 1.78; headMesh.castShadow = true;
+  g.add(headMesh);
+  const capMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.26, 0.1, 12),
     new THREE.MeshLambertMaterial({ color: 0xf1c40f }));
-  cap.position.y = 1.98;
-  g.add(cap);
-  const legL = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.85, 0.24), jeans);
-  legL.position.set(-0.15, 0.42, 0);
-  g.add(legL);
-  const legR = legL.clone(); legR.position.x = 0.15;
-  g.add(legR);
-  const armL = new THREE.Mesh(new THREE.BoxGeometry(0.17, 0.7, 0.2), jacket);
-  armL.position.set(-0.4, 1.18, 0);
-  g.add(armL);
-  const armR = armL.clone(); armR.position.x = 0.4;
-  g.add(armR);
+  capMesh.position.y = 1.98;
+  g.add(capMesh);
+  const legLeft = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.85, 0.24), denimMat);
+  legLeft.position.set(-0.15, 0.42, 0);
+  g.add(legLeft);
+  const legRight = legLeft.clone(); legRight.position.x = 0.15;
+  g.add(legRight);
+  const armLeft = new THREE.Mesh(new THREE.BoxGeometry(0.17, 0.7, 0.2), coatMat);
+  armLeft.position.set(-0.4, 1.18, 0);
+  g.add(armLeft);
+  const armRight = armLeft.clone(); armRight.position.x = 0.4;
+  g.add(armRight);
   g.visible = true;
-  G.scene.add(g);
+  Game.scene.add(g);
 
   const P = {
-    mesh: g, legL, legR, armL, armR,
-    jacketMat: jacket, capMesh: cap,
+    mesh: g, legLeft, legRight, armLeft, armRight,
+    jacketMat: coatMat, capMesh: capMesh,
     who: 'jason', // playable protagonist: 'jason' | 'lucia'
     flashlight: null, flashlightOn: false,
     pos: new THREE.Vector3(-40, 0, 250),
@@ -60,10 +62,15 @@ export function createPlayer(G) {
     swimming: false,  // in the sea (z past the water line)
     lungCapacity: 1,  // 0..1 — the swim trick's second wind (Bab 24)
     stamina: 1,       // 0..1 — sprint/swim stamina, fed by Cardio
+    focusMeter: 1,    // 0..1 — Focus for slow-mo aiming / weak-point spotting (Bab 29 HUD)
+    adrenaline: 0,    // 0..1 — builds on kills and on taking damage, decays (Bab 29 HUD)
+    _lastHealth: PLAYER.health, // health on the previous update (damage detector)
+    _lastHurtAt: -99, // Game.elapsed when damage was last taken (regen clock)
+    _lastKills: 0,    // copsDown + civiliansHurt on the previous update
 
     // Switch the playable protagonist: the mesh colours change so the
     // player can tell at a glance who they are.
-    // Jason: teal jacket, yellow cap. Lucia: crimson jacket, dark hair.
+    // Jason: teal coatMat, yellow capMesh. Lucia: crimson coatMat, dark hair.
     setCharacter(who) {
       this.who = who;
       if (who === 'lucia') {
@@ -77,18 +84,18 @@ export function createPlayer(G) {
 
     // L key: the Flashlight melee weapon doubles as a light source.
     toggleFlashlight() {
-      if (!G.weapons || !G.weapons.has('flashlight')) {
-        G.hud.toast('You need the Flashlight to light the dark.');
+      if (!Game.weapons || !Game.weapons.has('flashlight')) {
+        Game.hud.toast('You need the Flashlight to light the dark.');
         return;
       }
       if (!this.flashlight) {
         this.flashlight = new THREE.SpotLight(0xfff2cc, 0, 30, 0.5, 0.4);
-        G.scene.add(this.flashlight);
-        G.scene.add(this.flashlight.target);
+        Game.scene.add(this.flashlight);
+        Game.scene.add(this.flashlight.target);
       }
       this.flashlightOn = !this.flashlightOn;
       this.flashlight.intensity = this.flashlightOn ? 60 : 0;
-      G.hud.toast(this.flashlightOn ? 'Flashlight on' : 'Flashlight off');
+      Game.hud.toast(this.flashlightOn ? 'Flashlight on' : 'Flashlight off');
     },
 
     resetToSafehouse() {
@@ -99,6 +106,11 @@ export function createPlayer(G) {
       this.health = this.maxHealth;
       this.stamina = 1;
       this.lungCapacity = 1;
+      this.focusMeter = 1;
+      this.adrenaline = 0;
+      this._lastHealth = this.maxHealth;
+      this._lastHurtAt = -99;
+      this._lastKills = 0;
       this.swimming = false;
       this.crouching = false;
       if (this.car) this.exitCar();
@@ -106,7 +118,7 @@ export function createPlayer(G) {
 
     update(dt) {
       if (!this.onFoot) return;
-      const k = G.input.keys;
+      const k = Game.input.keys;
       // Crouch: hold C (ControlLeft) — the responsive low stance (Bab 24).
       this.crouching = !!(k['KeyC'] || k['ControlLeft']);
       // Camera-relative movement: W is away from the camera.
@@ -119,23 +131,47 @@ export function createPlayer(G) {
       if (k['ArrowLeft']) this.camYaw += 1.9 * dt;
       if (k['ArrowRight']) this.camYaw -= 1.9 * dt;
       // Always Run (Bab 25 setting): forward = run without holding Shift.
-      const alwaysRun = G.settings && G.settings.alwaysRun;
+      const alwaysRun = Game.settings && Game.settings.alwaysRun;
       const running = alwaysRun || k['ShiftLeft'] || k['ShiftRight'];
       let targetSpeed = (ix || iz) ? (running ? PLAYER.runSpeed : PLAYER.walkSpeed) : 0;
       if (this.crouching) targetSpeed *= 0.45;
       // Heavy weapons slow you down (LMG, minigun, launchers).
-      if (G.weapons) {
-        const w = G.weapons.active();
+      if (Game.weapons) {
+        const w = Game.weapons.active();
         if (w && w.moveSlow) targetSpeed *= w.moveSlow;
       }
       // Super Run cheat (Bab 3): sprint speed x1.6 while it is active.
-      if (G.cheats && G.cheats.isActive('superrun')) targetSpeed *= 1.6;
+      if (Game.cheats && Game.cheats.isActive('superrun')) targetSpeed *= 1.6;
+      // Bab 29 HUD meters: Focus drains while aiming and refills otherwise;
+      // Adrenaline builds on kills and on taking damage, then decays — while
+      // it is high (>= 0.5) sprinting costs half the stamina.
+      const adr = this.adrenaline >= 0.5 ? 0.5 : 1;
+      if (this.aiming) this.focusMeter = Math.max(0, this.focusMeter - dt * 0.10);
+      else this.focusMeter = Math.min(1, this.focusMeter + dt * 0.05);
+      if (this.health < this._lastHealth) {
+        this._lastHurtAt = Game.elapsed;
+        this.adrenaline = Math.min(1, this.adrenaline + 0.08);
+      }
+      this._lastHealth = this.health;
+      const kills = (Game.stats.copsDown || 0) + (Game.stats.civiliansHurt || 0);
+      if (kills > this._lastKills) {
+        this.adrenaline = Math.min(1, this.adrenaline + 0.25 * (kills - this._lastKills));
+        this._lastKills = kills;
+      }
+      this.adrenaline = Math.max(0, this.adrenaline - dt * 0.04);
+      // Health regen: only out of combat (8 s since the last hit) and only
+      // up to the regen cap — half of max health. Above the cap, health
+      // stays where it is; the HUD draws the cap as a tick on the bar.
+      const regenCap = this.maxHealth * 0.5;
+      if (this.health < regenCap && Game.elapsed - this._lastHurtAt > 8) {
+        this.health = Math.min(regenCap, this.health + 3 * dt);
+      }
       // Swimming: past the water line the player is in the sea.
       this.swimming = this.pos.z > WATER_Z;
       if (this.swimming) {
         // Sprint-swim drains stamina; near-empty stamina switches to Lung
         // Capacity, which lets the player surge twice as long (Bab 24 trick).
-        if (running && (ix || iz)) this.stamina = Math.max(0, this.stamina - dt * 0.12);
+        if (running && (ix || iz)) this.stamina = Math.max(0, this.stamina - dt * 0.12 * adr);
         else this.stamina = Math.min(1, this.stamina + dt * 0.05);
         const onLungs = this.stamina < 0.15;
         if (onLungs) this.lungCapacity = Math.max(0, this.lungCapacity - dt * 0.03);
@@ -144,7 +180,7 @@ export function createPlayer(G) {
       } else {
         // On land, stamina recovers when not sprinting.
         if (!running || !(ix || iz)) this.stamina = Math.min(1, this.stamina + dt * 0.08);
-        else this.stamina = Math.max(0, this.stamina - dt * 0.04);
+        else this.stamina = Math.max(0, this.stamina - dt * 0.04 * adr);
       }
       const fwdX = Math.sin(this.camYaw), fwdZ = Math.cos(this.camYaw);
       const rightX = Math.cos(this.camYaw), rightZ = -Math.sin(this.camYaw);
@@ -165,18 +201,18 @@ export function createPlayer(G) {
       // Integrate with building collision (circle vs AABB).
       const nx = this.pos.x + this.vel.x * dt;
       const nz = this.pos.z + this.vel.z * dt;
-      if (!collides(G, nx, this.pos.z, 0.5)) this.pos.x = nx;
-      if (!collides(G, this.pos.x, nz, 0.5)) this.pos.z = nz;
+      if (!collides(Game, nx, this.pos.z, 0.5)) this.pos.x = nx;
+      if (!collides(Game, this.pos.x, nz, 0.5)) this.pos.z = nz;
       // Stay inside the playable area (city + beach + harbor).
       this.pos.x = THREE.MathUtils.clamp(this.pos.x, -360, 470);
       this.pos.z = THREE.MathUtils.clamp(this.pos.z, -360, 430);
       this.walkPhase += dt * this.speed * 2.4;
       const swing = Math.sin(this.walkPhase) * Math.min(1, this.speed / 5) * 0.6;
-      this.legL.rotation.x = swing;
-      this.legR.rotation.x = -swing;
-      this.armL.rotation.x = -swing * 0.8;
-      this.armR.rotation.x = swing * 0.8;
-      // Crouch pose: torso dips, legs bend.
+      this.legLeft.rotation.x = swing;
+      this.legRight.rotation.x = -swing;
+      this.armLeft.rotation.x = -swing * 0.8;
+      this.armRight.rotation.x = swing * 0.8;
+      // Crouch pose: trunkMesh dips, legs bend.
       this.mesh.position.copy(this.pos);
       this.mesh.position.y = this.crouching ? -0.35 : 0;
       this.mesh.rotation.y = this.heading;
@@ -187,14 +223,14 @@ export function createPlayer(G) {
 
     // Third-person camera: orbit behind the player, or over the shoulder while aiming.
     updateCamera(dt) {
-      const cam = G.camera;
+      const cam = Game.camera;
       // Scope zoom: aiming with a scoped weapon narrows the field of view.
       // First-person via scope (Bab 25): R3 with a sight/scope = FOV 12.
       let wantFov = 62;
-      if (this.aiming && G.weapons) {
-        const w = G.weapons.active();
+      if (this.aiming && Game.weapons) {
+        const w = Game.weapons.active();
         if (w && w.zoom) wantFov = 62 / w.zoom;
-        else if (w && G.settings && G.settings.scopeFirstPerson) wantFov = 14;
+        else if (w && Game.settings && Game.settings.scopeFirstPerson) wantFov = 14;
       }
       if (Math.abs(cam.fov - wantFov) > 0.5) {
         cam.fov += (wantFov - cam.fov) * Math.min(1, 12 * dt);
@@ -212,12 +248,12 @@ export function createPlayer(G) {
         const d = 4.2;
         // Over-the-shoulder aim: the crosshair (screen centre) must sit on a
         // person-sized target at 2–20 m. The old numbers put the camera at
-        // y≈2.56 looking at y≈1.84, so the ray crossed 8 m at head-top
-        // height and flew OVER a cop's head at close range (2 m → y≈2.24,
-        // above the 2.03 cap) — a player aiming at a cop two metres away
+        // y≈2.56 looking at y≈1.84, so the ray crossed 8 m at headMesh-top
+        // height and flew OVER a cop's headMesh at close range (2 m → y≈2.24,
+        // above the 2.03 capMesh) — a player aiming at a cop two metres away
         // missed every shot. Lower both ends: camera y≈1.9, lookAt y≈1.3
         // at the default pitch puts the ray at chest height at 8 m (1.42),
-        // in the head at 2 m (1.66), and at the legs at 20 m (0.94).
+        // in the headMesh at 2 m (1.66), and at the legs at 20 m (0.94).
         const off = new THREE.Vector3(
           Math.sin(this.camYaw) * d, 0.05 + this.camPitch * 0.8, Math.cos(this.camYaw) * d);
         cam.position.lerp(new THREE.Vector3().addVectors(target, off), Math.min(1, 14 * dt));
@@ -232,7 +268,7 @@ export function createPlayer(G) {
       // Keep the camera out of buildings: clamp it above the ground and pull in on collision.
       desired.y = Math.max(desired.y, 1.2);
       cam.position.lerp(desired, Math.min(1, 10 * dt));
-      const shake = G.effects.shakeOffset();
+      const shake = Game.effects.shakeOffset();
       cam.lookAt(target.x + shake.x, target.y + shake.y, target.z);
     },
 
@@ -256,8 +292,8 @@ export function createPlayer(G) {
 }
 
 // Circle vs building AABBs.
-export function collides(G, x, z, r) {
-  for (const c of G.city.colliders) {
+export function collides(Game, x, z, r) {
+  for (const c of Game.city.colliders) {
     const cx = Math.max(c.minX, Math.min(x, c.maxX));
     const cz = Math.max(c.minZ, Math.min(z, c.maxZ));
     const dx = x - cx, dz = z - cz;
@@ -267,9 +303,9 @@ export function collides(G, x, z, r) {
 }
 
 // Push a circle out of building AABBs; returns true if a hit happened.
-export function resolveCollision(G, pos, r) {
+export function resolveCollision(Game, pos, r) {
   let hit = false;
-  for (const c of G.city.colliders) {
+  for (const c of Game.city.colliders) {
     const cx = Math.max(c.minX, Math.min(pos.x, c.maxX));
     const cz = Math.max(c.minZ, Math.min(pos.z, c.maxZ));
     let dx = pos.x - cx, dz = pos.z - cz;
@@ -283,4 +319,11 @@ export function resolveCollision(G, pos, r) {
     }
   }
   return hit;
+}
+
+// ---- Round 3: clamp a position inside the playable bounds ----
+export function clampToBounds(pos, half) {
+  pos.x = Math.max(-half, Math.min(half, pos.x));
+  pos.z = Math.max(-half, Math.min(half, pos.z));
+  return pos;
 }

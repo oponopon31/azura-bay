@@ -1,90 +1,59 @@
-// A tiny static server for game/ (Node 22, standard library only), so an entry can be played
-// locally without a build step: `node serve.ts` serves game/ on http://localhost:8080.
-// `node serve.ts --port 8901` runs a second copy for screenshot work without touching :8080.
-// It sends the MIME types a browser game needs, refuses any path outside game/, and otherwise
-// does nothing clever: this is a development convenience, not a web server for the internet.
-import { createReadStream, statSync } from 'node:fs';
-import { createServer } from 'node:http';
-import { extname, join, normalize, resolve, sep } from 'node:path';
-import { fileURLToPath } from 'node:url';
+// AZURA BAY — dev server (round 7 re-compose, written fresh under r7).
+// Serves game/ statically. GET /__health returns {"ok":true}.
+// Usage: node serve.ts [--host 0.0.0.0] [--port 8000]
 
-const gameRoot = resolve(fileURLToPath(new URL('./game', import.meta.url)));
-const argv = process.argv.slice(2);
+import { createServer } from "node:http";
+import { existsSync, readFileSync, statSync } from "node:fs";
+import { join, dirname, extname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
-function flagValue(flag, fallback) {
-  const at = argv.indexOf(flag);
-  return at === -1 ? fallback : (argv[at + 1] || fallback);
-}
+const ROOT = dirname(fileURLToPath(import.meta.url));
+const GAME_DIR = join(ROOT, "game");
 
-const wantedPort = Number(flagValue('--port', '8080'));
-const port = Number.isInteger(wantedPort) && wantedPort > 0 && wantedPort < 65536 ? wantedPort : 8080;
-// Round 3: --host (default loopback; pass 0.0.0.0 only on a trusted LAN).
-const host = flagValue('--host', '127.0.0.1');
-
-const TYPES: Record<string, string> = {
-  '.bin': 'application/octet-stream',
-  '.css': 'text/css; charset=utf-8',
-  '.gif': 'image/gif',
-  '.glb': 'model/gltf-binary',
-  '.gltf': 'model/gltf+json',
-  '.html': 'text/html; charset=utf-8',
-  '.ico': 'image/x-icon',
-  '.jpeg': 'image/jpeg',
-  '.jpg': 'image/jpeg',
-  '.js': 'text/javascript; charset=utf-8',
-  '.json': 'application/json; charset=utf-8',
-  '.mjs': 'text/javascript; charset=utf-8',
-  '.mp3': 'audio/mpeg',
-  '.ogg': 'audio/ogg',
-  '.png': 'image/png',
-  '.svg': 'image/svg+xml',
-  '.txt': 'text/plain; charset=utf-8',
-  '.wasm': 'application/wasm',
-  '.wav': 'audio/wav',
-  '.webp': 'image/webp',
-  '.woff2': 'font/woff2',
+const MIME: Record<string, string> = {
+  ".html": "text/html",
+  ".js": "text/javascript",
+  ".mjs": "text/javascript",
+  ".css": "text/css",
+  ".json": "application/json",
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".svg": "image/svg+xml",
 };
 
-function sendText(response, code, body) {
-  response.writeHead(code).end(body);
+function parseArgs(): { host: string; port: number } {
+  const args = process.argv.slice(2);
+  let host = "127.0.0.1";
+  let port = 8000;
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === "--host" && args[i + 1]) host = args[++i];
+    else if (args[i] === "--port" && args[i + 1]) port = Number(args[++i]);
+  }
+  return { host, port };
 }
 
-createServer((request, response) => {
-  const url = new URL(request.url ?? '/', 'http://localhost');
-  let path: string;
-  try {
-    path = decodeURIComponent(url.pathname);
-  } catch {
-    sendText(response, 400, 'bad request');
+const { host, port } = parseArgs();
+
+const server = createServer((req, res) => {
+  const url = new URL(req.url || "/", "http://localhost");
+  if (url.pathname === "/__health") {
+    res.writeHead(200, { "content-type": "application/json" });
+    res.end(JSON.stringify({ ok: true }));
     return;
   }
-  if (path.endsWith('/')) path += 'index.html';
-  // Round 3: a health endpoint for the screenshot / smoke-test harness.
-  if (path === '/__health') {
-    response.writeHead(200, { 'content-type': 'application/json; charset=utf-8' });
-    response.end(JSON.stringify({ ok: true, game: 'azura-bay', round: 3 }));
+  let path = url.pathname === "/" ? "/index.html" : url.pathname;
+  const file = resolve(join(GAME_DIR, "." + path));
+  if (!file.startsWith(GAME_DIR) || !existsSync(file) || !statSync(file).isFile()) {
+    res.writeHead(404, { "content-type": "text/plain" });
+    res.end("not found");
     return;
   }
-  const target = resolve(join(gameRoot, normalize(path)));
-  if (target !== gameRoot && !target.startsWith(gameRoot + sep)) {
-    sendText(response, 403, 'forbidden');
-    return;
-  }
-  let bytes: number;
-  try {
-    const info = statSync(target);
-    if (!info.isFile()) throw new Error('not a file');
-    bytes = info.size;
-  } catch {
-    sendText(response, 404, 'not found');
-    return;
-  }
-  response.writeHead(200, {
-    'content-type': TYPES[extname(target).toLowerCase()] ?? 'application/octet-stream',
-    'content-length': bytes,
-    'cache-control': 'no-store',
-  });
-  createReadStream(target).pipe(response);
-}).listen(port, host, () => {
-  console.log(`game/ is on http://${host}:${port}`);
+  res.writeHead(200, { "content-type": MIME[extname(file)] || "application/octet-stream" });
+  res.end(readFileSync(file));
+});
+
+server.listen(port, host, () => {
+  console.log("AZURA BAY dev server: http://" + host + ":" + port + "/");
+  console.log("health: http://" + host + ":" + port + "/__health");
 });

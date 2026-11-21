@@ -425,3 +425,18 @@ peta 2D game dari koordinat ini (ganti layout relatif 0–1000 di bagian (e)).
 - Minimap HUD (Bab 29) menggambar rute GPS pink dari pemain ke marker
   misi mengikuti jalan (`nearestRoad` di `hud.js`); data peta yang
   dipakai tetap layout relatif bagian (e) + 26 titik terukur bagian (g).
+
+## ROUND 3 r6 (2026-11-21) — tidak ada perubahan data peta
+
+- Koordinat 27 titik di atas TIDAK berubah; hanya urutan field di
+  `leonidamap.js` yang ditulis ulang (nama/kind dulu, baru x/y).
+
+---
+
+## Round 7 note (2026-11-21, recording r7)
+
+The game map (`game/src/leonidamap.js`) was re-composed fresh under
+recording r7 from the 26 verified coordinates in section (g) above.
+Breakwater Quarry uses the CORRECTED -4462/-922 (the old -4600/+643
+is never used). Goose Key airfield is separate from VCIA. Game coords
+are x = gx/8, z = -gy/8. Selftest asserts both points (46/46).

@@ -1,136 +1,115 @@
-// main.ts — AZURA BAY hand-in entrypoint (round 3, re-composed under r5).
-//
-// What this directory is: game/ holds plain static files a desktop browser
-// loads offline — game/index.html plus its ES modules, three.js vendored
-// under game/vendor/, no library and no network request while playing.
-// This program is the hand-in: it proves the game boots before it ships.
-//
-// The preflight it runs, in order:
-//   1. game/index.html exists and loads ./src/main.js (the boot module).
-//   2. Every module game/src/main.js imports resolves on disk — the full
-//      wiring (city, vehicles, pedestrians, driving, police, combat,
-//      missions, HUD, audio, save, shots, self-test, and the Bab 3-29
-//      systems) is present, so the game cannot boot halfway.
-//   3. The content tables still hold the round-2 scope: 91 story missions,
-//      69 weapons, 245 vehicles, 61 cheats — counted out of the game's own
-//      data files, never asserted from memory. A mismatch prints a warning
-//      and still ships (the judge, not this script, decides what counts),
-//      but a missing file stops the build.
-//   4. shots.json parses, and every screenshot it names exists under
-//      screenshots/ and fits the scorer's 256 KiB cap.
-// Then it copies game/ and screenshots/ to /output (or MAKEFUN_OUTPUT_DIR
-// outside the grader's container) and writes /output/dossier.json with
-// the vendored make.fun library — the summary the judge reads.
-//
-// Play it locally with `node serve.ts`, then open http://localhost:8080.
-// Outside the grader's container:
-//   mkdir -p out && MAKEFUN_OUTPUT_DIR=out node main.ts
+// AZURA BAY — build entrypoint (round 7 re-compose, written fresh under r7).
+// Builds /output from game/ + screenshots/ and writes dossier.json.
+// Preflight: node version, required files, content counts (91 missions,
+// 69 weapons, 245 vehicles, 61 cheats), shots.json + screenshot sizes.
+// Then copies game/ + screenshots/ to /output and writes dossier.json
+// via vendor/makefun-game.ts buildDossier (the same file the scorer runs).
 
-import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { buildDossier } from './vendor/makefun-game.ts';
+import { buildDossier } from "./vendor/makefun-game.ts";
+import {
+  existsSync, mkdirSync, readdirSync, readFileSync, statSync,
+  copyFileSync, writeFileSync, rmSync,
+} from "node:fs";
+import { join, dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const baseDir = fileURLToPath(new URL('.', import.meta.url));
-const outDir = process.env.MAKEFUN_OUTPUT_DIR ?? '/output';
-const gameRoot = join(baseDir, 'game');
-const shotRoot = join(baseDir, 'screenshots');
+const ROOT = dirname(fileURLToPath(import.meta.url));
+const OUT = resolve(ROOT, "output");
+const GAME_DIR = join(ROOT, "game");
+const SHOTS_DIR = join(ROOT, "screenshots");
 
-// ---- Content manifest: what this build must contain (round-2 scope,
-// carried into round 3 unchanged) ----
-const SCOPE = { missions: 91, weapons: 69, vehicles: 245, cheats: 61 };
-const SHOT_CAP_BYTES = 262144;
+const CAPS = {
+  text_max_bytes: 163840,
+  screenshots: { max: 4, max_bytes: 262144 },
+  game_max_files: 993,
+  game_max_bytes: 50331648,
+};
 
-function tally(text, re) {
-  return (text.match(re) || []).length;
-}
-
-function abort(message) {
-  console.error(`[azura-bay] PREFLIGHT FAIL: ${message}`);
+function fail(msg: string): never {
+  console.error("main.ts: " + msg);
   process.exit(1);
 }
 
-function readText(path) {
-  return readFileSync(path, 'utf8');
+function preflight(): void {
+  // Node version.
+  const major = Number(process.versions.node.split(".")[0]);
+  if (major < 22) fail("node >= 22 required, got " + process.versions.node);
+  // Required files.
+  const required = [
+    "game/index.html",
+    "game/src/main.js",
+    "game/src/selftest.js",
+    "game/src/story.js",
+    "game/src/weapons.js",
+    "game/src/cheats.js",
+    "game/src/leonidamap.js",
+    "shots.json",
+    "screenshots/1-cover.jpg",
+    "screenshots/2-shootout.jpg",
+    "screenshots/3-dusk.jpg",
+    "screenshots/4-heist.jpg",
+  ];
+  for (const f of required) {
+    if (!existsSync(join(ROOT, f))) fail("missing required file: " + f);
+  }
+  // shots.json must list the 5 poses (4 shipped + night bonus).
+  const shots = JSON.parse(readFileSync(join(ROOT, "shots.json"), "utf8"));
+  if (!Array.isArray(shots.poses) || shots.poses.length !== 5) {
+    fail("shots.json must list 5 poses");
+  }
+  const shipped = shots.poses.filter((p: { ship: boolean }) => p.ship);
+  if (shipped.length !== 4) fail("shots.json must ship exactly 4 screenshots");
+  // Screenshot sizes.
+  for (const f of readdirSync(SHOTS_DIR)) {
+    const size = statSync(join(SHOTS_DIR, f)).size;
+    if (size > CAPS.screenshots.max_bytes) {
+      fail("screenshot too large: " + f + " (" + size + " bytes)");
+    }
+  }
+  console.log("preflight ok: node " + process.versions.node + ", 5 poses, 4 screenshots");
 }
 
-// ---- 1. Boot module: index.html must load ./src/main.js ----
-const indexFile = join(gameRoot, 'index.html');
-if (!existsSync(indexFile)) abort('game/index.html is missing');
-const indexHtml = readText(indexFile);
-if (!indexHtml.includes('./src/main.js')) abort('game/index.html does not load ./src/main.js');
-
-// ---- 2. Wiring: every module main.js imports must exist on disk ----
-const bootFile = join(gameRoot, 'src', 'main.js');
-if (!existsSync(bootFile)) abort('game/src/main.js is missing');
-const bootSrc = readText(bootFile);
-const imports = [...bootSrc.matchAll(/from '\.\/([^']+)'/g)].map((m) => m[1]);
-const missing = imports.filter((rel) => !existsSync(join(gameRoot, 'src', rel)));
-if (missing.length) abort(`game/src/main.js imports missing modules: ${missing.join(', ')}`);
-const srcFiles = readdirSync(join(gameRoot, 'src')).filter((f) => f.endsWith('.js'));
-
-// ---- 3. Content counts, read out of the game's own data files ----
-// Round 3 note: the data tables were re-composed in the authorship pass,
-// so the counters match the NEW shapes — mkVehicle({ ... }) rows in
-// vehicles-data.js and mkCheat({ ... }) rows in cheats.js, not the old
-// V('...') / C('...') one-liners.
-const storySrc = readText(join(gameRoot, 'src', 'story.js'));
-const weaponSrc = ['weapons.js', 'weapons-longarms.js', 'weapons-melee.js', 'weapons-explosives.js', 'weapons-special.js']
-  .map((f) => readText(join(gameRoot, 'src', f))).join('\n');
-const vehiclesSrc = readText(join(gameRoot, 'src', 'vehicles-data.js'));
-const cheatsSrc = readText(join(gameRoot, 'src', 'cheats.js'));
-const tallies = {
-  missions: tally(storySrc, /\{\s*id:\s*\d+,\s*ch:/g),
-  // The thrown knife is a runtime projectile literal ({ id: 'knife-thrown', ... } in
-  // weapons.js throwKnife), not a table entry — the lookahead keeps the count at the real 69.
-  weapons: tally(weaponSrc, /\{\s*id:\s*'(?!knife-thrown')/g),
-  vehicles: tally(vehiclesSrc, /\bmkVehicle\(/g),
-  cheats: tally(cheatsSrc, /\bmkCheat\(/g),
-};
-for (const key of Object.keys(SCOPE)) {
-  if (tallies[key] !== SCOPE[key]) {
-    console.warn(`[azura-bay] WARNING: ${key} count is ${tallies[key]}, expected ${SCOPE[key]} — shipping anyway, judge decides`);
+async function countContent(): Promise<void> {
+  // Import the game data modules and assert the SPEC counts.
+  const story = await import("./game/src/story.js");
+  const special = await import("./game/src/weapons-special.js");
+  const vehicles = await import("./game/src/vehicles-data.js");
+  const cheats = await import("./game/src/cheats.js");
+  const checks: Array<[string, number, number]> = [
+    ["missions", story.totalMissions(), 91],
+    ["weapons", special.totalWeapons(), 69],
+    ["vehicles", vehicles.totalVehicles(), 245],
+    ["cheats", cheats.totalCheats(), 61],
+  ];
+  for (const [name, got, want] of checks) {
+    if (got !== want) fail("content count " + name + ": got " + got + ", want " + want);
+    console.log("content " + name + ": " + got);
   }
 }
 
-// ---- 4. Shots: every pose in shots.json must have a screenshot ----
-// The first 4 entries are the submitted set (the dossier caps screenshots
-// at 4); entries past that are bonus poses — a missing file for one only
-// warns, so a new pose never blocks the build before its shot is taken.
-const shots = JSON.parse(readText(join(baseDir, 'shots.json')));
-if (shots.length < 4) abort(`shots.json names only ${shots.length} shots, need at least 4`);
-for (let i = 0; i < shots.length; i++) {
-  const shot = shots[i];
-  const p = join(shotRoot, shot.name);
-  if (!existsSync(p)) {
-    if (i < 4) abort(`shots.json names ${shot.name} but screenshots/${shot.name} is missing`);
-    console.warn(`[azura-bay] WARNING: bonus pose ${shot.name} has no screenshot yet — skipping`);
-    continue;
+function copyTree(src: string, dst: string): void {
+  mkdirSync(dst, { recursive: true });
+  for (const entry of readdirSync(src, { withFileTypes: true })) {
+    const from = join(src, entry.name);
+    const to = join(dst, entry.name);
+    if (entry.isDirectory()) copyTree(from, to);
+    else copyFileSync(from, to);
   }
-  if (statSync(p).size > SHOT_CAP_BYTES) abort(`screenshots/${shot.name} is over the 256 KiB cap`);
 }
 
-// ---- Ship it: copy the game + screenshots, write the dossier ----
-mkdirSync(outDir, { recursive: true });
-cpSync(gameRoot, join(outDir, 'game'), { recursive: true });
-mkdirSync(join(outDir, 'screenshots'), { recursive: true });
-if (existsSync(shotRoot)) cpSync(shotRoot, join(outDir, 'screenshots'), { recursive: true });
+async function main(): Promise<void> {
+  preflight();
+  await countContent();
+  // Fresh /output.
+  rmSync(OUT, { recursive: true, force: true });
+  mkdirSync(OUT, { recursive: true });
+  copyTree(GAME_DIR, join(OUT, "game"));
+  copyTree(SHOTS_DIR, join(OUT, "screenshots"));
+  // Dossier (the scorer's own function, byte for byte).
+  const dossier = buildDossier(OUT, CAPS);
+  writeFileSync(join(OUT, "dossier.json"), dossier);
+  console.log("dossier.json written: " + dossier.length + " bytes");
+  console.log("build ok: /output ready");
+}
 
-// The scorer's own caps (reference/gate.json): only text_max_bytes shapes the bytes; the others refuse an entry the
-// scorer would refuse (more than 4 screenshots or one over 256 KiB; more than 993 files in game/ or 48 MiB of game
-// files, in all, or a path under game/ over 1000 bytes: game/ counts beside /output's own 1000-entry cap, its
-// screenshots/ and dossier.json).
-writeFileSync(
-  join(outDir, 'dossier.json'),
-  buildDossier(outDir, {
-    text_max_bytes: 163840,
-    screenshots: { max: 4, max_bytes: 262144 },
-    game_max_files: 993,
-    game_max_bytes: 50331648,
-    game_path_max_bytes: 1000,
-  }),
-);
-
-console.log(`[azura-bay] shipped round 3: ${srcFiles.length} src modules, ${imports.length} boot imports, `
-  + `${tallies.missions} missions, ${tallies.weapons} weapons, ${tallies.vehicles} vehicles, `
-  + `${tallies.cheats} cheats, ${shots.length} shots -> ${outDir}`);
+main().catch((e) => fail(String(e && (e as Error).message ? (e as Error).message : e)));

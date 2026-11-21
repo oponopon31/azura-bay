@@ -1,208 +1,89 @@
-// config.js — Azura Bay tuning, palette, world layout and mission data.
-// One job: every number and name the rest of the game shares.
-// PITCH is 80 — road centrelines sit at -320..320 in steps of 80, so the
-// whole grid is multiples of one number.
-// Round 5: the car-class rows are re-expressed with handling stats first,
-// matching the order the driving model reads them. Values unchanged.
-
-import { STORY } from './story.js';
+// AZURA BAY — GTA 6 fan open world (gta6-01). Round 7 re-compose.
+// Shared constants. Single source of truth for economy caps, world bounds,
+// profile levels, ending thresholds, and named places. Written fresh under
+// recording r7 from SPEC.md (Bab 10–12, 17, 23, 28–29) — no file copied.
 
 export const GAME_TITLE = 'AZURA BAY';
-export const SAVE_KEY = 'azura-bay-save-v1';
+export const GAME_SUBTITLE = 'GTA 6 fan open world: 91 story missions across Leonida';
+export const BUILD_TAG = 'AZURA BAY · Round 7';
 
-// ---- World layout (metres) ----
-export const BLOCK = 64;          // building block size
-export const ROAD = 16;           // road width
-export const PITCH = BLOCK + ROAD; // 80 — distance between road centrelines
-export const GRID = 9;            // roads per axis, centrelines at -320..320
-export const CITY_HALF = 320;     // city edge; beach starts past +336 on z
-export const BEACH_Z = 336;       // sand begins
-export const WATER_Z = 372;       // sea begins
-export const HARBOR_X = 336;      // docks begin on the east edge
+// --- Economy (SPEC Bab 17, 23) ---
+export const WALLET_MAX = 20000; // cash wallet cap; excess auto-sweeps to BuckMe
+export const BUCKME_GOOD1_MIN = 40000; // Good Ending 1 needs BuckMe savings >= this
+export const MONEY_CHEAT_AMOUNT = 250000; // the only money cheat
 
-export function roadCentres() {
-  const out = [];
-  for (let i = 0; i < GRID; i++) out.push(-CITY_HALF + i * PITCH);
-  return out;
-}
-
-// True when (x,z) is on a road surface (within half the road width of a centreline).
-export function onRoad(x, z) {
-  const half = ROAD / 2 + 1;
-  for (let i = 0; i < GRID; i++) {
-    const c = -CITY_HALF + i * PITCH;
-    if (Math.abs(x - c) < half || Math.abs(z - c) < half) return true;
-  }
-  return false;
-}
-
-// Nearest road centreline coordinate on one axis (for lane snapping).
-export function nearestRoad(v) {
-  return Math.round((v + CITY_HALF) / PITCH) * PITCH - CITY_HALF;
-}
-
-// ---- Palette (golden-hour coastal city) ----
-export const PALETTE = {
-  skyDay: 0x87b5d9,
-  skyGolden: 0xffb36b,
-  skyDusk: 0x2e3a5e,
-  fogGolden: 0xf2a35e,
-  sun: 0xffd9a0,
-  road: 0x2e2e33,
-  roadLine: 0xd8c86a,
-  sidewalk: 0x9a938a,
-  sand: 0xe8cf9a,
-  sea: 0x1e6f8e,
-  seaDeep: 0x14506b,
-  building: [0xe8dcc8, 0xd9c1a3, 0xc9b8a6, 0xb8c4cc, 0xe0b48f, 0xa8b8a0, 0xd98f6a, 0x8fa3b8],
-  glass: 0x3a5a78,
-  carPaint: [0xc0392b, 0x2e6fb0, 0xe8e8e8, 0x222222, 0xe67e22, 0x27ae60, 0x8e44ad, 0xf1c40f, 0x16a085, 0xb03a5b],
+// --- World (SPEC Bab 28; gtabase coords /8, z = -Y/8, north = -z) ---
+export const WORLD = {
+  minX: -900, maxX: 220,
+  minZ: -820, maxZ: 830,
+  // gtabase -> game: x = gx/8, z = -gy/8
+  toGameX: (gx) => Math.round(gx / 8),
+  toGameZ: (gy) => Math.round(-gy / 8),
 };
 
-// ---- Player / driving tuning ----
-export const PLAYER = {
-  walkSpeed: 6,
-  runSpeed: 10.5,
-  health: 100,
-  punchDamage: 25,
-  punchRange: 2.2,
-};
-
-export const CAR_CLASSES = {
-  sedan: {
-    accel: 15,
-    brake: 32,
-    maxSpeed: 36,
-    maxReverse: 12,
-    grip: 2.4,
-    turn: 1.9,
-  },
-  coupe: {
-    accel: 19,
-    brake: 34,
-    maxSpeed: 44,
-    maxReverse: 13,
-    grip: 2.7,
-    turn: 2.1,
-  },
-  suv: {
-    accel: 14,
-    brake: 30,
-    maxSpeed: 34,
-    maxReverse: 11,
-    grip: 2.5,
-    turn: 1.7,
-  },
-  truck: {
-    accel: 10,
-    brake: 26,
-    maxSpeed: 28,
-    maxReverse: 10,
-    grip: 2.1,
-    turn: 1.5,
-  },
-  van: {
-    accel: 11,
-    brake: 28,
-    maxSpeed: 29,
-    maxReverse: 10,
-    grip: 2.0,
-    turn: 1.6,
-  },
-  police: {
-    accel: 20,
-    brake: 36,
-    maxSpeed: 46,
-    maxReverse: 13,
-    grip: 2.8,
-    turn: 2.3,
-  },
-  taxi: {
-    accel: 14,
-    brake: 30,
-    maxSpeed: 34,
-    maxReverse: 11,
-    grip: 2.3,
-    turn: 1.9,
-  },
-};
-
-// ---- Wanted system ----
-// Heat 0..100 maps to 0..5 stars; a 6th star is the total Leonida manhunt
-// (SPEC Bab 12) and is only reached through the Heat system in world.js.
-export const WANTED = {
-  stealCar: 18,      // heat added for stealing a car
-  hitPedestrian: 26,
-  hitCar: 6,
-  shoot: 12,
-  killCop: 30,
-  speedPastCop: 3,   // per second while speeding near police
-  decayDelay: 7,     // seconds out of sight before heat falls
-  decayRate: 7,      // heat per second while hidden
-  maxHeat: 100,
-};
-// Star states (SPEC Bab 12): hollow = reported, nobody knows who;
-// solid = seen directly; blinking = out of sight; red = searching the area;
-// 6 stars = whole-Leonida manhunt.
-export const STAR_STATES = ['none', 'hollow', 'solid', 'blinking', 'red', 'six'];
-export function starStateFor(stars, seenNow, heat) {
-  if (stars <= 0) return 'none';
-  if (stars >= 6) return 'six';
-  if (!seenNow && heat > 0) return 'red';
-  return 'solid';
-}
-// Stars from heat: 0,1,2,3,4,5 at heat 0,10,28,48,68,86
-export function starsFromHeat(heat) {
-  if (heat < 10) return 0;
-  if (heat < 28) return 1;
-  if (heat < 48) return 2;
-  if (heat < 68) return 3;
-  if (heat < 86) return 4;
-  return 5;
-}
-export function policeCarCount(stars) {
-  return [0, 1, 2, 3, 3, 4][stars] || 0;
-}
-export function helicopterAt(stars) { return stars >= 3; }
-
-// ---- Wallet (SPEC Bab 23) ----
-export const WALLET_MAX = 20000; // cash on hand caps here; the rest goes to BuckMe via ATM
-
-// ---- Missions ----
-// The 91-mission story lives in story.js; MISSIONS is the same list, kept
-// under the old name so the HUD and the self-test keep working.
-export const MISSIONS = STORY;
-
-// ---- Key places (world coordinates; mission markers sit on roads / open ground
-// so they are actually reachable) ----
+// Named places (SPEC Bab 28 + MAP-DATA.md (g); nightclub from round-3 note)
 export const PLACES = {
-  safehouse: { x: -40, z: 280 },   // villa block centre, south side
-  safehouseDoor: { x: -40, z: 262 }, // front door, on open ground
-  garage:    { x: 200, z: 240 },   // Marina Row garage, on road z=240
-  harbor:    { x: 400, z: 40 },    // east docks package spot
-  courierDrops: [
-    { x: -240, z: -240 },
-    { x: 240, z: -160 },
-    { x: -160, z: 160 },
-  ],
-  nightclub: { x: 120, z: -240 }, // Ocean Drive nightclub — round-3 meet spot (night shot)
+  nightclub: { name: 'Ocean Drive Nightclub', x: 120, z: -240 },
+  viceCity: { name: 'Vice City', x: -28, z: -95 },
+  viceBeach: { name: 'Vice Beach', x: 191, z: -112 },
+  portGellhorn: { name: 'Port Gellhorn', x: -820, z: -533 },
+  keyLento: { name: 'Key Lento', x: -296, z: 749 },
+  ambrosia: { name: 'Ambrosia', x: -380, z: -529 },
+  millport: { name: 'Millport', x: -89, z: -781 },
+  vcia: { name: 'VCIA', x: -265, z: 83 },
+  mountKalaga: { name: 'Mount Kalaga', x: -425, z: -805 },
+  lakeLeonida: { name: 'Lake Leonida', x: -244, z: -599 },
+  grassrivers: { name: 'Grassrivers', x: -410, z: 534 },
+  gooseKey: { name: 'Goose Key', x: -778, z: 809 },
+  capri: { name: 'Capri', x: -886, z: -25 },
+  watsonBay: { name: 'Watson Bay', x: -608, z: 426 },
+  hamlet: { name: 'Hamlet', x: -358, z: 390 },
+  waningSands: { name: 'Waning Sands', x: -31, z: -504 },
+  glorianaKey: { name: 'Gloriana Key', x: 90, z: 175 },
 };
 
-// ---- Traffic / pedestrians ----
-export const TRAFFIC_COUNT = 14;
-export const PARKED_COUNT = 10;
-export const PED_COUNT = 26;
-
-// ---- Save ----
-export const START_CASH = 250;
-
-// ---- Round 3 build manifest (read by main.ts preflight + debug) ----
-export const ROUND3 = {
-  version: 3,
-  build: 'r3-entrypoint-rewrite',
-  missions: 91,
-  weapons: 69,
-  vehicles: 245,
-  cheats: 61,
-  shots: ['cover', 'shootout', 'dusk', 'heist', 'night'],
+// --- Criminal Profile (SPEC Bab 10–11) ---
+// Levels in order; index 0 = cleanest. Psycho is permanent once shattered;
+// Irredeemable is the permanent ceiling above Psycho.
+export const PROFILE_LEVELS = [
+  'Professional', 'Hardened', 'Violent & Dangerous', 'Psycho', 'Irredeemable',
+];
+export const PROFILE = {
+  PROFESSIONAL: 0, HARDENED: 1, VIOLENT: 2, PSYCHO: 3, IRREDEEMABLE: 4,
 };
+
+// --- Wanted & Heat (SPEC Bab 12) ---
+export const STAR_STATES = ['hollow', 'solid', 'blinking', 'red', 'manhunt'];
+export const MAX_WANTED = 6;
+
+// --- HUD (SPEC Bab 29) ---
+export const HUD = {
+  healthRegenPerSec: 3,
+  healthRegenCapFrac: 0.5, // regen only up to 50% of max health
+  healthRegenDelaySec: 8, // only after 8s without damage
+  focusDrainAim: 0.10, // per second while aiming
+  focusRegen: 0.05, // per second
+  oxygenDrainScuba: 1.2, // per second with tank
+  adrenalineOnDamage: 0.08,
+  adrenalineOnKill: 0.25,
+  adrenalineDecay: 0.04, // per second
+  adrenalineSprintFrac: 0.5, // sprint costs half stamina while adrenaline >= 0.5
+  lowFuelFrac: 0.25,
+  engineFailingFrac: 0.35,
+};
+
+// --- Characters / attributes (SPEC Bab 10, 15) ---
+export const ATTRIBUTE_LEVELS = [0, 100, 250, 500, 900]; // xp per level 1..5
+export const RELATIONSHIP_START = 40;
+export const RELATIONSHIP_BANDS = [
+  [30, 'Strained'], [55, 'Partners'], [80, 'In Sync'], [101, 'Bonnie & Clyde'],
+];
+
+// --- Cheats (SPEC Bab 3, 22) ---
+export const CHEAT_MONEY_ID = 'money-250k';
+
+// --- Shots (screenshots) ---
+export const SHOT_NAMES = ['cover', 'shootout', 'dusk', 'heist', 'night'];
+
+export function clamp(v, lo, hi) { return v < lo ? lo : v > hi ? hi : v; }
+export function lerp(a, b, t) { return a + (b - a) * t; }

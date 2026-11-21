@@ -1,8 +1,7 @@
-# Local build outputs from `node main.ts` — written by the build, never committed.
-out/
-out1/
-out2/
+# AZURA BAY — gitignore (round 7)
 node_modules/
-coverage/
-*.log
+output/
+dist/
 .DS_Store
+*.log
+.makefun/recordings/

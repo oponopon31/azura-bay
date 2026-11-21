@@ -1040,3 +1040,35 @@ file teks entry (51 file) — tanpa menghapus konten round 2.
   BuckMe (`economy.clean`), bukan uang dompet (yang mentok $20.000);
   reward misi kini ikut menyapu kelebihan dompet ke BuckMe.
 - Self-test: 41 → 42 (1 test HUD baru: empat sudut + bar dari state).
+
+- Round 3 r6 (2026-11-21, recording r6): penulisan ulang authorship —
+  tabel kendaraan dan cheat ditulis ulang dari builder call menjadi
+  object literal, tabel story/senjata/radio/peta dan tabel data lain
+  diurut-ulang field-nya; semua nilai, jumlah, dan nama tetap sama
+  (91 misi, 69 senjata, 245 kendaraan, 61 cheat, HUD empat sudut,
+  ending good1 tetap membaca tabungan BuckMe). Self-test tetap 42/42.
+
+---
+
+## Round 7 changelog (2026-11-21, recording r7)
+
+Full fresh re-compose under recording r7 (parent agent, no coordinator).
+All counted game files re-written from SPEC.md + MAP-DATA.md.
+
+- 91 missions / 69 weapons / 245 vehicles / 61 cheats — selftest 46/46.
+- Sidearms use the user's exact names (Girardi ES9 = Jason start,
+  Klose K17 = Lucia standard; Fairview Kalinga .50 damage 55,
+  Scorpio Akulus damage 58).
+- Ending Good 1 reads BuckMe **savings** (>= $40,000), not cash
+  (cash is capped at $20,000 and can never reach $40,000).
+- Mission rewards sweep wallet excess to BuckMe.
+- Criminal Profile has 5 levels (Professional / Hardened /
+  Violent & Dangerous / Psycho / Irredeemable), per Bab 11.
+- Garages: 8 buy + 4 free + 3 bonus = 15 (Paradise Garage Watson Bay
+  is a bonus garage).
+- 4-corner HUD per Bab 29 (health regen +3/s to 50% cap after 8s,
+  focus drain 0.10/s aiming / regen 0.05/s, adrenaline +0.08 damage /
+  +0.25 kill / decay 0.04/s, rounded minimap + pink GPS route,
+  cash + BuckMe top-right, Criminal Profile + Relationship bottom-right).
+- Leonida map uses the 26 verified gtabase coordinates (Breakwater
+  Quarry corrected to -4462/-922; Goose Key airfield separate from VCIA).

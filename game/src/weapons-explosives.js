@@ -1,12 +1,11 @@
-// AZURA BAY — explosives (round 7 re-compose, written fresh under r7).
-// 4 explosives, exact user names from SPEC.md section 2d.
-
+// weapons-explosives.js — Explosives / throwables (4), SPEC §2d.
 export const EXPLOSIVES = [
-  { id: "frag", name: "Frag Grenade", damage: 90, fireRate: 1, range: 30, handling: 70, capacity: 5, price: 500, unlock: 20, desc: "Standard frag. Variants: Standard, Impact." },
-  { id: "sticky", name: "Sticky Bomb", damage: 120, fireRate: 1, range: 25, handling: 65, capacity: 5, price: 800, unlock: 30, desc: "Sticks, then booms." },
-  { id: "molotov", name: "Molotov Cocktail", damage: 60, fireRate: 1, range: 20, handling: 75, capacity: 5, price: 300, unlock: 15, desc: "Fire Bottle. Variants: Classic, Napalm." },
-  { id: "smoke", name: "Smoke Grenade", damage: 5, fireRate: 1, range: 25, handling: 80, capacity: 5, price: 250, unlock: 18, desc: "Smoke / Flashbang. Cover and blind." },
+  { id: 'frag', name: 'Frag Grenade', kind: 'explosive', damage: 160, range: 8, radius: 7, capacity: 5, unlock: 'm21', variants: ['Standard Frag', 'Impact Frag'] },
+  { id: 'sticky', name: 'Sticky Bomb', kind: 'explosive', damage: 190, range: 6, radius: 8, capacity: 5, unlock: 'm28', note: 'sticks to surfaces and vehicles' },
+  { id: 'molotov', name: 'Molotov Cocktail', kind: 'explosive', damage: 90, range: 10, radius: 5, capacity: 5, unlock: 'm9', variants: ['Classic Molotov', 'Napalm Molotov'], note: 'also called Fire Bottle' },
+  { id: 'smoke', name: 'Smoke Grenade', kind: 'explosive', damage: 0, range: 12, radius: 10, capacity: 5, unlock: 'm19', note: 'Smoke / Flashbang — blinds and conceals' },
 ];
 
-export function explosiveById(id) { return EXPLOSIVES.find((w) => w.id === id) || null; }
-export function totalExplosives() { return EXPLOSIVES.length; }
+export function explosiveById(id) {
+  return EXPLOSIVES.find((e) => e.id === id) || null;
+}

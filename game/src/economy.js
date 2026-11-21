@@ -1,69 +1,57 @@
-// AZURA BAY — economy (round 7 re-compose, written fresh under r7).
-// SPEC.md Bab 11 + 25. Three money types:
-//   cash   — wallet, capped at $20,000 (WALLET_MAX). Excess sweeps to BuckMe.
-//   buckme — joint savings, uncapped. Decides Ending Good 1 (>= $40,000).
-//   bank   — clean money for legal purchases.
-// Fences buy stolen goods: Tyrone, Yasmani, Moses, Randy.
+// economy.js — Economy: 3 money types & fences, SPEC §17 + §23.
+// 1) Clean money / bank balance (spent directly, goes to BuckMe savings).
+// 2) Marked Bills (bank / armoured-truck robbery proceeds — must be laundered
+//    / exchanged through a fence first).
+// 3) Stolen Goods (drugs, jewellery, luxury watches, stolen cars).
+// Some main-story missions need a minimum bank balance before they unlock.
+// Wallet cap $20,000 (Bab 23): excess is NOT pocketed — it sweeps to BuckMe.
+import { WALLET_MAX } from './config.js';
 
-export const WALLET_MAX = 20000;
-export const BUCKME_GOOD1_MIN = 40000;
-
-export function newEconomy() {
-  return { cash: 500, buckme: 0, bank: 1000, fences: {} };
-}
-
-// Sweep wallet excess into BuckMe (SPEC Bab 11). Returns amount swept.
-export function enforceWalletCap(econ) {
-  if (econ.cash <= WALLET_MAX) return 0;
-  const excess = econ.cash - WALLET_MAX;
-  econ.cash = WALLET_MAX;
-  econ.buckme += excess;
-  return excess;
-}
-
-export function addCash(econ, amount) {
-  econ.cash += amount;
-  return enforceWalletCap(econ);
-}
-export function addBuckMe(econ, amount) { econ.buckme += amount; return amount; }
-export function addBank(econ, amount) { econ.bank += amount; return amount; }
-export function spendCash(econ, amount) {
-  if (econ.cash < amount) return false;
-  econ.cash -= amount;
-  return true;
-}
-export function spendBuckMe(econ, amount) {
-  if (econ.buckme < amount) return false;
-  econ.buckme -= amount;
-  return true;
-}
-export function spendBank(econ, amount) {
-  if (econ.bank < amount) return false;
-  econ.bank -= amount;
-  return true;
-}
-
-// Fences: sell stolen goods for cash (laundered into the wallet, then capped).
-export const FENCES = [
-  { id: "tyrone", name: "Tyrone", zone: "Vice City", rate: 0.6, desc: "Buys stolen electronics and jewelry." },
-  { id: "yasmani", name: "Yasmani", zone: "Vice City", rate: 0.65, desc: "Jewelry fence." },
-  { id: "moses", name: "Moses", zone: "Port Gellhorn", rate: 0.55, desc: "Buys stolen cars and parts." },
-  { id: "randy", name: "Randy", zone: "Vice City", rate: 0.5, desc: "Buys anything, no questions." },
+export const MONEY_TYPES = [
+  { id: 'clean', name: 'Clean Money', desc: 'Bank balance; spent directly, feeds BuckMe savings.' },
+  { id: 'marked', name: 'Marked Bills', desc: 'Bank / armoured-truck robbery proceeds; launder via a fence first.' },
+  { id: 'goods', name: 'Stolen Goods', desc: 'Drugs, jewellery, luxury watches, stolen cars.' },
 ];
 
-export function fenceById(id) { return FENCES.find((f) => f.id === id) || null; }
-export function sellToFence(econ, fenceId, value) {
-  const fence = fenceById(fenceId);
-  if (!fence) return 0;
-  const paid = Math.floor(value * fence.rate);
-  addCash(econ, paid);
-  return paid;
+// Specialist fences (SPEC §17).
+export const FENCES = [
+  { id: 'tyrone', name: 'Tyrone', specialty: 'drugs', note: 'highest payout for drugs' },
+  { id: 'yasmani', name: 'Yasmani', specialty: 'jewellery & marked bills', note: 'also unlocks armoured-truck & big-vault robbery missions' },
+  { id: 'moses', name: 'Moses', specialty: 'standard stolen cars, no tracker', note: 'Chapter 2, $1,000+ per car' },
+  { id: 'paynspray', name: "Pay 'n' Spray", specialty: 'tracked standard stolen cars', note: 'early Chapter 3, $4,000+ per car' },
+  { id: 'randy', name: 'Randy', specialty: 'special-order supercars, mint condition', note: '$30,000+ per car' },
+];
+
+// Minimum bank balance required to open certain story missions.
+export const MISSION_MIN_BALANCE = {
+  m34: 5000,
+  m50: 15000,
+  m59: 25000,
+  m82: 40000,
+  m89: 50000,
+};
+
+// Sweep wallet excess to BuckMe (called after mission rewards, fence sales
+// and any cash gain). Returns the new { cash, buckme }.
+export function enforceWalletCap(cash, buckme) {
+  if (cash > WALLET_MAX) {
+    const excess = cash - WALLET_MAX;
+    return { cash: WALLET_MAX, buckme: buckme + excess, swept: excess };
+  }
+  return { cash, buckme, swept: 0 };
 }
 
-// Mission reward: cash into the wallet (capped, excess to BuckMe),
-// clean money into BuckMe.
-export function missionReward(econ, cashAmount, cleanAmount) {
-  const swept = addCash(econ, cashAmount);
-  if (cleanAmount > 0) addBuckMe(econ, cleanAmount);
-  return { swept, cash: econ.cash, buckme: econ.buckme };
+// Total wealth across clean cash + BuckMe savings + marked bills (at face
+// value) — used by the HUD and the ending check.
+export function totalWealth(state) {
+  const s = state || {};
+  return (s.cash || 0) + (s.buckme || 0) + (s.marked || 0);
+}
+
+// Launder marked bills through a fence (Yasmani takes a cut).
+export function launderMarked(marked, fenceId) {
+  const fence = FENCES.find((f) => f.id === fenceId);
+  if (!fence) return { clean: 0, kept: marked };
+  const rate = fenceId === 'yasmani' ? 0.85 : 0.7;
+  return { clean: Math.floor(marked * rate), kept: 0, fence: fence.name };
 }

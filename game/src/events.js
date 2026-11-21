@@ -1,62 +1,39 @@
-// AZURA BAY — random events (round 7 re-compose, written fresh under r7).
-// SPEC.md Bab 14. 500+ random events. 14 named types below; the rest are
-// generated from templates (vehicle, ped, animal, crime, weather).
-// Named: Crazy Cop Car Dancer, Tiger Attack, Skunk Ape, plane crash,
-// drug deal, trunk kidnapping, biker convoy, DUI test, amusement park,
-// wrestling ring, cartel house, haunted hotel, and more.
-
+// events.js — Random events & encounters (500+), SPEC §14.
+// 14 named event types × ~40 spawn locations = 500+ combinations.
+// Types: street crime, weird encounters, special locations.
 export const EVENT_TYPES = [
-  { id: "cop-dancer", name: "Crazy Cop Car Dancer", weight: 5, desc: "A cop dances on his patrol car." },
-  { id: "tiger", name: "Tiger Attack", weight: 4, desc: "An escaped tiger attacks pedestrians." },
-  { id: "skunk-ape", name: "Skunk Ape", weight: 3, desc: "Bigfoot sighting in Grassrivers." },
-  { id: "plane-crash", name: "Plane Crash", weight: 2, desc: "A small plane goes down." },
-  { id: "drug-deal", name: "Drug Deal", weight: 8, desc: "A deal goes down in an alley." },
-  { id: "trunk-kidnap", name: "Trunk Kidnapping", weight: 3, desc: "Someone is locked in a car trunk." },
-  { id: "biker-convoy", name: "Biker Convoy", weight: 6, desc: "A gang motorcade rolls through." },
-  { id: "dui-test", name: "DUI Test", weight: 4, desc: "Police checkpoint breath test." },
-  { id: "amusement", name: "Amusement Park", weight: 5, desc: "A ride breaks down at the fair." },
-  { id: "wrestling", name: "Wrestling Ring", weight: 4, desc: "Backyard wrestling match." },
-  { id: "cartel-house", name: "Cartel House", weight: 3, desc: "A cartel safehouse is raided." },
-  { id: "haunted-hotel", name: "Haunted Hotel", weight: 3, desc: "Ghosts in the old hotel." },
-  { id: "street-race", name: "Street Race", weight: 7, desc: "Illegal street race." },
-  { id: "robbery", name: "Store Robbery", weight: 8, desc: "A store is being robbed." },
+  { id: 'copdancer', name: 'Crazy Cop Car Dancer', kind: 'weird', desc: 'A crazy dancer on top of a police car.' },
+  { id: 'tiger', name: 'Tiger Attack', kind: 'weird', desc: 'An escaped tiger attacks.' },
+  { id: 'skunkape-event', name: 'Skunk Ape Sighting', kind: 'weird', desc: 'A Skunk Ape / Bigfoot sighting.' },
+  { id: 'planecrash', name: 'Plane Crash Site', kind: 'location', desc: 'A plane crash location in the forest.' },
+  { id: 'drugdeal', name: 'Drug Deal', kind: 'crime', desc: 'A drug deal in an alley.' },
+  { id: 'kidnap', name: 'Kidnapping Victim in Trunk', kind: 'crime', desc: 'A kidnapping victim in a car trunk.' },
+  { id: 'bikerconvoy', name: 'Biker Gang Convoy', kind: 'crime', desc: 'A biker gang convoy.' },
+  { id: 'npcrobbery', name: 'Robbery by Another NPC', kind: 'crime', desc: 'Another NPC robbing a store.' },
+  { id: 'dui', name: 'DUI Test', kind: 'police', desc: 'A police drunk-driving test.' },
+  { id: 'amusement', name: 'Amusement Park', kind: 'location', desc: 'An amusement park.' },
+  { id: 'wrestling', name: 'Backyard Wrestling Ring', kind: 'location', desc: 'A backyard wrestling ring.' },
+  { id: 'cartelhouse', name: 'Cartel House', kind: 'location', desc: 'A Scarface-style cartel house.' },
+  { id: 'hauntedhotel', name: 'Haunted Hotel', kind: 'location', desc: 'A haunted hotel in the backcountry.' },
+  { id: 'gaspump', name: 'Crazy Man at Gas Station', kind: 'weird', desc: 'A crazy man at a gas station.' },
 ];
 
-export const EVENT_TOTAL = 500;
+export const EVENT_LOCATIONS = [
+  'Vice City', 'Vice Beach', 'Ocean Beach', 'Little Havana', 'Little Haiti', 'Stockyard',
+  'Downtown', 'Hamlet', 'Belville', 'Rockridge', 'Leaf Links', 'Venetian Islands',
+  'Key Lento', 'Watson Bay', 'Capri', 'Gloriana Key', 'Grassrivers', 'Port Gellhorn',
+  'Ambrosia', 'Allied Crystal', 'Lake Leonida', 'Mount Kalaga', 'Yorktown', 'Waning Sands',
+  'Millport', 'Emerald Springs', 'La Perle', 'Bayside', 'Salton', 'Southside', 'Balsero',
+  'Decor District', 'Goose Key', 'Gellhorn International Raceway', 'Leonida Keys',
+  'Vice City Port', 'VCIA', 'Breakwater Quarry', 'Crosstown', 'Tequesta Retreat',
+];
 
-import { mulberry32, hashSeed } from "./rng.js";
-
-// Generate the full 500+ event catalog: 14 named + generated variants.
-export function allEvents() {
-  const rand = mulberry32(hashSeed("events"));
-  const out = EVENT_TYPES.map((t) => ({ ...t, variant: 0 }));
-  const templates = [
-    ["car-chase", "Car Chase"], ["mugging", "Mugging"], ["hit-and-run", "Hit and Run"],
-    ["animal-crossing", "Animal Crossing"], ["fire", "Building Fire"], ["protest", "Protest"],
-    ["flash-mob", "Flash Mob"], ["tour-bus", "Tour Bus Crash"], ["boat-race", "Boat Race"],
-    ["fishing-contest", "Fishing Contest"], ["parade", "Parade"], ["concert", "Street Concert"],
-  ];
-  let i = 0;
-  while (out.length < EVENT_TOTAL) {
-    const [id, name] = templates[i % templates.length];
-    out.push({ id: id + "-" + Math.floor(i / templates.length), name: name + " #" + (Math.floor(i / templates.length) + 1), weight: 1 + Math.floor(rand() * 8), desc: "Random event.", variant: Math.floor(i / templates.length) + 1 });
-    i++;
-  }
-  return out;
+// Total combinations: 14 types × 40 locations = 560 (500+).
+export function totalEventCombinations() {
+  return EVENT_TYPES.length * EVENT_LOCATIONS.length;
 }
 
-export function totalEvents() { return EVENT_TOTAL; }
-export function eventById(id) {
-  return allEvents().find((e) => e.id === id) || null;
-}
-// Pick a random event weighted by weight.
-export function randomEvent(rand) {
-  const events = allEvents();
-  const total = events.reduce((s, e) => s + e.weight, 0);
-  let roll = rand() * total;
-  for (const e of events) {
-    roll -= e.weight;
-    if (roll <= 0) return e;
-  }
-  return events[0];
+// Cooldown (seconds) left before an event type can spawn again.
+export function cooldownLeft(lastSpawnAt, now, cooldownSec) {
+  return Math.max(0, cooldownSec - (now - lastSpawnAt));
 }

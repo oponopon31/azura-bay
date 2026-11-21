@@ -1,23 +1,18 @@
-// AZURA BAY — screenshot poses (round 7 re-compose, fresh under r7).
-// 5 poses for the dossier screenshots: cover, shootout, dusk, heist, night.
-// Only 4 screenshots ship (night is a bonus pose). Each pose sets the
-// camera, time, weather, and player/vehicle placement.
-
-export const POSES = [
-  { id: "cover", name: "Cover", desc: "Jason and Lucia on Vice Beach at sunset.", time: 17 * 60 + 30, weather: "clear", camera: "wide", x: 191, z: -112 },
-  { id: "shootout", name: "Shootout", desc: "A shootout in Vice City.", time: 14 * 60, weather: "clear", camera: "action", x: -28, z: -95 },
-  { id: "dusk", name: "Dusk", desc: "Dusk over the Leonida Keys.", time: 18 * 60 + 45, weather: "sunset", camera: "wide", x: -296, z: 749 },
-  { id: "heist", name: "Heist", desc: "The big heist at the bank.", time: 10 * 60, weather: "clear", camera: "close", x: -28, z: -95 },
-  { id: "night", name: "Night", desc: "Night in Vice City (bonus pose).", time: 22 * 60, weather: "clear", camera: "wide", x: -28, z: -95 },
+// shots.js — Screenshot poses for the dossier (round 3).
+// 5 poses in shots.json; the 4 submitted screenshots are cover / shootout /
+// dusk / heist (dossier cap is 4). The 5th pose, night, is a midnight meet
+// at the Ocean Drive nightclub, 21:30, 1 star.
+export const SHOTS = [
+  { id: 'cover', name: 'Cover', scene: 'Lucia & Jason on Ocean Drive at sunset, Vice City skyline', hour: 18.5, stars: 0 },
+  { id: 'shootout', name: 'Shootout', scene: 'Street shootout outside Ammu-Nation, police responding', hour: 14, stars: 3 },
+  { id: 'dusk', name: 'Dusk', scene: 'Vice Beach at dusk, neon signs lighting up', hour: 18.5, stars: 0 },
+  { id: 'heist', name: 'Heist', scene: 'Sinfrontera National Bank vault, bags of marked bills', hour: 11, stars: 4 },
+  { id: 'night', name: 'Night', scene: 'Midnight meet at the Ocean Drive nightclub', hour: 21.5, stars: 1 },
 ];
 
-export const SHIPPED_POSES = ["cover", "shootout", "dusk", "heist"];
+// The 4 screenshots actually submitted (dossier cap).
+export const SUBMITTED_SHOTS = ['cover', 'shootout', 'dusk', 'heist'];
 
-export function poseById(id) { return POSES.find((p) => p.id === id) || null; }
-export function totalPoses() { return POSES.length; }
-export function shippedPoses() { return POSES.filter((p) => SHIPPED_POSES.includes(p.id)); }
-export function isShipped(id) { return SHIPPED_POSES.includes(id); }
-export function poseTime(id) {
-  const p = poseById(id);
-  return p ? p.time : null;
+export function shotById(id) {
+  return SHOTS.find((s) => s.id === id) || null;
 }

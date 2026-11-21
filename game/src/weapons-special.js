@@ -1,14 +1,17 @@
-// AZURA BAY — special weapons (round 7 re-compose, written fresh under r7).
-// 3 coordinator-added Special weapons, marked as additions the user can veto
-// (SPEC.md section 2, delegation note). Total weapons = 66 user + 3 = 69.
-
-export const SPECIAL = [
-  { id: "minigun", name: "Minigun", damage: 30, fireRate: 20, range: 70, handling: 40, capacity: 500, price: 15000, unlock: 60, desc: "Special addition. Variants: Standard, Gold." },
-  { id: "railgun", name: "Railgun", damage: 200, fireRate: 0.5, range: 150, handling: 35, capacity: 5, price: 20000, unlock: 70, desc: "Special addition. Experimental." },
-  { id: "firework", name: "Firework Launcher", damage: 80, fireRate: 1, range: 60, handling: 50, capacity: 10, price: 8000, unlock: 65, desc: "Special addition. Celebratory." },
+// weapons-special.js — Special category (3). COORDINATOR ADDITIONS, not user
+// spec: the user delegated weapon categories to the assistant (SPEC §2,
+// "lu aja beresin kalo soal category") and these are clearly marked as
+// additions the user can veto. They bring the total to 69 (66 user + 3).
+export const SPECIALS = [
+  { id: 'minigun', name: 'Minigun', kind: 'special', damage: 28, fireRate: 20.0, range: 80, handling: 40, capacity: 500, unlock: 'm63', variants: ['Standard Minigun', 'Gold Minigun'], added: 'coordinator' },
+  { id: 'railgun', name: 'Railgun', kind: 'special', damage: 220, fireRate: 0.5, range: 150, handling: 45, capacity: 10, unlock: 'm70', added: 'coordinator' },
+  { id: 'firework', name: 'Firework Launcher', kind: 'special', damage: 60, fireRate: 1.0, range: 50, handling: 70, capacity: 12, unlock: 'm64', added: 'coordinator' },
 ];
 
-export function specialById(id) { return SPECIAL.find((w) => w.id === id) || null; }
-export function specialDps(w) { return Math.round(w.damage * w.fireRate); }
-export function totalSpecial() { return SPECIAL.length; }
-export function totalWeapons() { return 16 + 37 + 9 + 4 + 3; } // 69
+export function specialDps(s) {
+  return Math.round(s.damage * s.fireRate);
+}
+
+export function specialById(id) {
+  return SPECIALS.find((s) => s.id === id) || null;
+}

@@ -1,25 +1,27 @@
-// AZURA BAY — Strangers & Freaks (round 7 re-compose, written fresh under r7).
-// 13 characters, SPEC.md Bab 4. Each has a chapter, contact, and objective.
-
+// strangers.js — Strangers & Freaks (13), SPEC §4.
+// Randy, Tyrone & Dunk count as one entry (a trio), giving 13 entries total.
 export const STRANGERS = [
-  { id: "shirley", name: "Shirley", ch: 1, zone: "Leonida Keys", x: -310, z: 745, obj: "Steal rum and a scooter.", desc: "Rum runner with a fast scooter." },
-  { id: "cal", name: "Cal", ch: 1, zone: "Leonida Keys", x: -300, z: 760, obj: 'Catch a bigger fish.', desc: "Fisherman hunting the giant fish." },
-  { id: "kirk", name: "Kirk", ch: 1, zone: "Grassrivers", x: -410, z: 534, obj: "Hunt the Skunk Ape / Bigfoot in the woods and swamp.", desc: "Skunk Ape hunter." },
-  { id: "kyle", name: "Kyle", ch: 2, zone: "Port Gellhorn", x: -815, z: -530, obj: "Collect chemicals at McKittrick Farm.", desc: "GMO strawberry farm hand." },
-  { id: "billy", name: "Billy", ch: 2, zone: "Port Gellhorn", x: -825, z: -520, obj: "5 trail-bike races and thefts for the Thrillbilly Mud Club.", desc: "Trail-bike gang leader." },
-  { id: "bret", name: "Bret Vogel", ch: 2, zone: "Ambrosia", x: -380, z: -529, obj: "Special hunting challenges.", desc: "Veteran hunter." },
-  { id: "moses", name: "Moses", ch: 2, zone: "Port Gellhorn", x: -815, z: -525, obj: "Steal the list of ordered cars.", desc: "Steals cars to order. Goes by Mo." },
-  { id: "yago", name: "Yago", ch: 3, zone: "Vice City", x: -40, z: -85, obj: "4 street races and mentorship in Little Cuba.", desc: "Street racer and mentor." },
-  { id: "andy", name: "Andy", ch: 3, zone: "Vice City", x: -35, z: -95, obj: "4 missions with Lucia and the mysterious Cellerica.", desc: "Cellerica contact." },
-  { id: "yasmani", name: "Yasmani", ch: 3, zone: "Vice City", x: -45, z: -90, obj: "Fence stolen jewelry; robbery jobs.", desc: "Jewelry fence." },
-  { id: "randy-crew", name: "Randy, Tyrone & Dunk", ch: 3, zone: "Vice City", x: -30, z: -100, obj: "Destroy the rival lab and special thefts.", desc: "Trio of specialists." },
-  { id: "eddie", name: "Eddie Acosta", ch: 4, zone: "Vice Beach", x: 190, z: -112, obj: "Crypto fan met in Pool Day.", desc: "Crypto enthusiast." },
-  { id: "pete", name: "Pilot Pete", ch: 4, zone: "VCIA", x: -265, z: 83, obj: "Fly smuggling packages by air.", desc: "Smuggler pilot." },
+  { id: 'shirley', name: 'Shirley', chapter: 1, jobs: 3, desc: 'Steal rum and a scooter.' },
+  { id: 'cal-sf', name: 'Cal', chapter: 1, jobs: 2, desc: 'Fish for a giant fish ("Catch A Bigger Fish").' },
+  { id: 'kirk', name: 'Kirk', chapter: 1, jobs: 4, desc: 'Skunk Ape / Bigfoot hunter in the forest and swamp.' },
+  { id: 'kyle', name: 'Kyle', chapter: 2, jobs: 3, desc: 'McKittrick Farm — collect chemicals (GMO strawberry "Hulk" parody).' },
+  { id: 'billy-sf', name: 'Billy', chapter: 2, jobs: 5, desc: 'Thrillbilly Mud Club trail-bike gang leader (5 race & theft missions).' },
+  { id: 'bret-sf', name: 'Bret Vogel', chapter: 2, jobs: 3, desc: 'Veteran hunter with special hunting challenges.' },
+  { id: 'moses-sf', name: 'Moses', chapter: 2, jobs: 4, desc: 'Steal a list of special-order cars.' },
+  { id: 'yago', name: 'Yago', chapter: 3, jobs: 4, desc: 'Little Cuba street racer (4 race & mentor missions).' },
+  { id: 'andy-sf', name: 'Andy', chapter: 3, jobs: 4, desc: 'Lucia + the mysterious Cellerica group (4 missions).' },
+  { id: 'yasmani', name: 'Yasmani', chapter: 3, jobs: 3, desc: 'Stolen-jewellery fence; robbery jobs.' },
+  { id: 'randy-trio', name: 'Randy, Tyrone & Dunk', chapter: 3, jobs: 3, desc: 'Destroy a rival lab and special thefts.' },
+  { id: 'eddie', name: 'Eddie Acosta', chapter: 4, jobs: 2, desc: 'Crypto fan, met in the Pool Day mission.' },
+  { id: 'pete-sf', name: 'Pilot Pete', chapter: 4, jobs: 3, desc: 'Smuggler pilot; Jason flies air packages.' },
 ];
 
-export function strangerById(id) { return STRANGERS.find((s) => s.id === id) || null; }
-export function nextAvailable(state) {
-  const done = new Set((state && state.strangersDone) || []);
-  return STRANGERS.filter((s) => !done.has(s.id));
+// Next stranger available given the missions completed so far.
+export function nextAvailable(doneMissionCount) {
+  const chapter = doneMissionCount < 22 ? 1 : doneMissionCount < 33 ? 2 : doneMissionCount < 59 ? 3 : 4;
+  return STRANGERS.filter((s) => s.chapter <= chapter);
 }
-export function totalStrangers() { return STRANGERS.length; }
+
+export function strangerById(id) {
+  return STRANGERS.find((s) => s.id === id) || null;
+}

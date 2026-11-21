@@ -1,46 +1,38 @@
-// AZURA BAY — driving (round 7 re-compose, written fresh under r7).
-// SPEC.md Bab 16. Braking distance, stopping time, fuel/charging,
-// Auto-Drive, Quick GPS. Vehicles have fuel (gas) or charge (electric).
+// driving.js — Driving mechanics, SPEC §18 + §24.
+// Auto-Drive (hold D-Pad Down in a car, pick Cinematic Camera: the car drives
+// itself to the GPS destination, obeying traffic lights). Quick GPS without
+// opening the map (hold D-Pad Down while driving). Push Mechanic (a stuck car
+// / beached boat: walk into it and hold the prompt to push it back).
+// Hide in Car (hold Circle / B in a car to duck lower while hiding from police).
+// Road Rage Shortcut (R3 in a vehicle to shout at other drivers).
+// Heavy car physics: a flipped car CANNOT be flipped back by steering; the
+// body dents from bare-hand hits / slamming enemies into doors.
+export const DRIVING_FEATURES = [
+  { id: 'autodrive', name: 'Auto-Drive', desc: 'Hold D-Pad Down in a car, pick Cinematic Camera — car drives itself to the GPS destination, obeying traffic lights.' },
+  { id: 'quickgps', name: 'Quick GPS', desc: 'Hold D-Pad Down while driving to pick a destination on screen, no map needed.' },
+  { id: 'push', name: 'Push Mechanic', desc: 'Stuck car / beached boat: walk into it and hold the prompt to push it back to the road or water.' },
+  { id: 'hideincar', name: 'Hide in Car', desc: 'Hold Circle / B in a car to duck lower while hiding from police.' },
+  { id: 'roadrage', name: 'Road Rage Shortcut', desc: 'Press R3 in a vehicle to shout / swear at other drivers.' },
+  { id: 'heavyphysics', name: 'Heavy Car Physics', desc: 'A flipped car cannot be flipped back by steering; body dents from bare-hand hits and slamming enemies into doors.' },
+];
 
-export function brakingDistance(speed, handling) {
-  // speed in km/h, handling 0-100. Higher handling = shorter stop.
-  const v = speed / 3.6; // m/s
-  const decel = 4 + (handling / 100) * 6; // m/s^2
-  return Math.round((v * v) / (2 * decel));
+// Braking distance (m) from speed (km/h) and road grip (0-1).
+export function brakingDistance(speedKmh, grip) {
+  const v = speedKmh / 3.6; // m/s
+  const decel = 8 * Math.max(0.3, grip); // m/s^2
+  return Math.round((v * v) / (2 * decel) * 10) / 10;
 }
-export function stoppingTime(speed, handling) {
-  const v = speed / 3.6;
-  const decel = 4 + (handling / 100) * 6;
+
+// Time (s) to stop from speed (km/h) at the given grip.
+export function stoppingTime(speedKmh, grip) {
+  const v = speedKmh / 3.6;
+  const decel = 8 * Math.max(0.3, grip);
   return Math.round((v / decel) * 10) / 10;
 }
-export function fuelConsumption(speed, dt) {
-  // litres per second at speed
-  return (speed / 200) * 0.01 * dt;
-}
-export function chargeConsumption(speed, dt) {
-  return (speed / 200) * 0.008 * dt;
-}
-export function newVehicleState(vehicle) {
-  return {
-    id: vehicle.id, name: vehicle.name, fuel: 100, charge: 100,
-    engineHealth: 100, speed: 0, electric: vehicle.name.includes("Voltaic") || vehicle.name.includes("Cyclone") || vehicle.name.includes("Neon"),
-    autoDrive: false, gpsTarget: null,
-  };
-}
-export function refuel(vs, amount) {
-  vs.fuel = Math.min(100, vs.fuel + amount);
-  return vs.fuel;
-}
-export function recharge(vs, amount) {
-  vs.charge = Math.min(100, vs.charge + amount);
-  return vs.charge;
-}
-export function damageEngine(vs, amount) {
-  vs.engineHealth = Math.max(0, vs.engineHealth - amount);
-  return vs.engineHealth;
-}
-export function setAutoDrive(vs, on) { vs.autoDrive = on; return vs.autoDrive; }
-export function setGpsTarget(vs, point) { vs.gpsTarget = point; return vs.gpsTarget; }
-export function needsFuel(vs) { return !vs.electric && vs.fuel < 20; }
-export function needsCharge(vs) { return vs.electric && vs.charge < 20; }
-export function needsRepair(vs) { return vs.engineHealth < 30; }
+
+// Engine on/off: press Triangle/Y once = engine off when exiting;
+// double-tap = exit with the engine still running (fast getaway).
+export const EXIT_ENGINE = {
+  singleTap: 'engine off on exit',
+  doubleTap: 'exit with engine still running',
+};

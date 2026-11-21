@@ -1,61 +1,34 @@
-// AZURA BAY — vehicle instances (round 7 re-compose, fresh under r7).
-// Spawned vehicle instances on the map. countByDriver groups by driver
-// (player, npc, police, none). Uses vehicles-data.js for the catalog.
+// vehicles.js — Vehicle systems, SPEC §17.
+// Car Security Tiers: old/standard cars open with a slim jim or smashed
+// window; luxury/modern cars need a Key-Cloner or Phone-Hacking Tool.
+// GPS Tracker: expensive cars have a tracker that auto-calls police if stolen;
+// remove it at a workshop/fence before storing or selling.
+// Fuel & charging: fuel/battery indicator is live; conventional cars refuel
+// at gas stations, EVs at charging stations.
+// Partner driving commands: as a passenger in a chase, give your partner
+// (Jason/Lucia) driving directions.
+export const SECURITY_TIERS = [
+  { tier: 1, name: 'Standard', method: 'slim jim or smashed window', note: 'old / standard cars' },
+  { tier: 2, name: 'Modern', method: 'Key-Cloner', note: 'modern cars' },
+  { tier: 3, name: 'Luxury', method: 'Phone-Hacking Tool', note: 'luxury / modern cars' },
+];
 
-import { VEHICLES, vehicleById } from "./vehicles-data.js";
-import { mulberry32, hashSeed } from "./rng.js";
+export const TRACKER_TYPES = ['none', 'standard', 'advanced'];
 
-export function spawnVehicles(count, seed) {
-  const rand = mulberry32(hashSeed(seed || "vehicles"));
-  const out = [];
-  for (let i = 0; i < count; i++) {
-    const v = VEHICLES[Math.floor(rand() * VEHICLES.length)];
-    out.push({
-      instanceId: "inst-" + (i + 1),
-      vehicleId: v.id,
-      name: v.name,
-      cls: v.cls,
-      x: Math.round(-880 + rand() * 1080),
-      z: Math.round(-800 + rand() * 1600),
-      driver: rand() < 0.6 ? "npc" : "none",
-      color: Math.floor(rand() * 0xffffff),
-    });
-  }
-  return out;
+// Fuel: 0-100. EVs use battery (same 0-100 scale, charged at stations).
+export function fuelStatus(fuel, isEV) {
+  if (fuel <= 0) return isEV ? 'battery empty' : 'out of fuel';
+  if (fuel < 25) return isEV ? 'low battery' : 'low fuel';
+  return isEV ? 'battery ok' : 'fuel ok';
 }
 
-export function countByDriver(instances) {
-  const counts = { player: 0, npc: 0, police: 0, none: 0 };
-  for (const inst of instances) {
-    if (counts[inst.driver] != null) counts[inst.driver]++;
-    else counts.none++;
-  }
-  return counts;
+export function needsTrackerRemoval(vehicle) {
+  return vehicle && vehicle.tracker && vehicle.tracker !== 'none' && !vehicle.trackerRemoved;
 }
-export function countByClass(instances) {
-  const counts = {};
-  for (const inst of instances) {
-    counts[inst.cls] = (counts[inst.cls] || 0) + 1;
-  }
-  return counts;
-}
-export function nearestVehicle(instances, x, z) {
-  let best = null, bestD = Infinity;
-  for (const inst of instances) {
-    const d = Math.hypot(inst.x - x, inst.z - z);
-    if (d < bestD) { bestD = d; best = inst; }
-  }
-  return best;
-}
-export function enterVehicle(instances, instanceId, driver) {
-  const inst = instances.find((i) => i.instanceId === instanceId);
-  if (!inst) return null;
-  inst.driver = driver;
-  return inst;
-}
-export function exitVehicle(instances, instanceId) {
-  const inst = instances.find((i) => i.instanceId === instanceId);
-  if (!inst) return null;
-  inst.driver = "none";
-  return inst;
+
+// Partner driving commands (as passenger in a chase).
+export const PARTNER_COMMANDS = ['left', 'right', 'faster', 'slower', 'lose them', 'ram them'];
+
+export function countByDriver(vehicles, driver) {
+  return (vehicles || []).filter((v) => v.driver === driver).length;
 }

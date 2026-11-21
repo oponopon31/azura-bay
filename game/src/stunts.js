@@ -1,56 +1,45 @@
-// AZURA BAY — stunts & free-roam robberies (round 7 re-compose, fresh under r7).
-// SPEC.md Bab 6. Stunts: 130 jumps, 202 under-bridges, 40 knife flights,
-// 25 base jumps = 397, placed by seeded RNG (real completion logic).
-// Robberies: per-kind counts sum to 173 (the user's "175" label is his own
-// arithmetic; this file reports the real 173 and the label separately).
-
+// stunts.js — Stunts (397) & free-roam robberies, SPEC §6.
+// Stunt Jumps 130, Under the Bridges 202, Knife Flights 40, Base Jumps 25 = 397.
+// Robberies: 72 convenience stores, 23 fast food, 22 bank jobs (14 small banks
+// + 8 big vaults), 20 jewelry stores, 15 pawn shops, 14 liquor stores,
+// 7 payday loans. NOTE: the spec labels the robbery total "175" but the
+// breakdown sums to 173 (72+23+22+20+15+14+7) — the user's arithmetic;
+// the code implements the breakdown (173) honestly.
 export const STUNT_KINDS = [
-  { kind: "jump", name: "Stunt Jumps", count: 130 },
-  { kind: "bridge", name: "Under the Bridges", count: 202 },
-  { kind: "knife", name: "Knife Flights", count: 40 },
-  { kind: "base", name: "Base Jumps", count: 25 },
+  { id: 'jump', name: 'Stunt Jumps', total: 130 },
+  { id: 'bridge', name: 'Under the Bridges', total: 202 },
+  { id: 'knife', name: 'Knife Flights', total: 40 },
+  { id: 'base', name: 'Base Jumps', total: 25 },
 ];
-export const STUNT_TOTAL = 397;
 
 export const ROBBERY_KINDS = [
-  { kind: "minimarket", name: "Convenience Stores", count: 72 },
-  { kind: "fastfood", name: "Fast Food Joints", count: 23 },
-  { kind: "bank", name: "Bank Jobs", count: 22, note: "14 small banks + 8 large vaults" },
-  { kind: "jewelry", name: "Jewelry Stores", count: 20 },
-  { kind: "pawn", name: "Pawn Shops", count: 15 },
-  { kind: "liquor", name: "Liquor Stores", count: 14 },
-  { kind: "payday", name: "Payday Loans", count: 7 },
+  { id: 'convenience', name: 'Convenience Stores', total: 72 },
+  { id: 'fastfood', name: 'Fast Food Joints', total: 23 },
+  { id: 'bank', name: 'Bank Jobs', total: 22, detail: '14 small banks + 8 big bank vaults' },
+  { id: 'jewelry', name: 'Jewelry Stores', total: 20 },
+  { id: 'pawn', name: 'Pawn Shops', total: 15 },
+  { id: 'liquor', name: 'Liquor Stores', total: 14 },
+  { id: 'payday', name: 'Payday Loans', total: 7 },
 ];
-export const ROBBERY_TOTAL_LABEL = 175;
-export const ROBBERY_TOTAL_ACTUAL = ROBBERY_KINDS.reduce((s, r) => s + r.count, 0); // 173
 
-import { mulberry32, hashSeed } from "./rng.js";
-
-// Seeded placement: deterministic stunt sites across the map.
-export function stuntSites(kind, count) {
-  const rand = mulberry32(hashSeed("stunt-" + kind));
-  const sites = [];
-  for (let i = 0; i < count; i++) {
-    sites.push({
-      id: kind + "-" + (i + 1),
-      kind,
-      x: Math.round(-880 + rand() * 1080),
-      z: Math.round(-800 + rand() * 1600),
-      done: false,
-    });
-  }
-  return sites;
-}
-
-export function allStuntSites() {
-  const out = [];
-  for (const k of STUNT_KINDS) out.push(...stuntSites(k.kind, k.count));
-  return out;
-}
+// Free-roam robbery rules (SPEC §19): always bring your partner (Jason +
+// Lucia together). Alone with more than 2 guards, guards shoot without
+// warning. Disarm the guards first before threatening civilians.
+export const ROBBERY_RULES = {
+  bringPartner: true,
+  guardsShootAloneAbove: 2,
+  disarmGuardsFirst: true,
+};
 
 export function stuntCountByKind(kind) {
-  const k = STUNT_KINDS.find((s) => s.kind === kind);
-  return k ? k.count : 0;
+  const k = STUNT_KINDS.find((s) => s.id === kind);
+  return k ? k.total : 0;
 }
-export function totalStunts() { return STUNT_TOTAL; }
-export function totalRobberies() { return ROBBERY_TOTAL_ACTUAL; }
+
+export function totalStunts() {
+  return STUNT_KINDS.reduce((n, s) => n + s.total, 0);
+}
+
+export function totalRobberies() {
+  return ROBBERY_KINDS.reduce((n, r) => n + r.total, 0);
+}

@@ -1,79 +1,126 @@
-// AZURA BAY — mission engine + endings (round 7 re-compose, fresh under r7).
-// SPEC.md Bab 2, 11, 13, 14. 91 missions in 5 chapters (story.js).
-// Endings are organic: decided by BuckMe savings + Jason-Lucia
-// relationship + Criminal Profile + mission choices.
-//   Good 1 (escape together): BuckMe SAVINGS >= $40,000 — NOT cash, because
-//   cash is capped at $20,000 and can never reach $40,000. This is the
-//   round-3 fix (the r5 builder's defect: it checked cash).
-//   Good 2 (Swim For It, unarmed): Jason jailed, Lucia free.
-//   Bad 1 (Swim For It, armed): both shot on the bridge.
-//   Bad 2 (No Surrender): Bonnie & Clyde die.
-// Post-game rewind returns to before the final mission.
-
-import { MISSIONS, missionById, totalMissions, missionsInChapter, CHAPTERS } from "./story.js";
-import { BUCKME_GOOD1_MIN } from "./economy.js";
-
-export const ENDINGS = [
-  { id: "good1", name: "Good 1 — Escape Together", desc: "Jason and Lucia escape Leonida together.", req: "BuckMe savings >= $40,000" },
-  { id: "good2", name: "Good 2 — Swim For It (unarmed)", desc: "Jason goes to jail, Lucia goes free.", req: "Swim For It, unarmed" },
-  { id: "bad1", name: "Bad 1 — Swim For It (armed)", desc: "Both shot on the bridge.", req: "Swim For It, armed" },
-  { id: "bad2", name: "Bad 2 — No Surrender", desc: "Bonnie & Clyde die.", req: "Refuse to surrender" },
+// missions.js — 91 story missions in 5 chapters, SPEC §1 (exact names, in order).
+// [n, chapter, name, objective]
+const RAW = [
+  // Chapter 1 — Just Like Paradise (22). Leonida Keys; Lucia in prison, Jason's early action.
+  [1, 1, 'Prologue', 'Lucia in Leonida Penitentiary; Jason runs a smuggling job in the Keys'],
+  [2, 1, 'Gone Fishing', 'Take Brian\'s boat out; learn the Keys waterways'],
+  [3, 1, 'Gear Up', 'Stock up at Phil\'s Ammu-Nation; first weapon unlock'],
+  [4, 1, 'Just a Scratch', 'Deliver a package; scratch a car and learn repairs'],
+  [5, 1, 'Lab Fees', 'Collect a debt from a lab contact'],
+  [6, 1, 'Unwanted Attention', 'Shake a Coast Guard patrol tailing the boat'],
+  [7, 1, 'Pipework', 'Fix the safehouse plumbing; meet Donnie'],
+  [8, 1, 'Hey Arnold!', 'Help Arnold move a hot shipment'],
+  [9, 1, 'Island Dreams', 'Scout a Keys island hideout'],
+  [10, 1, 'Feng Shui', 'Rearrange the safehouse; learn the wardrobe'],
+  [11, 1, 'Coming Home', 'Pick Lucia up on day release'],
+  [12, 1, 'Buck Me', 'Open the BuckMe joint savings account'],
+  [13, 1, 'Clean Up After Donnie', 'Fix Donnie\'s botched job before Brian finds out'],
+  [14, 1, 'Down to Earth', 'Land a smuggler plane on a Keys strip'],
+  [15, 1, 'Clear Skies', 'Lose a police helicopter in the Grassrivers'],
+  [16, 1, 'Day Release', 'Lucia\'s day release: a normal day that goes wrong'],
+  [17, 1, 'Swamped', 'Airboat chase through the Grassrivers'],
+  [18, 1, 'Don Gone', 'Find Donnie after he vanishes mid-job'],
+  [19, 1, 'Recalibration', 'Rebuild the smuggling route after a bust'],
+  [20, 1, 'Tourist Trap', 'Rob tourists at a Keys marina'],
+  [21, 1, 'Home Sweet Home', 'Set up the first real safehouse'],
+  [22, 1, 'Discharge Time', 'Lucia is discharged from prison — free at last'],
+  // Chapter 2 — Paradise Lost (11). Port Gellhorn; Lucia free with an ankle monitor.
+  [23, 2, "What's in the Bag?", 'Open the bag Lucia smuggled out of prison'],
+  [24, 2, 'Ambulance Chaser', 'Chase an ambulance carrying evidence'],
+  [25, 2, 'Just Moved In', 'Move into the Port Gellhorn motel'],
+  [26, 2, "Girls' Trip", 'Lucia takes a trip with the Real Dimez'],
+  [27, 2, 'Moses', 'Meet Moses; steal a car to order'],
+  [28, 2, 'Daily Driver', 'Win a daily driver in a street race'],
+  [29, 2, 'Slam Dunk', 'Score at the Port Gellhorn court'],
+  [30, 2, 'Breakfast Run', 'Breakfast run that turns into a getaway'],
+  [31, 2, 'Coffee Break', 'Meet a contact at a diner; the ankle monitor pings'],
+  [32, 2, 'Afternoon Delight', 'A quiet afternoon; the monitor zone tightens'],
+  [33, 2, 'Checking Out', 'Leave Port Gellhorn for Vice City'],
+  // Chapter 3 — Tits, Ass, Drug Money (26). Jason + Lucia together in Vice City.
+  [34, 3, 'Welcome to Vice City', 'Arrive in Vice City; first Vice City heist prep'],
+  [35, 3, "Dealer's Choice", 'Choose a dealer to work with'],
+  [36, 3, 'Meet the Heders', 'Meet Brian and Lori Heder in Vice City'],
+  [37, 3, 'Dubious Provenance', 'Move goods with a dubious paper trail'],
+  [38, 3, 'Mami Knows Best', 'Lucia\'s mother figure gives a job'],
+  [39, 3, 'South Leonida Real Estate', 'Scout properties in South Leonida'],
+  [40, 3, 'Tyrone', 'Meet Tyrone, the drug fence'],
+  [41, 3, 'Here, Kitty Kitty', 'A cat, a fence and a stolen necklace'],
+  [42, 3, 'Car Service', 'Steal a luxury car for a client'],
+  [43, 3, 'Top Billing', 'Get top billing at a Vice City club'],
+  [44, 3, 'Boobie Time', 'Work for Boobie Ike at Jack of Hearts'],
+  [45, 3, 'First Impressions', 'First impression on Dre\'Quan Priest'],
+  [46, 3, 'Caught Slipping', 'Get caught slipping; escape a setup'],
+  [47, 3, 'Crosstown Traffic', 'Crosstown getaway through Vice City'],
+  [48, 3, 'Credit Check', 'Pass a credit check to rent a front business'],
+  [49, 3, 'Steal the Zorruso for Randy', 'Steal the Pegassi Zorruso for Randy'],
+  [50, 3, 'Sinfrontera National Bank', 'Case the Sinfrontera National Bank'],
+  [51, 3, 'Security Expert', 'Hire a security expert for the bank job'],
+  [52, 3, 'Ride or Die', 'A ride-or-die chase with Lucia driving'],
+  [53, 3, 'Company Property', 'Recover company property from a rival crew'],
+  [54, 3, 'The Missing Link', 'Find the missing link in the cartel chain'],
+  [55, 3, 'Safe Word', 'Learn the safe word for the cartel deal'],
+  [56, 3, 'Cooties', 'A job with the Real Dimez goes sideways'],
+  [57, 3, 'Bricked Up', 'A bricked-up stash house'],
+  [58, 3, 'Hidden Charges', 'Hidden charges on a smuggled shipment'],
+  [59, 3, 'The Cartel Heist', 'The big cartel heist — rob the cartel'],
+  // Chapter 4 — Vice City, Baby (25). Build their own business around Ocean Beach.
+  [60, 4, 'Ocean Beach', 'Set up around Ocean Beach'],
+  [61, 4, 'Another Life', 'Try a straight life for one day'],
+  [62, 4, 'Company Cars', 'Build the company car fleet'],
+  [63, 4, 'Lawyer Up', 'Hire a lawyer as the law closes in'],
+  [64, 4, 'Party Hard', 'Party hard at NINE1NINE'],
+  [65, 4, 'Heavy Lifting', 'Heavy lifting for the business'],
+  [66, 4, 'Photo/Shoot', 'A photo shoot that is a front for a job'],
+  [67, 4, 'Making Gainz', 'Gym session; strength training'],
+  [68, 4, 'Watch It', 'Watch the business; surveillance on the crew'],
+  [69, 4, 'Cash Injections', 'Cash injections to launder marked bills'],
+  [70, 4, 'Amateur Hour', 'An amateur hour job with a new crew'],
+  [71, 4, 'Dirty Work', 'Dirty work for a Vice City fixer'],
+  [72, 4, 'Too Much Baggage', 'Too much baggage — literally'],
+  [73, 4, 'Adventures in Babysitting', 'Babysit a contact\'s kid during a job'],
+  [74, 4, 'Fresh Evidence', 'Fresh evidence surfaces; destroy it'],
+  [75, 4, 'Power Play', 'A power play against a rival operation'],
+  [76, 4, "Child's Play", 'A job that turns out to be child\'s play'],
+  [77, 4, 'Headliners', 'Headline a show at The Vault'],
+  [78, 4, 'Close Surveillance', 'Close surveillance by the authorities'],
+  [79, 4, 'Delivery Method', 'Choose the delivery method for a big shipment'],
+  [80, 4, 'Team Building', 'Team building with the crew'],
+  [81, 4, 'Fully Catered', 'A fully catered event that hides a deal'],
+  [82, 4, 'VCIA Takedown', 'Takedown at Vice City International Airport'],
+  [83, 4, 'Sunset', 'Sunset on Ocean Beach; the net closes'],
+  [84, 4, 'Starting From Zero', 'Starting from zero after the fall'],
+  // Chapter 5 — Top of the World, Ma (7). Endgame / climax.
+  [85, 5, 'Bird in the Hand', 'A bird in the hand: secure the final score'],
+  [86, 5, 'Taking Liberties', 'Take liberties with the plan'],
+  [87, 5, 'VC Baby', 'VC Baby: the last big Vice City job'],
+  [88, 5, 'Doggie Bag', 'Doggie bag: grab what you can on the way out'],
+  [89, 5, 'Operation Savage Glory', 'Operation Savage Glory — the final operation'],
+  [90, 5, 'Protective Custody', 'Protective custody: the choice is made'],
+  [91, 5, 'The End of the Road', 'The End of the Road — the final mission'],
 ];
 
-export function newMissionState() {
-  return { done: [], current: null, storyDone: false, ending: null, rewound: false };
+export const MISSIONS = RAW.map(([n, chapter, name, objective]) => ({
+  id: 'm' + n, n, chapter, name, objective,
+}));
+
+export function missionsInChapter(chapter) {
+  return MISSIONS.filter((m) => m.chapter === chapter);
 }
 
-// Complete a mission: mark done, pay the reward (cash capped, excess to
-// BuckMe), and advance the story. Returns the reward result.
-export function completeMission(state, econ, missionId) {
-  const mission = missionById(missionId);
-  if (!mission) return { ok: false, reason: "unknown mission" };
-  if (state.done.includes(missionId)) return { ok: false, reason: "already done" };
-  state.done.push(missionId);
-  // Reward: half as wallet cash (capped, excess sweeps to BuckMe), half as
-  // clean BuckMe savings.
-  const cashPart = Math.floor(mission.reward / 2);
-  const cleanPart = mission.reward - cashPart;
-  const swept = econ.cash + cashPart > 20000 ? econ.cash + cashPart - 20000 : 0;
-  econ.cash = Math.min(20000, econ.cash + cashPart);
-  econ.buckme += cleanPart + swept;
-  if (state.done.length >= totalMissions()) {
-    state.storyDone = true;
-  }
-  return { ok: true, mission, swept, cash: econ.cash, buckme: econ.buckme, storyDone: state.storyDone };
+export function missionById(id) {
+  return MISSIONS.find((m) => m.id === id) || null;
 }
 
-export function nextMission(state) {
-  return MISSIONS.find((m) => !state.done.includes(m.id)) || null;
-}
-export function missionsDone(state) { return state.done.length; }
-export function missionsRemaining(state) { return totalMissions() - state.done.length; }
-export function chapterProgress(state, ch) {
-  const list = missionsInChapter(ch) || [];
-  const done = list.filter((m) => state.done.includes(m.id)).length;
-  return { done, total: list.length };
+export function completedCount(doneIds) {
+  const done = new Set(doneIds || []);
+  return MISSIONS.filter((m) => done.has(m.id)).length;
 }
 
-// Ending resolution. Good 1 reads BuckMe SAVINGS, not cash.
-export function resolveEnding(state, econ, relationship, profile, finalChoice) {
-  if (finalChoice === "swim-unarmed") return ENDINGS[1];
-  if (finalChoice === "swim-armed") return ENDINGS[2];
-  if (finalChoice === "no-surrender") return ENDINGS[3];
-  if (econ.buckme >= BUCKME_GOOD1_MIN && relationship >= 55) return ENDINGS[0];
-  if (econ.buckme >= BUCKME_GOOD1_MIN) return ENDINGS[0];
-  // Not enough savings: the escape fails, Lucia goes free, Jason jailed.
-  return ENDINGS[1];
+export function remainingCount(doneIds) {
+  return MISSIONS.length - completedCount(doneIds);
 }
-export function canReachGood1(econ) { return econ.buckme >= BUCKME_GOOD1_MIN; }
-export function endingById(id) { return ENDINGS.find((e) => e.id === id) || null; }
 
-// Post-game rewind: return to before the final mission (keep everything).
-export function rewindToPreFinal(state) {
-  const finalMission = MISSIONS[MISSIONS.length - 1];
-  state.done = state.done.filter((id) => id !== finalMission.id);
-  state.storyDone = false;
-  state.ending = null;
-  state.rewound = true;
-  return state;
+// Story is done when all 91 missions are complete.
+export function storyDone(doneIds) {
+  return completedCount(doneIds) === MISSIONS.length;
 }

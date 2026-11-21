@@ -1,89 +1,58 @@
-// AZURA BAY — GTA 6 fan open world (gta6-01). Round 7 re-compose.
-// Shared constants. Single source of truth for economy caps, world bounds,
-// profile levels, ending thresholds, and named places. Written fresh under
-// recording r7 from SPEC.md (Bab 10–12, 17, 23, 28–29) — no file copied.
+// config.js — AZURA BAY core constants (GTA 6 fan game, SPEC Bab 11/23/29).
+// All numbers below come straight from the user's spec; nothing is invented.
 
-export const GAME_TITLE = 'AZURA BAY';
-export const GAME_SUBTITLE = 'GTA 6 fan open world: 91 story missions across Leonida';
-export const BUILD_TAG = 'AZURA BAY · Round 7';
+// Money (Bab 11, 23): wallet cap $20,000 — excess sweeps to BuckMe automatically.
+export const WALLET_MAX = 20000;
+// Good Ending 1 reads BuckMe SAVINGS, never wallet cash (cash can never reach it).
+export const BUCKME_GOOD1 = 40000;
+// The only money cheat in the game (Bab 3).
+export const MONEY_CHEAT_AMOUNT = 250000;
 
-// --- Economy (SPEC Bab 17, 23) ---
-export const WALLET_MAX = 20000; // cash wallet cap; excess auto-sweeps to BuckMe
-export const BUCKME_GOOD1_MIN = 40000; // Good Ending 1 needs BuckMe savings >= this
-export const MONEY_CHEAT_AMOUNT = 250000; // the only money cheat
+// HUD meters (Bab 29): health regens +3/s only up to 50% maxHealth and only
+// after 8s without taking damage; focus drains 0.10/s while aiming, regens 0.05/s.
+export const HEALTH_REGEN_CAP = 0.5;
+export const HEALTH_REGEN_RATE = 3;
+export const HEALTH_REGEN_DELAY = 8;
+export const FOCUS_DRAIN_AIM = 0.10;
+export const FOCUS_REGEN = 0.05;
+// Adrenaline: +0.08 on taking damage, +0.25 on a kill, decays 0.04/s;
+// at >= 0.5 sprint costs half stamina.
+export const ADRENALINE_ON_DAMAGE = 0.08;
+export const ADRENALINE_ON_KILL = 0.25;
+export const ADRENALINE_DECAY = 0.04;
+export const ADRENALINE_SPRINT_HALF = 0.5;
+// Scuba oxygen drains 1.2/s (Bab 29).
+export const OXYGEN_SCUBA_DRAIN = 1.2;
 
-// --- World (SPEC Bab 28; gtabase coords /8, z = -Y/8, north = -z) ---
-export const WORLD = {
-  minX: -900, maxX: 220,
-  minZ: -820, maxZ: 830,
-  // gtabase -> game: x = gx/8, z = -gy/8
-  toGameX: (gx) => Math.round(gx / 8),
-  toGameZ: (gy) => Math.round(-gy / 8),
-};
-
-// Named places (SPEC Bab 28 + MAP-DATA.md (g); nightclub from round-3 note)
-export const PLACES = {
-  nightclub: { name: 'Ocean Drive Nightclub', x: 120, z: -240 },
-  viceCity: { name: 'Vice City', x: -28, z: -95 },
-  viceBeach: { name: 'Vice Beach', x: 191, z: -112 },
-  portGellhorn: { name: 'Port Gellhorn', x: -820, z: -533 },
-  keyLento: { name: 'Key Lento', x: -296, z: 749 },
-  ambrosia: { name: 'Ambrosia', x: -380, z: -529 },
-  millport: { name: 'Millport', x: -89, z: -781 },
-  vcia: { name: 'VCIA', x: -265, z: 83 },
-  mountKalaga: { name: 'Mount Kalaga', x: -425, z: -805 },
-  lakeLeonida: { name: 'Lake Leonida', x: -244, z: -599 },
-  grassrivers: { name: 'Grassrivers', x: -410, z: 534 },
-  gooseKey: { name: 'Goose Key', x: -778, z: 809 },
-  capri: { name: 'Capri', x: -886, z: -25 },
-  watsonBay: { name: 'Watson Bay', x: -608, z: 426 },
-  hamlet: { name: 'Hamlet', x: -358, z: 390 },
-  waningSands: { name: 'Waning Sands', x: -31, z: -504 },
-  glorianaKey: { name: 'Gloriana Key', x: 90, z: 175 },
-};
-
-// --- Criminal Profile (SPEC Bab 10–11) ---
-// Levels in order; index 0 = cleanest. Psycho is permanent once shattered;
-// Irredeemable is the permanent ceiling above Psycho.
-export const PROFILE_LEVELS = [
-  'Professional', 'Hardened', 'Violent & Dangerous', 'Psycho', 'Irredeemable',
-];
-export const PROFILE = {
-  PROFESSIONAL: 0, HARDENED: 1, VIOLENT: 2, PSYCHO: 3, IRREDEEMABLE: 4,
-};
-
-// --- Wanted & Heat (SPEC Bab 12) ---
-export const STAR_STATES = ['hollow', 'solid', 'blinking', 'red', 'manhunt'];
-export const MAX_WANTED = 6;
-
-// --- HUD (SPEC Bab 29) ---
-export const HUD = {
-  healthRegenPerSec: 3,
-  healthRegenCapFrac: 0.5, // regen only up to 50% of max health
-  healthRegenDelaySec: 8, // only after 8s without damage
-  focusDrainAim: 0.10, // per second while aiming
-  focusRegen: 0.05, // per second
-  oxygenDrainScuba: 1.2, // per second with tank
-  adrenalineOnDamage: 0.08,
-  adrenalineOnKill: 0.25,
-  adrenalineDecay: 0.04, // per second
-  adrenalineSprintFrac: 0.5, // sprint costs half stamina while adrenaline >= 0.5
-  lowFuelFrac: 0.25,
-  engineFailingFrac: 0.35,
-};
-
-// --- Characters / attributes (SPEC Bab 10, 15) ---
-export const ATTRIBUTE_LEVELS = [0, 100, 250, 500, 900]; // xp per level 1..5
+// Relationship (Bab 29): starts at 40, +2 per mission done together.
 export const RELATIONSHIP_START = 40;
-export const RELATIONSHIP_BANDS = [
-  [30, 'Strained'], [55, 'Partners'], [80, 'In Sync'], [101, 'Bonnie & Clyde'],
-];
 
-// --- Cheats (SPEC Bab 3, 22) ---
-export const CHEAT_MONEY_ID = 'money-250k';
+// Content counts asserted by the selftest (SPEC header note — must not change).
+export const COUNTS = {
+  missions: 91,
+  weapons: 69,
+  vehicles: 245,
+  cheats: 61,
+  strangers: 13,
+  radioStations: 24,
+  characters: 27,
+  fishSpecies: 35,
+  weaponVariants: 130,
+  achievements: 32,
+  hiddenPackages: 26,
+  mapPoints: 27,
+};
 
-// --- Shots (screenshots) ---
-export const SHOT_NAMES = ['cover', 'shootout', 'dusk', 'heist', 'night'];
+// Night shot location (round 3): Ocean Drive nightclub, 21:30, 1 star.
+// Game-city coords (relative), NOT gtabase coords.
+export const PLACES = {
+  nightclub: { name: 'Ocean Drive Nightclub', x: 120, z: -240, hour: 21.5, stars: 1 },
+  viceCityPort: { name: 'Vice City Port', x: 854, z: 390 },
+};
 
-export function clamp(v, lo, hi) { return v < lo ? lo : v > hi ? hi : v; }
-export function lerp(a, b, t) { return a + (b - a) * t; }
+export const GAME = {
+  title: 'AZURA BAY',
+  subtitle: 'GTA 6 fan open world: 91 story missions across Leonida',
+  build: 'AZURA BAY · Round 3',
+  chapters: 5,
+};

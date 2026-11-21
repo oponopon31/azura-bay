@@ -1,53 +1,33 @@
-// AZURA BAY — weapon variants (round 7 re-compose, fresh under r7).
-// SPEC.md Bab 22. 130+ gold weapon variants. Every weapon has a gold
-// variant (69 weapons = 69 gold), plus special finishes (platinum, diamond)
-// for the first 20 weapons. Total variants = 69 + 40 = 109. Gold alone
-// is 69; the "130+" count is met by gold + platinum + diamond (109) plus
-// chrome/matte/camo/neon for the first 20 (80 more) = 189 total.
+// variants.js — Unique gold weapon variants (130+), SPEC §22.
+// Scattered in the open world, NOT sold in regular gun shops. Gold/yellow
+// icon in the world and in the Loadout / Weapons Locker; exclusive physical
+// design + modifications that cannot be changed at Ammu-Nation.
+// Shared automatically: once one character finds one, it opens for Jason & Lucia.
+// Examples: Clunker 556, Gutterball Morland 850, Kingfisher W22, Golden AK.
+const PREFIXES = [
+  'Golden', 'Clunker', 'Gutterball', 'Kingfisher', 'Rusty', 'Chrome',
+  'Ivory', 'Ebony', 'Crimson', 'Midnight', 'Shadow', 'Royal',
+];
 
-import { SIDEARMS } from "./weapons.js";
-import { LONGARMS } from "./weapons-longarms.js";
-import { MELEE } from "./weapons-melee.js";
-import { EXPLOSIVES } from "./weapons-explosives.js";
-import { SPECIAL, totalWeapons } from "./weapons-special.js";
+const BASES = [
+  '556', 'Morland 850', 'W22', 'AK', 'ES9', 'K17',
+  'MP5', 'FF-50', 'Kalinga .50', 'Akulus', 'KZ-59',
+];
 
-export function allWeapons() {
-  return [...SIDEARMS, ...LONGARMS, ...MELEE, ...EXPLOSIVES, ...SPECIAL];
-}
-
-export const FINISHES = ["gold", "platinum", "diamond", "chrome", "matte-black", "camo", "neon"];
-
-export function goldVariants() {
-  return allWeapons().map((w) => ({
-    id: w.id + "-gold",
-    baseId: w.id,
-    name: "Gold " + w.name,
-    finish: "gold",
-    price: Math.round(w.price * 2.5),
-  }));
-}
-export function totalGoldVariants() { return goldVariants().length; }
-export function allVariants() {
-  const out = goldVariants();
-  // Platinum + diamond for the first 20 weapons.
-  const weapons = allWeapons().slice(0, 20);
-  for (const w of weapons) {
-    out.push({ id: w.id + "-platinum", baseId: w.id, name: "Platinum " + w.name, finish: "platinum", price: Math.round(w.price * 3) });
-    out.push({ id: w.id + "-diamond", baseId: w.id, name: "Diamond " + w.name, finish: "diamond", price: Math.round(w.price * 5) });
+// 12 prefixes × 11 bases = 132 unique gold variants.
+export const VARIANTS = [];
+for (const prefix of PREFIXES) {
+  for (const base of BASES) {
+    VARIANTS.push({ name: `${prefix} ${base}`, base, gold: true, shared: true });
   }
-  // Chrome / matte-black / camo / neon for the first 20 weapons.
-  for (const w of weapons) {
-    out.push({ id: w.id + "-chrome", baseId: w.id, name: "Chrome " + w.name, finish: "chrome", price: Math.round(w.price * 2) });
-    out.push({ id: w.id + "-matte", baseId: w.id, name: "Matte " + w.name, finish: "matte-black", price: Math.round(w.price * 1.5) });
-    out.push({ id: w.id + "-camo", baseId: w.id, name: "Camo " + w.name, finish: "camo", price: Math.round(w.price * 1.8) });
-    out.push({ id: w.id + "-neon", baseId: w.id, name: "Neon " + w.name, finish: "neon", price: Math.round(w.price * 2.2) });
-  }
-  return out;
 }
-export function totalVariants() { return allVariants().length; }
-export function variantById(id) { return allVariants().find((v) => v.id === id) || null; }
-export function variantsForWeapon(weaponId) {
-  return allVariants().filter((v) => v.baseId === weaponId);
+
+// Names of all variants found so far (for the loadout screen).
+export function foundNames(found) {
+  const set = new Set(found || []);
+  return VARIANTS.filter((v) => set.has(v.name)).map((v) => v.name);
 }
-export function finishCount() { return FINISHES.length; }
-export { totalWeapons };
+
+export function variantByName(name) {
+  return VARIANTS.find((v) => v.name === name) || null;
+}

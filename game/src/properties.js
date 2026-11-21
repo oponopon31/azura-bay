@@ -1,63 +1,63 @@
-// AZURA BAY — properties (round 7 re-compose, written fresh under r7).
-// SPEC.md Bab 9. Safehouses are NOT purchasable — they unlock via story.
-// 12 garages (8 buy + 4 free) + 3 bonus = 15 total, incl. Paradise Garage
-// (Watson Bay). Locations: Jack of Hearts, NINE1NINE, Malibu Club, Vault
-// Nightclub, Only Raw Records, Rideout Customs, Sara's Unisex Salon,
-// Barnacle Beauties, Kurt's Barber Shop, Electric Fang Tattoo (50+ designs),
-// Stock 305, Goodtime Gear, Ammu-Nation, Stronghold Ammunition, Pawn and Gun,
-// Uncle Jack's Liquor, Tisha-Wocka Flea Market.
-
+// properties.js — Properties, safehouses & businesses, SPEC §9.
+// Safehouses can NOT be bought — they unlock automatically with story progress.
+// Garages are the only buyable property: 12 base (8 buy + 4 free from story)
+// + 3 special-edition bonus garages = 15 total.
 export const SAFEHOUSES = [
-  { id: "keys-trailer", name: "Leonida Keys Trailer", zone: "Leonida Keys", unlock: "Chapter 1", price: 0 },
-  { id: "vice-apartment", name: "Vice City Apartment", zone: "Vice City", unlock: "Chapter 2", price: 0 },
-  { id: "port-house", name: "Port Gellhorn House", zone: "Port Gellhorn", unlock: "Chapter 3", price: 0 },
-  { id: "beach-house", name: "Vice Beach House", zone: "Vice Beach", unlock: "Chapter 4", price: 0 },
+  { id: 'keys-house', name: "Jason's Key Lento House", area: 'Key Lento', unlock: 'm1', note: 'starting safehouse' },
+  { id: 'bayside-201', name: 'Bayside Apartments, 201', area: 'Bayside', unlock: 'm25', note: 'Safehouses 2/4' },
+  { id: 'gellhorn-motel', name: 'Port Gellhorn Motel', area: 'Port Gellhorn', unlock: 'm23', note: 'Chapter 2 base' },
+  { id: 'ocean-beach', name: 'Ocean Beach Safehouse', area: 'Ocean Beach', unlock: 'm60', note: 'Chapter 4 base' },
 ];
 
 export const GARAGES = [
-  { id: "paradise", name: "Paradise Garage", zone: "Watson Bay", price: 0, bonus: true, note: "Bonus garage" },
-  { id: "keys-garage", name: "Keys Garage", zone: "Leonida Keys", price: 0, free: true },
-  { id: "vice-garage", name: "Vice Garage", zone: "Vice City", price: 0, free: true },
-  { id: "gellhorn-garage", name: "Gellhorn Garage", zone: "Port Gellhorn", price: 0, free: true },
-  { id: "beach-garage", name: "Beach Garage", zone: "Vice Beach", price: 0, free: true },
-  { id: "ambrosia-garage", name: "Ambrosia Garage", zone: "Ambrosia", price: 50000 },
-  { id: "millport-garage", name: "Millport Garage", zone: "Millport", price: 75000 },
-  { id: "salton-garage", name: "Salton Garage", zone: "Salton", price: 60000 },
-  { id: "bayside-garage", name: "Bayside Garage", zone: "Bayside", price: 80000 },
-  { id: "la-perle-garage", name: "La Perle Garage", zone: "La Perle", price: 90000 },
-  { id: "capri-garage", name: "Capri Garage", zone: "Capri", price: 100000 },
-  { id: "waning-garage", name: "Waning Sands Garage", zone: "Waning Sands", price: 70000 },
-  { id: "emerald-garage", name: "Emerald Springs Garage", zone: "Emerald Springs", price: 85000 },
-  { id: "grassrivers-garage", name: "Grassrivers Garage", zone: "Grassrivers", price: 0, bonus: true, note: "Bonus garage" },
-  { id: "mount-garage", name: "Mount Kalaga Garage", zone: "Mount Kalaga", price: 0, bonus: true, note: "Bonus garage" },
+  // 8 buyable
+  { id: 'g1', name: 'Vice City Garage', area: 'Vice City', price: 25000, buyable: true },
+  { id: 'g2', name: 'Ocean Beach Garage', area: 'Ocean Beach', price: 40000, buyable: true },
+  { id: 'g3', name: 'Little Havana Garage', area: 'Little Havana', price: 18000, buyable: true },
+  { id: 'g4', name: 'Port Gellhorn Garage', area: 'Port Gellhorn', price: 12000, buyable: true },
+  { id: 'g5', name: 'Ambrosia Garage', area: 'Ambrosia', price: 15000, buyable: true },
+  { id: 'g6', name: 'Hamlet Garage', area: 'Hamlet', price: 10000, buyable: true },
+  { id: 'g7', name: 'Watson Bay Garage', area: 'Watson Bay', price: 14000, buyable: true },
+  { id: 'g8', name: 'Waning Sands Garage', area: 'Waning Sands', price: 22000, buyable: true },
+  // 4 free from story
+  { id: 'g9', name: 'Keys Storage', area: 'Key Lento', price: 0, buyable: false, unlock: 'm11' },
+  { id: 'g10', name: 'Grassrivers Shed', area: 'Grassrivers', price: 0, buyable: false, unlock: 'm17' },
+  { id: 'g11', name: 'Millport Depot', area: 'Millport', price: 0, buyable: false, unlock: 'm62' },
+  { id: 'g12', name: 'Vice City Port Warehouse', area: 'Vice City Port', price: 0, buyable: false, unlock: 'm79' },
+  // 3 special-edition bonus garages
+  { id: 'g13', name: 'Paradise Garage', area: 'Watson Bay', price: 0, buyable: false, bonus: true, note: 'weapon locker + fence for stolen goods' },
+  { id: 'g14', name: 'Vice Beach Penthouse Garage', area: 'Vice Beach', price: 0, buyable: false, bonus: true },
+  { id: 'g15', name: 'Mount Kalaga Lodge Garage', area: 'Mount Kalaga', price: 0, buyable: false, bonus: true },
 ];
 
-export const LOCATIONS = [
-  { id: "jack-hearts", name: "Jack of Hearts", kind: "nightclub", zone: "Vice City" },
-  { id: "nine1nine", name: "NINE1NINE", kind: "nightclub", zone: "Vice City" },
-  { id: "malibu", name: "Malibu Club", kind: "nightclub", zone: "Vice Beach" },
-  { id: "vault", name: "Vault Nightclub", kind: "nightclub", zone: "Vice City" },
-  { id: "only-raw", name: "Only Raw Records", kind: "studio", zone: "Vice City" },
-  { id: "rideout", name: "Rideout Customs", kind: "garage", zone: "Vice City" },
-  { id: "sara-salon", name: "Sara's Unisex Salon", kind: "salon", zone: "Vice City" },
-  { id: "barnacle", name: "Barnacle Beauties", kind: "salon", zone: "Vice Beach" },
-  { id: "kurt-barber", name: "Kurt's Barber Shop", kind: "barber", zone: "Vice City" },
-  { id: "electric-fang", name: "Electric Fang Tattoo", kind: "tattoo", zone: "Vice City", note: "50+ designs" },
-  { id: "stock305", name: "Stock 305", kind: "clothing", zone: "Vice City" },
-  { id: "goodtime", name: "Goodtime Gear", kind: "clothing", zone: "Vice Beach" },
-  { id: "ammunation", name: "Ammu-Nation", kind: "gunshop", zone: "Vice City" },
-  { id: "stronghold", name: "Stronghold Ammunition", kind: "gunshop", zone: "Port Gellhorn" },
-  { id: "pawn-gun", name: "Pawn and Gun", kind: "gunshop", zone: "Vice City" },
-  { id: "uncle-jack", name: "Uncle Jack's Liquor", kind: "liquor", zone: "Leonida Keys" },
-  { id: "tisha-wocka", name: "Tisha-Wocka Flea Market", kind: "market", zone: "Vice City" },
+export const BUSINESSES = [
+  { id: 'jackofhearts', name: 'Jack of Hearts', kind: 'nightclub', owner: 'Boobie Ike' },
+  { id: 'nine1nine', name: 'NINE1NINE Nightclub', kind: 'nightclub' },
+  { id: 'malibu', name: 'The Malibu Club', kind: 'nightclub' },
+  { id: 'vault', name: 'The Vault Nightclub', kind: 'nightclub' },
+  { id: 'onlyraw', name: 'Only Raw Records', kind: 'studio', owner: "Dre'Quan Priest" },
+  { id: 'rideout', name: 'Rideout Customs', kind: 'mod shop', note: 'main Leonida vehicle modification shop' },
+  { id: 'sara', name: "Sara's Unisex Salon", kind: 'salon', note: 'hair, Jason beard, Lucia makeup & nails' },
+  { id: 'barnacle', name: 'Barnacle Beauties', kind: 'salon' },
+  { id: 'kurts', name: "Kurt's Barber Shop", kind: 'barber' },
+  { id: 'electricfang', name: 'Electric Fang Tattoo', kind: 'tattoo', note: '50+ designs' },
+  { id: 'stock305', name: 'Stock 305', kind: 'clothing' },
+  { id: 'goodtime', name: 'Goodtime Gear', kind: 'clothing', note: 'streetwear' },
+  { id: 'ammunation', name: 'Ammu-Nation', kind: 'gun shop' },
+  { id: 'stronghold', name: 'Stronghold Ammunition', kind: 'gun shop' },
+  { id: 'pawnandgun', name: 'Pawn and Gun', kind: 'gun shop' },
+  { id: 'unclejack', name: "Uncle Jack's Liquor", kind: 'liquor' },
+  { id: 'tishawocka', name: 'Tisha-Wocka Flea Market', kind: 'market' },
 ];
 
-export function totalSafehouses() { return SAFEHOUSES.length; }
-export function totalGarages() { return GARAGES.length; }
-export function buyableGarages() { return GARAGES.filter((g) => g.price > 0); }
-export function freeGarages() { return GARAGES.filter((g) => g.price === 0); }
-export function bonusGarages() { return GARAGES.filter((g) => g.bonus); }
-export function safehouseById(id) { return SAFEHOUSES.find((s) => s.id === id) || null; }
-export function garageById(id) { return GARAGES.find((g) => g.id === id) || null; }
-export function locationById(id) { return LOCATIONS.find((l) => l.id === id) || null; }
-export function totalLocations() { return LOCATIONS.length; }
+export function storedCarCount(storedCars) {
+  return (storedCars || []).length;
+}
+
+export function buyableGarages() {
+  return GARAGES.filter((g) => g.buyable);
+}
+
+export function bonusGarages() {
+  return GARAGES.filter((g) => g.bonus);
+}

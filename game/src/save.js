@@ -1,44 +1,44 @@
-// AZURA BAY — save system (round 7 re-compose, written fresh under r7).
-// Save slots. Cheats disable saving (SPEC Bab 3): once any cheat is
-// active, the save is disabled for that session. Autosave after each
-// mission; manual save at safehouses.
-
+// save.js — Save system, SPEC §3.
+// Saves live in localStorage. Activating any cheat disables saving (and
+// trophies) — Bab 3. Save slots hold story progress, BuckMe, collections,
+// attributes and settings.
+export const SAVE_KEY = 'azura-bay-save-v1';
 export const SAVE_SLOTS = 3;
 
-export function newSaveState() {
-  return { slots: [null, null, null], autosave: true, disabled: false };
+export function hasSave() {
+  try {
+    return typeof localStorage !== 'undefined' && localStorage.getItem(SAVE_KEY) !== null;
+  } catch {
+    return false;
+  }
 }
-export function canSave(state) {
-  return !state.disabled && !state.cheatsActive;
+
+export function saveGame(state) {
+  if (state.cheatsActive && state.cheatsActive.length > 0) {
+    return { ok: false, reason: 'saving disabled while a cheat is active' };
+  }
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, reason: String(e) };
+  }
 }
-export function saveGame(save, slot, gameState) {
-  if (slot < 0 || slot >= SAVE_SLOTS) return { ok: false, reason: "bad slot" };
-  if (save.disabled) return { ok: false, reason: "save disabled (cheats active)" };
-  save.slots[slot] = {
-    savedAt: new Date().toISOString(),
-    day: gameState.world ? gameState.world.day : 1,
-    time: gameState.world ? gameState.world.time : 0,
-    missionsDone: gameState.missions ? gameState.missions.done.length : 0,
-    cash: gameState.econ ? gameState.econ.cash : 0,
-    buckme: gameState.econ ? gameState.econ.buckme : 0,
-  };
-  return { ok: true, slot };
+
+export function loadGame() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
 }
-export function loadGame(save, slot) {
-  if (slot < 0 || slot >= SAVE_SLOTS) return null;
-  return save.slots[slot];
-}
-export function deleteSave(save, slot) {
-  if (slot < 0 || slot >= SAVE_SLOTS) return false;
-  save.slots[slot] = null;
-  return true;
-}
-export function disableSave(save, reason) {
-  save.disabled = true;
-  save.disabledReason = reason || "cheats active";
-  return save;
-}
-export function autosave(save, gameState) {
-  if (!save.autosave) return { ok: false, reason: "autosave off" };
-  return saveGame(save, 0, gameState);
+
+export function clearSave() {
+  try {
+    localStorage.removeItem(SAVE_KEY);
+    return true;
+  } catch {
+    return false;
+  }
 }

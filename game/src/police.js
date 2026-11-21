@@ -1,70 +1,50 @@
-// AZURA BAY — Wanted & Heat (round 7 re-compose, written fresh under r7).
-// SPEC.md Bab 12. Police remember face / clothes / plate / weapon / duo.
-// Star states: hollow (reported, not yet known), white (seen directly),
-// blink (lost sight), red (sweeping radius), 6 stars (all-Leonida manhunt).
-// Escape: destroy CCTV, change clothes (car trunk), mask/hat, split the duo,
-// change car / Pay 'n' Spray / call Joey, loot police trunks (armor + shotgun/AR).
+// police.js — Wanted & Heat system, SPEC §12.
+// Heat = police memory: they remember face, outfit, plate, weapon and whether
+// Jason & Lucia acted as a duo. Even after the stars fade, police can recognise
+// you again if you wear the same clothes / drive the same car.
+// Star states: Hollow (reported by a witness, suspect unknown — walk past
+// police unnoticed), White Solid (seen directly), White Blinking (out of
+// police sight), Red (police lost your exact location, sweeping the area),
+// 6 Stars (total manhunt across all of Leonida).
+export const STAR_STATES = [
+  { stars: 0, name: 'Clear', desc: 'No wanted level.' },
+  { stars: 1, name: 'Hollow', desc: 'Crime reported by a witness; suspect unknown — walk past police unnoticed.' },
+  { stars: 2, name: 'White Solid', desc: 'Police saw you directly.' },
+  { stars: 3, name: 'White Blinking', desc: 'Out of police sight.' },
+  { stars: 4, name: 'Red', desc: 'Police lost your exact location; sweeping the area of the incident.' },
+  { stars: 5, name: 'Red', desc: 'Police lost your exact location; sweeping a wider radius.' },
+  { stars: 6, name: 'Six Stars', desc: 'Total manhunt across all of Leonida.' },
+];
 
-export const STAR_STATES = ["none", "hollow", "white", "blink", "red", "manhunt"];
-export const MAX_STARS = 6;
-
-export function newPolice() {
-  return { stars: 0, state: "none", heat: 0, radius: 0, helicopter: false, clueChips: [] };
+// What the police remember about you (Heat). Each clue can be cleared.
+export function freshMemory() {
+  return { face: false, outfit: false, vehicle: false, weapon: false, duo: false, cctv: false };
 }
 
-// Add wanted level. Returns the new state.
-export function addWanted(police, stars) {
-  police.stars = Math.min(MAX_STARS, police.stars + stars);
-  police.heat = Math.min(100, police.heat + stars * 15);
-  updateState(police);
-  return police;
+// Escape methods (SPEC §12).
+export const ESCAPE_METHODS = [
+  'Destroy CCTV footage at the robbery location before police arrive',
+  'Change clothes (via personal car trunk)',
+  'Mask / hat',
+  'Split Jason & Lucia up',
+  'Change car, repaint at Pay \'n\' Spray, or call Joey for a clean personal car',
+  'Loot police car trunks (Body Armor + Shotgun / Assault Rifle)',
+];
+
+// Heat per star: how much police attention each wanted star adds.
+export function heatPerStar(stars) {
+  return Math.min(6, Math.max(0, stars)) * 20;
 }
-export function updateState(police) {
-  if (police.stars === 0) police.state = "none";
-  else if (police.stars >= 6) police.state = "manhunt";
-  else if (police.heat >= 70) police.state = "red";
-  else if (police.heat >= 40) police.state = "blink";
-  else if (police.heat >= 15) police.state = "white";
-  else police.state = "hollow";
-  police.helicopter = police.stars >= 3;
-  police.radius = police.stars * 150;
-  return police;
+
+// Police hit chance at a distance (used directly by police shooting code).
+// Closer + higher wanted = more accurate.
+export function hitChanceAt(distance, stars) {
+  const base = 0.55 - distance / 400 + stars * 0.04;
+  return Math.max(0.05, Math.min(0.9, base));
 }
-// Heat decays over time when the player is out of sight.
-export function decayHeat(police, seconds) {
-  police.heat = Math.max(0, police.heat - seconds * 0.5);
-  if (police.heat === 0 && police.stars > 0) {
-    police.stars = 0;
-  }
-  updateState(police);
-  return police;
+
+// Surrender (Bab 21): at 1–2 stars police give a verbal order first instead
+// of shooting immediately; the player can surrender.
+export function canSurrender(stars) {
+  return stars >= 1 && stars <= 2;
 }
-// Surrender at 1-2 stars (hands up, go to jail, lose a little cash).
-export function canSurrender(police) { return police.stars >= 1 && police.stars <= 2; }
-export function surrender(police) {
-  if (!canSurrender(police)) return { ok: false };
-  police.stars = 0;
-  police.heat = 0;
-  police.state = "none";
-  police.helicopter = false;
-  return { ok: true, jailed: true };
-}
-// Escape actions reduce heat.
-export function escapeAction(police, action) {
-  const reductions = {
-    "destroy-cctv": 20, "change-clothes": 25, "mask": 15, "split-duo": 20,
-    "change-car": 20, "pay-n-spray": 40, "call-joey": 30, "hide": 10,
-  };
-  const red = reductions[action] || 0;
-  police.heat = Math.max(0, police.heat - red);
-  if (police.heat === 0) police.stars = 0;
-  updateState(police);
-  return police;
-}
-export function addClueChip(police, chip) {
-  // chip: CCTV, FACE, CLOTHES, VEHICLE
-  if (!police.clueChips.includes(chip)) police.clueChips.push(chip);
-  return police;
-}
-export function clearClueChips(police) { police.clueChips = []; return police; }
-export function isWanted(police) { return police.stars > 0; }

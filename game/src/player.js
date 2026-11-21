@@ -1,81 +1,81 @@
-// AZURA BAY — player (round 7 re-compose, written fresh under r7).
-// Switch between Jason and Lucia. Health/stamina/focus/oxygen, damage,
-// regen, and the Criminal Profile per character (SPEC.md Bab 10).
+// player.js — Player state (Jason & Lucia), SPEC §10 + §17 + §29.
+// Health / Stamina / Focus / Oxygen / Adrenaline, with the Bab 29 rules.
+// Dynamic body: too much food = gain weight; regular gym (timing minigame) =
+// muscular. Food/drink give temporary buffs. Hair & beard do NOT grow
+// automatically; new styles are bought at barbershops/salons (each shop has
+// exclusive cuts); at the safehouse wardrobe you can only shorten or shave.
+// Appearance detail: nail length, nail polish colour, Lucia makeup, spare
+// clothes in the car trunk. Pistols are auto-hidden behind the back in crowds.
+// You can still shoot while swimming.
+import {
+  HEALTH_REGEN_CAP, HEALTH_REGEN_RATE, HEALTH_REGEN_DELAY,
+  FOCUS_DRAIN_AIM, FOCUS_REGEN,
+  ADRENALINE_ON_DAMAGE, ADRENALINE_ON_KILL, ADRENALINE_DECAY,
+  ADRENALINE_SPRINT_HALF, OXYGEN_SCUBA_DRAIN, RELATIONSHIP_START,
+} from './config.js';
 
-import { newAttributes, maxHealth, maxStamina, maxFocus } from "./attributes.js";
-import { PROFILE_LEVELS } from "./config.js";
-import { newHudState, onTakeDamage, onDamageDealt, onKill } from "./hud.js";
-
-export const PROTAGONISTS = ["jason", "lucia"];
-
-export function newPlayerState() {
+export function freshPlayer(protagonist) {
   return {
-    active: "jason",
-    jason: {
-      name: "Jason Duval", x: -296, z: 749, health: 100, stamina: 100,
-      focus: 100, oxygen: 100, attrs: newAttributes(), profile: "Professional",
-      profileScore: 0, weapons: ["es9"], currentWeapon: "es9",
-    },
-    lucia: {
-      name: "Lucia Caminos", x: -296, z: 749, health: 100, stamina: 100,
-      focus: 100, oxygen: 100, attrs: newAttributes(), profile: "Professional",
-      profileScore: 0, weapons: ["k17"], currentWeapon: "k17",
-    },
-    hud: newHudState(),
-    relationship: 50,
+    protagonist, // 'jason' | 'lucia'
+    health: 100, maxHealth: 100,
+    stamina: 100, focus: 100,
+    oxygen: 100, lungCapacity: 100,
+    adrenaline: 0,
+    lastDamageAt: -999,
+    swimming: false, diving: false, scuba: false,
+    weight: 0, // -100 (skinny) .. +100 (heavy); gym builds muscle
+    relationship: RELATIONSHIP_START,
+    chaos: 0, // 0-100, drives Criminal Profile
+    weaponHidden: false,
   };
 }
 
-export function activePlayer(state) { return state[state.active]; }
-export function switchPlayer(state) {
-  state.active = state.active === "jason" ? "lucia" : "jason";
-  return state.active;
-}
-export function takeDamage(state, amount, now) {
-  const p = activePlayer(state);
-  p.health = Math.max(0, p.health - amount);
-  onTakeDamage(state.hud, amount, now);
-  return p.health;
-}
-export function dealDamage(state, amount) {
-  onDamageDealt(state.hud, amount);
-  return state.hud.adrenaline;
-}
-export function killEnemy(state) { onKill(state.hud); return state.hud.adrenaline; }
-
-// Criminal Profile (SPEC Bab 11): Professional / Hardened / Violent &
-// Dangerous / Psycho. Psycho is permanent once the logo breaks.
-export function updateProfile(state, action) {
-  const p = activePlayer(state);
-  const delta = {
-    "clean-job": -5, "kind-act": -3, "violent-kill": 8, "civilian-kill": 15,
-    "heist": 10, "police-kill": 12, "logo-break": 100,
-  }[action] || 0;
-  p.profileScore = Math.max(0, Math.min(100, p.profileScore + delta));
-  if (p.profileScore >= 95 || action === "breaking-point") {
-    p.profile = "Irredeemable";
-    p.profilePermanent = true;
-  } else if (action === "logo-break" || p.profileScore >= 90) {
-    p.profile = "Psycho";
-    p.profilePermanent = true;
-  } else if (p.profilePermanent) {
-    p.profile = p.profileScore >= 95 ? "Irredeemable" : "Psycho";
-  } else if (p.profileScore >= 60) {
-    p.profile = "Violent & Dangerous";
-  } else if (p.profileScore >= 30) {
-    p.profile = "Hardened";
-  } else {
-    p.profile = "Professional";
+// Per-frame update (dt in seconds). Returns the mutated player.
+export function updatePlayer(p, dt, input) {
+  // Health regen: +3/s only up to 50% maxHealth, only after 8s without damage.
+  if (p.health < p.maxHealth * HEALTH_REGEN_CAP && input.time - p.lastDamageAt > HEALTH_REGEN_DELAY) {
+    p.health = Math.min(p.maxHealth * HEALTH_REGEN_CAP, p.health + HEALTH_REGEN_RATE * dt);
   }
-  return p.profile;
+  // Focus: drains 0.10/s while aiming (slow-mo), regens 0.05/s otherwise.
+  if (input.aiming) p.focus = Math.max(0, p.focus - FOCUS_DRAIN_AIM * dt * 100);
+  else p.focus = Math.min(100, p.focus + FOCUS_REGEN * dt * 100);
+  // Adrenaline decays 0.04/s.
+  p.adrenaline = Math.max(0, p.adrenaline - ADRENALINE_DECAY * dt);
+  // Stamina: sprint costs half while Adrenaline >= 0.5.
+  if (input.sprinting) {
+    const cost = p.adrenaline >= ADRENALINE_SPRINT_HALF ? 5 : 10;
+    p.stamina = Math.max(0, p.stamina - cost * dt);
+  } else {
+    p.stamina = Math.min(100, p.stamina + 8 * dt);
+  }
+  // Oxygen: scuba drains 1.2/s; on the surface it is lung capacity.
+  if (p.diving && p.scuba) p.oxygen = Math.max(0, p.oxygen - OXYGEN_SCUBA_DRAIN * dt * 100);
+  else if (!p.diving) p.oxygen = 100;
+  // Pistols auto-hide behind the back in crowds.
+  p.weaponHidden = !!input.inCrowd;
+  return p;
 }
-export function profileLevels() { return PROFILE_LEVELS; }
-export function maxHealthFor(state) { return maxHealth(activePlayer(state).attrs); }
-export function maxStaminaFor(state) { return maxStamina(activePlayer(state).attrs); }
-export function maxFocusFor(state) { return maxFocus(activePlayer(state).attrs); }
-export function giveWeapon(state, weaponId) {
-  const p = activePlayer(state);
-  if (!p.weapons.includes(weaponId)) p.weapons.push(weaponId);
-  p.currentWeapon = weaponId;
-  return p.weapons;
+
+export function takeDamage(p, amount, time) {
+  p.health = Math.max(0, p.health - amount);
+  p.lastDamageAt = time;
+  p.adrenaline = Math.min(1, p.adrenaline + ADRENALINE_ON_DAMAGE);
+  return p;
+}
+
+export function onKill(p) {
+  p.adrenaline = Math.min(1, p.adrenaline + ADRENALINE_ON_KILL);
+  return p;
+}
+
+// Clamp a position to the Leonida playfield bounds (game coords).
+export function clampToBounds(x, z) {
+  const B = 1000;
+  return { x: Math.max(-B, Math.min(B, x)), z: Math.max(-B, Math.min(B, z)) };
+}
+
+// Switch protagonist (Jason <-> Lucia).
+export function switchProtagonist(p) {
+  p.protagonist = p.protagonist === 'jason' ? 'lucia' : 'jason';
+  return p;
 }

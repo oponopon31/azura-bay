@@ -1,159 +1,216 @@
-// AZURA BAY — main entrypoint (round 7 re-compose, written fresh under r7).
-// Wires every module into a playable 2D top-down Leonida game.
-// 91 missions, 69 weapons, 245 vehicles, 61 cheats, 13 Strangers,
-// 24 radio stations, 27 characters, 4 endings, Wanted & Heat,
-// smartphone, properties, attributes, 4-corner HUD.
+// main.js — AZURA BAY bootstrap (GTA 6 fan open world).
+// Loads the full Leonida data model, builds the 3D scene (three.js), wires the
+// four-corner HUD, and runs the game loop. index.html loads this as a module.
+import * as THREE from '../vendor/three.module.min.js';
+import { GAME, WALLET_MAX } from './config.js';
+import { MISSIONS, missionsInChapter } from './missions.js';
+import { CHAPTERS, decideEnding, profileFromChaos } from './story.js';
+import { SIDEARMS, startingSidearm } from './weapons.js';
+import { LONGARMS } from './weapons-longarms.js';
+import { MELEE } from './weapons-melee.js';
+import { EXPLOSIVES } from './weapons-explosives.js';
+import { SPECIALS } from './weapons-special.js';
+import { CHEATS } from './cheats.js';
+import { CHARACTERS } from './characters.js';
+import { STRANGERS } from './strangers.js';
+import { STATIONS } from './radio.js';
+import { MAP_POINTS, gamePos, REGIONS } from './leonidamap.js';
+import { COLLECTIBLE_GROUPS, totalCollectibles } from './collectibles.js';
+import { STUNT_KINDS, ROBBERY_KINDS, totalStunts, totalRobberies } from './stunts.js';
+import { MYSTERIES } from './mysteries.js';
+import { SAFEHOUSES, GARAGES } from './properties.js';
+import { ATTRIBUTES } from './attributes.js';
+import { STAR_STATES, freshMemory, heatPerStar } from './police.js';
+import { APPS } from './phone.js';
+import { enforceWalletCap, totalWealth, FENCES } from './economy.js';
+import { VEHICLES } from './vehicles-data.js';
+import { FISH } from './fishing.js';
+import { VARIANTS } from './variants.js';
+import { ACHIEVEMENTS, MINI_GAMES } from './activities.js';
+import { EVENT_TYPES, EVENT_LOCATIONS, totalEventCombinations } from './events.js';
+import { freshPlayer, updatePlayer, clampToBounds } from './player.js';
+import { freshWorld, trafficDensity } from './world.js';
+import { isNightAt, isDuskAt } from './city.js';
+import { buildHud, updateHudCorners, drawMinimap, setBuildTag } from './hud.js';
+import { saveGame, loadGame } from './save.js';
+import { SHOPS } from './gunshops.js';
+import { runSelfTest } from './selftest.js';
 
-import { WORLD, WALLET_MAX, BUCKME_GOOD1_MIN, STAR_STATES, PROFILE_LEVELS } from "./config.js";
-import { newWorldState, advanceTime, isNight, isDusk, movePlayer, timeString } from "./world.js";
-import { newPlayerState, activePlayer, switchPlayer, takeDamage, updateProfile } from "./player.js";
-import { newEconomy, enforceWalletCap, addCash, addBuckMe } from "./economy.js";
-import { newMissionState, completeMission, nextMission, resolveEnding, rewindToPreFinal } from "./missions.js";
-import { newPolice, addWanted, decayHeat, surrender, escapeAction } from "./police.js";
-import { newPhoneState, openApp } from "./phone.js";
-import { newHudState, updateHudCorners, hudCorners } from "./hud.js";
-import { MISSIONS, totalMissions } from "./story.js";
-import { totalWeapons } from "./weapons-special.js";
-import { totalVehicles } from "./vehicles-data.js";
-import { totalCheats, activateCheat, cheatsUnlocked } from "./cheats.js";
-import { totalStrangers } from "./strangers.js";
-import { totalStations, nextStation } from "./radio.js";
-import { totalCharacters } from "./characters.js";
-import { totalCollectibles } from "./collectibles.js";
-import { totalStunts } from "./stunts.js";
-import { totalEvents } from "./events.js";
-import { totalMysteries } from "./mysteries.js";
-import { totalFish } from "./fishing.js";
-import { totalChallenges } from "./activities.js";
-import { totalGunShops, expandedCount } from "./gunshops.js";
-import { totalGoldVariants, totalVariants } from "./variants.js";
-import { MAP_POINTS, totalMapPoints } from "./leonidamap.js";
-import { spawnVehicles } from "./vehicles.js";
-import { spawnPedestrians } from "./pedestrians.js";
-import { newEffectsState, updateParticles, updateShake } from "./effects.js";
-import { newSaveState, saveGame, canSave } from "./save.js";
-import { isNightAt, lightingAt } from "./city.js";
-import { stationBar } from "./audio.js";
+// ---- game state ------------------------------------------------------------
+const state = {
+  player: freshPlayer('jason'),
+  world: freshWorld(1337),
+  economy: { cash: 500, buckme: 0, marked: 0 },
+  police: { stars: 0, starState: 'Clear', memory: freshMemory(), seenNow: false },
+  missionsDone: new Set(),
+  weapon: { name: 'Girardi ES9', mag: 15, reserve: 45 },
+  vehicle: null,
+  profileName: 'Professional',
+  breakingPoint: false,
+  cheatsActive: [],
+  time: 0,
+  gpsRoute: [],
+  mapBlocks: [],
+};
 
-export const VERSION = "round-7";
-export const BUILD_TAG = "AZURA BAY · Round 7";
-
-export function newGame() {
+// ---- content totals (for the pause menu / dossier) --------------------------
+export function contentTotals() {
   return {
-    version: VERSION,
-    world: newWorldState(),
-    player: newPlayerState(),
-    econ: newEconomy(),
-    missions: newMissionState(),
-    police: newPolice(),
-    phone: newPhoneState(),
-    hud: newHudState(),
-    save: newSaveState(),
-    fx: newEffectsState(),
-    vehicles: spawnVehicles(60, "game"),
-    peds: spawnPedestrians(80, "Vice City", "game"),
-    radio: { station: "flash", playing: true },
-    collectiblesFound: 0,
-    stuntsDone: [],
-    strangersDone: [],
-    challengesDone: [],
-    cheatsActive: {},
-    trophiesDisabled: false,
-    saveDisabled: false,
-    storyDone: false,
-    time: 0,
-  };
-}
-
-// Per-frame update. dt in seconds.
-export function update(state, dt) {
-  state.time += dt;
-  advanceTime(state.world, dt / 60);
-  updateHudCorners(state.hud, dt, state.time);
-  decayHeat(state.police, dt);
-  updateParticles(state.fx, dt);
-  updateShake(state.fx, dt);
-  return state;
-}
-
-export function gameStats(state) {
-  return {
-    missions: totalMissions(),
-    missionsDone: state.missions.done.length,
-    weapons: totalWeapons(),
-    vehicles: totalVehicles(),
-    cheats: totalCheats(),
-    strangers: totalStrangers(),
-    stations: totalStations(),
-    characters: totalCharacters(),
+    missions: MISSIONS.length,
+    weapons: SIDEARMS.length + LONGARMS.length + MELEE.length + EXPLOSIVES.length + SPECIALS.length,
+    vehicles: VEHICLES.length,
+    cheats: CHEATS.length,
+    strangers: STRANGERS.length,
+    radioStations: STATIONS.length,
+    characters: CHARACTERS.length,
+    fish: FISH.length,
+    variants: VARIANTS.length,
+    achievements: ACHIEVEMENTS.length,
     collectibles: totalCollectibles(),
     stunts: totalStunts(),
-    events: totalEvents(),
-    mysteries: totalMysteries(),
-    fish: totalFish(),
-    challenges: totalChallenges(),
-    gunShops: totalGunShops(),
-    expandedShops: expandedCount(),
-    goldVariants: totalGoldVariants(),
-    variants: totalVariants(),
-    mapPoints: totalMapPoints(),
+    robberies: totalRobberies(),
+    events: totalEventCombinations(),
+    safehouses: SAFEHOUSES.length,
+    garages: GARAGES.length,
+    mapPoints: MAP_POINTS.length,
+    regions: REGIONS.length,
+    apps: APPS.length,
+    shops: SHOPS.length,
   };
 }
 
-// 2D top-down render to a canvas context.
-export function render(state, ctx, w, h) {
-  const lighting = lightingAt(state.world.time, state.world.weather);
-  ctx.fillStyle = lighting.sky;
-  ctx.fillRect(0, 0, w, h);
-  // Ground: Leonida landmass (green) with water around it.
-  ctx.fillStyle = "#2d6a2d";
-  ctx.fillRect(w * 0.1, h * 0.1, w * 0.8, h * 0.8);
-  // Water.
-  ctx.fillStyle = "#1a5a8a";
-  ctx.fillRect(0, 0, w, h * 0.08);
-  ctx.fillRect(0, h * 0.92, w, h * 0.08);
-  // Map points.
-  for (const p of MAP_POINTS) {
-    const sx = ((p.x - WORLD.xMin) / (WORLD.xMax - WORLD.xMin)) * w;
-    const sy = ((p.z - WORLD.zMin) / (WORLD.zMax - WORLD.zMin)) * h;
-    ctx.fillStyle = p.kind === "city" ? "#ffcc00" : "#ffffff";
-    ctx.beginPath();
-    ctx.arc(sx, sy, p.kind === "city" ? 6 : 3, 0, Math.PI * 2);
-    ctx.fill();
+// ---- 3D scene ---------------------------------------------------------------
+let renderer, scene, camera, playerMesh, clock;
+
+function buildScene() {
+  renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  document.getElementById('game').appendChild(renderer.domElement);
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x87b5d6);
+  scene.fog = new THREE.Fog(0x87b5d6, 200, 900);
+  camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
+  camera.position.set(0, 60, 80);
+  camera.lookAt(0, 0, 0);
+  scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+  const sun = new THREE.DirectionalLight(0xfff2cc, 1.2);
+  sun.position.set(100, 200, 50);
+  scene.add(sun);
+  // Ground (Leonida landmass, game coords from gtabase/8).
+  const ground = new THREE.Mesh(
+    new THREE.PlaneGeometry(2000, 2000),
+    new THREE.MeshLambertMaterial({ color: 0x4a7c43 })
+  );
+  ground.rotation.x = -Math.PI / 2;
+  scene.add(ground);
+  // Lake Leonida (centre).
+  const lake = new THREE.Mesh(
+    new THREE.CircleGeometry(90, 32),
+    new THREE.MeshLambertMaterial({ color: 0x2a6db0 })
+  );
+  lake.rotation.x = -Math.PI / 2;
+  lake.position.set(-243.5, 0.5, -599.25);
+  scene.add(lake);
+  // City blocks around Vice City (game coords).
+  const blockMat = new THREE.MeshLambertMaterial({ color: 0x8a8f96 });
+  for (let i = 0; i < 40; i++) {
+    const w = 12 + (i % 5) * 6;
+    const d = 12 + (i % 3) * 8;
+    const h = 8 + (i % 7) * 6;
+    const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), blockMat);
+    b.position.set(-60 + (i % 8) * 18, h / 2, -140 + Math.floor(i / 8) * 22);
+    scene.add(b);
+    state.mapBlocks.push({ x: 0, y: 0, w: 4, h: 4 });
   }
-  // Player.
-  const px = ((state.world.player.x - WORLD.xMin) / (WORLD.xMax - WORLD.xMin)) * w;
-  const py = ((state.world.player.z - WORLD.zMin) / (WORLD.zMax - WORLD.zMin)) * h;
-  ctx.fillStyle = "#ff0066";
-  ctx.beginPath();
-  ctx.arc(px, py, 8, 0, Math.PI * 2);
-  ctx.fill();
-  // HUD text.
-  ctx.fillStyle = "#ffffff";
-  ctx.font = "16px sans-serif";
-  ctx.fillText(BUILD_TAG, 10, 20);
-  ctx.fillText("Time " + timeString(state.world) + "  Day " + state.world.day, 10, 40);
-  ctx.fillText("Cash $" + state.econ.cash + "  BuckMe $" + state.econ.buckme, 10, 60);
-  ctx.fillText("Missions " + state.missions.done.length + "/" + totalMissions(), 10, 80);
-  ctx.fillText("Wanted " + state.police.stars + " stars (" + state.police.state + ")", 10, 100);
-  return true;
+  // Mission markers (gold) at map points.
+  const markerMat = new THREE.MeshBasicMaterial({ color: 0xffd34d });
+  for (const p of MAP_POINTS.slice(0, 12)) {
+    const pos = gamePos(p);
+    const m = new THREE.Mesh(new THREE.SphereGeometry(2, 8, 8), markerMat);
+    m.position.set(pos.x, 6, pos.z);
+    scene.add(m);
+  }
+  // Player (Jason, blue; Lucia, pink on switch).
+  playerMesh = new THREE.Mesh(
+    new THREE.BoxGeometry(2, 4, 2),
+    new THREE.MeshLambertMaterial({ color: 0x2a6db0 })
+  );
+  playerMesh.position.set(0, 2, 0);
+  scene.add(playerMesh);
+  clock = new THREE.Clock();
 }
 
-// Browser bootstrap.
-export function boot(canvasId) {
-  const canvas = document.getElementById(canvasId);
-  if (!canvas) return null;
-  const ctx = canvas.getContext("2d");
-  const state = newGame();
-  let last = performance.now();
-  function frame(now) {
-    const dt = Math.min(0.1, (now - last) / 1000);
-    last = now;
-    update(state, dt);
-    render(state, ctx, canvas.width, canvas.height);
-    requestAnimationFrame(frame);
+// ---- input ------------------------------------------------------------------
+const keys = {};
+window.addEventListener('keydown', (e) => { keys[e.key.toLowerCase()] = true; });
+window.addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; });
+
+// ---- game loop --------------------------------------------------------------
+function loop() {
+  requestAnimationFrame(loop);
+  const dt = Math.min(0.05, clock.getDelta());
+  state.time += dt;
+  const speed = 24 * dt;
+  let dx = 0, dz = 0;
+  if (keys['w'] || keys['arrowup']) dz -= speed;
+  if (keys['s'] || keys['arrowdown']) dz += speed;
+  if (keys['a'] || keys['arrowleft']) dx -= speed;
+  if (keys['d'] || keys['arrowright']) dx += speed;
+  if (dx || dz) {
+    const pos = clampToBounds(playerMesh.position.x + dx, playerMesh.position.z + dz);
+    playerMesh.position.x = pos.x;
+    playerMesh.position.z = pos.z;
+    updatePlayer(state.player, dt, { time: state.time, aiming: !!keys['shift'], sprinting: !!keys['shift'], inCrowd: false });
   }
-  requestAnimationFrame(frame);
-  window.AZURA = { state, newGame, update, render, gameStats, hudCorners };
-  return state;
+  // Camera follows the player.
+  camera.position.set(playerMesh.position.x, 55, playerMesh.position.z + 75);
+  camera.lookAt(playerMesh.position.x, 0, playerMesh.position.z);
+  // Day/night: sun dims at night.
+  scene.background = new THREE.Color(isNightAt(state.world.time) ? 0x0a1420 : isDuskAt(state.world.time) ? 0xd67a4a : 0x87b5d6);
+  // HUD.
+  state.profileName = profileFromChaos(state.player.chaos).name;
+  updateHudCorners(window.__hudEls, state);
+  const mm = document.getElementById('minimap-canvas');
+  if (mm) drawMinimap(mm.getContext('2d'), state);
+  renderer.render(scene, camera);
+}
+
+// ---- boot -------------------------------------------------------------------
+export function boot() {
+  const totals = contentTotals();
+  // Warn (not fail) if a content count is off — the selftest is the authority.
+  for (const [k, v] of Object.entries({ missions: 91, weapons: 69, vehicles: 245, cheats: 61 })) {
+    if (totals[k] !== v) console.warn(`content count off: ${k} = ${totals[k]} (expected ${v})`);
+  }
+  document.getElementById('title').textContent = GAME.title;
+  document.getElementById('subtitle').textContent = GAME.subtitle;
+  setBuildTag(document.getElementById('build-tag'), GAME.build);
+  window.__hudEls = buildHud(document.getElementById('hud'));
+  // Minimap canvas (rounded, satellite top-down).
+  const mm = document.createElement('canvas');
+  mm.id = 'minimap-canvas';
+  mm.width = 180;
+  mm.height = 180;
+  document.getElementById('mapbox').appendChild(mm);
+  // GPS route: player -> road -> Vice City marker (pink).
+  state.gpsRoute = [{ x: 90, y: 90 }, { x: 90, y: 40 }, { x: 140, y: 40 }, { x: 140, y: 90 }];
+  buildScene();
+  // Starting weapon per protagonist.
+  const start = startingSidearm(state.player.protagonist);
+  state.weapon = { name: start.name, mag: start.capacity, reserve: start.capacity * 3 };
+  // Mission rewards sweep wallet excess to BuckMe (Bab 23).
+  const reward = 5000;
+  const swept = enforceWalletCap(state.economy.cash + reward, state.economy.buckme);
+  state.economy.cash = swept.cash;
+  state.economy.buckme = swept.buckme;
+  loop();
+}
+
+// Self-test entry (also runnable from the console).
+window.AZURA_BAY = { state, contentTotals, runSelfTest, decideEnding, totalWealth };
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', boot);
+} else {
+  boot();
 }

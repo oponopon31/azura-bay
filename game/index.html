@@ -3,27 +3,66 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>AZURA BAY — GTA 6 Game (Round 7)</title>
+<title>AZURA BAY — GTA 6 fan open world</title>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: #0a0e1a; color: #fff; font-family: system-ui, sans-serif; overflow: hidden; }
-  #game { display: block; width: 100vw; height: 100vh; }
-  #tag { position: fixed; top: 8px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.6); padding: 4px 12px; border-radius: 12px; font-size: 12px; letter-spacing: 1px; z-index: 10; }
-  #help { position: fixed; bottom: 8px; left: 8px; background: rgba(0,0,0,0.6); padding: 8px 12px; border-radius: 8px; font-size: 12px; line-height: 1.6; z-index: 10; }
-  #help b { color: #ffcc00; }
+  html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #0a1420; font-family: system-ui, sans-serif; color: #fff; }
+  #game { position: fixed; inset: 0; }
+  #game canvas { display: block; }
+  #hud { position: fixed; inset: 0; pointer-events: none; z-index: 10; }
+  .hud-corner { position: absolute; }
+  .hud-topleft { top: 12px; left: 12px; width: 240px; }
+  .hud-topright { top: 12px; right: 12px; text-align: right; }
+  .hud-bottomleft { bottom: 12px; left: 12px; }
+  .hud-bottomright { bottom: 12px; right: 12px; text-align: right; }
+  .bar { height: 10px; border-radius: 5px; background: rgba(0,0,0,.55); margin: 3px 0; overflow: hidden; position: relative; }
+  .bar::before { content: ''; display: block; height: 100%; width: var(--v, 50%); border-radius: 5px; }
+  .bar.health::before { background: #ff5d8f; }
+  .bar.stamina::before { background: #b6ff4d; }
+  .bar.focus::before { background: #b06bff; }
+  .bar.oxygen::before { background: #4db8ff; }
+  .bar span { position: absolute; left: 4px; top: -3px; font-size: 11px; }
+  .badge { display: inline-block; background: #ffd34d; color: #111; font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 8px; margin: 2px 2px 0 0; }
+  .stars { font-size: 20px; letter-spacing: 2px; color: #ffd34d; text-shadow: 0 0 6px #000; }
+  .clues { font-size: 11px; color: #ffb3c8; }
+  .weapon, .money { font-size: 13px; text-shadow: 0 1px 2px #000; }
+  .profile { font-size: 15px; font-weight: 700; text-shadow: 0 1px 2px #000; }
+  .profile.breaking { color: #ff4d4d; }
+  .relationship { font-size: 12px; color: #cfe8ff; text-shadow: 0 1px 2px #000; }
+  .hud-minimap { position: absolute; bottom: 12px; left: 12px; border-radius: 16px; overflow: hidden; box-shadow: 0 0 0 2px rgba(255,255,255,.25); }
+  .hud-minimap canvas { border-radius: 12px; display: block; }
+  #hud-vehicle { margin-top: 190px; font-size: 12px; text-shadow: 0 1px 2px #000; }
+  #title-screen { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(5,10,18,.72); z-index: 20; }
+  #title-screen h1 { font-size: 64px; margin: 0; letter-spacing: 6px; color: #ffd34d; }
+  #title-screen p { font-size: 18px; margin: 8px 0; }
+  #title-screen button { margin-top: 18px; font-size: 18px; padding: 10px 28px; border: none; border-radius: 8px; background: #ff4d9d; color: #fff; cursor: pointer; }
+  #build-tag { position: fixed; bottom: 4px; right: 8px; font-size: 11px; color: rgba(255,255,255,.6); z-index: 30; }
+  #pause { display: none; position: fixed; inset: 0; background: rgba(5,10,18,.8); z-index: 25; align-items: center; justify-content: center; flex-direction: column; }
+  #pause h2 { margin: 0 0 10px; }
 </style>
 </head>
 <body>
-<div id="tag">AZURA BAY · Round 7 — Leonida, 91 missions, 5 chapters</div>
-<canvas id="game" width="1280" height="720"></canvas>
-<div id="help">
-  <b>WASD</b> move &nbsp; <b>E</b> interact &nbsp; <b>Tab</b> switch Jason/Lucia<br>
-  <b>Phone</b> Up arrow &nbsp; <b>Radio</b> Q &nbsp; <b>Wanted</b> see top-right<br>
-  <b>Cheats</b> unlock after finishing all 91 missions (phone, D-Pad Up + L1+R1)
+<div id="game"></div>
+<div id="hud"></div>
+<div id="title-screen">
+  <h1 id="title">AZURA BAY</h1>
+  <p id="subtitle">GTA 6 fan open world</p>
+  <p>91 story missions · 69 weapons · 245 vehicles · 61 cheats · Leonida map</p>
+  <button id="play">PLAY</button>
+  <p style="font-size:13px;color:#cfe8ff">WASD move · Shift sprint / aim · E interact · M map · P pause</p>
 </div>
-<script type="module">
-  import { boot } from "./src/main.js";
-  boot("game");
+<div id="pause"><h2>Paused</h2><p>AZURA BAY — press P to resume</p></div>
+<span id="build-tag"></span>
+<script type="module" src="./src/main.js"></script>
+<script>
+  document.getElementById('play').addEventListener('click', () => {
+    document.getElementById('title-screen').style.display = 'none';
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key.toLowerCase() === 'p') {
+      const p = document.getElementById('pause');
+      p.style.display = p.style.display === 'flex' ? 'none' : 'flex';
+    }
+  });
 </script>
 </body>
 </html>

@@ -1,52 +1,24 @@
-// AZURA BAY — smartphone (round 7 re-compose, written fresh under r7).
-// SPEC.md Bab 13. 10 apps. BuckMe (joint savings, decides Ending Good 1),
-// WhatUp!, Lifeinvader, Eyefind (buy vehicles, crime news), Music/Radio,
-// Camera & Wildlife Logbook (170+ species / 35 fish), RydeMe, Wink App,
-// Scooter Bros, Snapmatic.
-
-export const PHONE_APPS = [
-  { id: "buckme", name: "BuckMe", desc: "Joint savings. Decides Ending Good 1.", icon: "bank" },
-  { id: "whatup", name: "WhatUp!", desc: "Messaging with contacts.", icon: "chat" },
-  { id: "lifeinvader", name: "Lifeinvader", desc: "Social feed.", icon: "social" },
-  { id: "eyefind", name: "Eyefind", desc: "Buy vehicles, read crime news about yourself.", icon: "web" },
-  { id: "music", name: "Music/Radio", desc: "Radio on foot via phone headphones.", icon: "music" },
-  { id: "camera", name: "Camera & Wildlife Logbook", desc: "170+ species to photograph, 35 fish.", icon: "camera" },
-  { id: "rydeme", name: "RydeMe", desc: "Call a ride.", icon: "car" },
-  { id: "wink", name: "Wink App", desc: "Dating and contacts.", icon: "heart" },
-  { id: "scooter", name: "Scooter Bros", desc: "Rent a scooter.", icon: "scooter" },
-  { id: "snapmatic", name: "Snapmatic", desc: "Photo sharing.", icon: "photo" },
+// phone.js — In-game smartphone, SPEC §13. 10 apps.
+export const APPS = [
+  { id: 'buckme', name: 'BuckMe', desc: 'Joint finance & savings (affects the ending).' },
+  { id: 'whatup', name: 'WhatUp!', desc: 'Text messages & group chats with character contacts.' },
+  { id: 'lifeinvader', name: 'Lifeinvader', desc: 'In-game social media: Leonida resident posts, viral clips of your actions, city livestreams.' },
+  { id: 'eyefind', name: 'Eyefind', desc: 'Browser: parody sites, buy vehicles, latest news about your criminal actions.' },
+  { id: 'music', name: 'Music / Radio', desc: 'Radio & podcasts anytime while walking with headphones.' },
+  { id: 'camera', name: 'Camera & Wildlife Logbook', desc: 'Selfies, strange events, 170+ wildlife species.' },
+  { id: 'rydeme', name: 'RydeMe', desc: 'Online rideshare / taxi = paid fast travel.' },
+  { id: 'wink', name: 'Wink App', desc: 'Phone camera scans cars from afar (locked / alarm / GPS tracker).' },
+  { id: 'scooterbros', name: 'Scooter Bros', desc: 'Register & manage up to 10 scooters / light motorbikes.' },
+  { id: 'snapmatic', name: 'Snapmatic', desc: '10th phone photo app (linked to Camera + GTA 7 joke in the feed).' },
 ];
 
-export const WILDLIFE_SPECIES = 170;
-export const FISH_SPECIES = 35;
+export function appNames() {
+  return APPS.map((a) => a.name);
+}
 
-export function newPhoneState() {
-  return {
-    open: false, app: null, messages: [], photos: [],
-    wildlifeFound: [], fishCaught: [],
-  };
+export function appById(id) {
+  return APPS.find((a) => a.id === id) || null;
 }
-export function openApp(phone, appId) {
-  const app = PHONE_APPS.find((a) => a.id === appId);
-  if (!app) return null;
-  phone.open = true;
-  phone.app = appId;
-  return app;
-}
-export function closePhone(phone) { phone.open = false; phone.app = null; return phone; }
-export function appById(id) { return PHONE_APPS.find((a) => a.id === id) || null; }
-export function totalApps() { return PHONE_APPS.length; }
-export function logWildlife(phone, species) {
-  if (!phone.wildlifeFound.includes(species)) phone.wildlifeFound.push(species);
-  return phone.wildlifeFound.length;
-}
-export function catchFish(phone, species) {
-  if (!phone.fishCaught.includes(species)) phone.fishCaught.push(species);
-  return phone.fishCaught.length;
-}
-export function wildlifeProgress(phone) {
-  return Math.round((phone.wildlifeFound.length / WILDLIFE_SPECIES) * 100);
-}
-export function fishProgress(phone) {
-  return Math.round((phone.fishCaught.length / FISH_SPECIES) * 100);
-}
+
+// Open the phone: D-Pad Up (also the cheat-entry key).
+export const PHONE_KEY = 'D-Pad Up';

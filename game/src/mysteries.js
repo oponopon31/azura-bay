@@ -1,46 +1,40 @@
-// AZURA BAY — mysteries & easter eggs (round 7 re-compose, fresh under r7).
-// SPEC.md Bab 7. 20 entries. Skunk Ape / Bigfoot in Grassrivers, UFO +
-// alien base after 02:00, comm-tower egg (secret cutscene), old-GTA
-// references (Los Santos map in a boat GPS, Michael's Windchimes ringtone,
-// Malibu Club logo, Phil Cassidy at Ammu-Nation), Fast & Furious / Dexter /
-// Wonder Whale references.
-
+// mysteries.js — Mysteries & easter eggs, SPEC §7 + §20 + §21.
+// Skunk Ape, UFO, comm-tower egg, GTA references, film references,
+// 8 secret exploration locations, Kraken wreck, underground lab, Stonehenge.
 export const MYSTERIES = [
-  { id: "skunk-ape", name: "Skunk Ape / Bigfoot", zone: "Grassrivers", desc: "Ape-man in the woods and swamp.", time: "any" },
-  { id: "ufo", name: "UFO", zone: "Mount Kalaga", desc: "UFO appears after 02:00.", time: "02:00-06:00" },
-  { id: "alien-base", name: "Alien Base", zone: "Mount Kalaga", desc: "Alien base, open after the UFO.", time: "02:00-06:00" },
-  { id: "comm-tower-egg", name: "Comm Tower Egg", zone: "Vice City", desc: "Secret cutscene at the comm tower.", time: "any" },
-  { id: "ls-map", name: "Los Santos Map", zone: "Vice City Port", desc: "A Los Santos map in a boat GPS.", time: "any" },
-  { id: "windchimes", name: "Windchimes Ringtone", zone: "Vice City", desc: "Michael's ringtone on a phone.", time: "any" },
-  { id: "malibu-logo", name: "Malibu Club Logo", zone: "Vice Beach", desc: "Original Malibu Club logo.", time: "any" },
-  { id: "phil-cassidy", name: "Phil Cassidy", zone: "Vice City", desc: "Phil Cassidy at Ammu-Nation.", time: "any" },
-  { id: "fast-furious", name: "Fast & Furious", zone: "Vice City", desc: "A street race homage.", time: "any" },
-  { id: "dexter", name: "Dexter", zone: "Vice City", desc: "A kill-room reference.", time: "any" },
-  { id: "wonder-whale", name: "Wonder Whale", zone: "Vice Beach", desc: "A whale statue reference.", time: "any" },
-  { id: "ghost-ship", name: "Ghost Ship", zone: "Leonida Keys", desc: "A wreck that appears at night.", time: "night" },
-  { id: "mermaid", name: "Mermaid", zone: "Vice Beach", desc: "A mermaid sighting offshore.", time: "night" },
-  { id: "crop-circles", name: "Crop Circles", zone: "Ambrosia", desc: "Crop circles in the fields.", time: "night" },
-  { id: "abandoned-bunker", name: "Abandoned Bunker", zone: "Mount Kalaga", desc: "A Cold War bunker.", time: "any" },
-  { id: "sunken-treasure", name: "Sunken Treasure", zone: "Leonida Keys", desc: "Treasure under the Keys.", time: "any" },
-  { id: "haunted-mansion", name: "Haunted Mansion", zone: "Waning Sands", desc: "A mansion with ghosts.", time: "night" },
-  { id: "time-capsule", name: "Time Capsule", zone: "Vice City", desc: "A capsule from 1986.", time: "any" },
-  { id: "jetpack", name: "Jetpack", zone: "VCIA", desc: "A jetpack in a hangar.", time: "any" },
-  { id: "bigfoot-photo", name: "Bigfoot Photo", zone: "Grassrivers", desc: "Photograph the Skunk Ape.", time: "any" },
+  { id: 'skunkape', name: 'Skunk Ape / Bigfoot', area: 'Grassrivers', desc: 'Runs between trees near a deer carcass; chase too close and Jason gets dizzy, then faints.' },
+  { id: 'ufo', name: 'UFO & Alien Base', area: 'Kelly County & Mount Kalaga', desc: 'Appears after 02:00 at night; a floating van and a secret bunker hatch in the Grassrivers.' },
+  { id: 'tower-egg', name: 'Comm Tower Egg', area: 'Comms Tower', desc: 'Climb the tallest tower (~7 minutes); a nest holds a giant colourful egg — throw it in the street for a secret cutscene.' },
+  { id: 'los-santos-map', name: 'Los Santos Map', area: "Jason's boat", desc: "Jason's boat GPS shows a Los Santos map (GTA 5 reference)." },
+  { id: 'windchimes', name: 'Windchimes Ringtone', area: 'Phone', desc: 'Ringtone "Windchimes" — Michael De Santa\'s ringtone (GTA 5).' },
+  { id: 'malibu-tv', name: 'Malibu Club TV', area: 'Donnie\'s trailer', desc: 'An analogue TV on a tower near Donnie\'s trailer shows the Malibu Club logo (GTA: Vice City).' },
+  { id: 'phil-cassidy', name: "Phil Cassidy", area: "Phil's Ammu-Nation", desc: "Phil Cassidy owns Phil's Ammu-Nation (GTA: Vice City)." },
+  { id: 'eclipse', name: '1995 Mitsubishi Eclipse', area: 'Vespucci Island', desc: 'Brian O\'Conner-style Eclipse (Fast & Furious).' },
+  { id: 'dexter', name: 'Dexter Reference', area: 'Washington Island', desc: 'Dexter reference in an apartment.' },
+  { id: 'wonder-whale', name: 'Wonder Whale', area: 'Leonida', desc: 'Giant crab statue Wonder Whale.' },
+  { id: 'kraken', name: 'Giant Kraken Wreck', area: 'Ocean floor', desc: 'A giant Kraken carcass on the sea floor — scuba diving only.' },
+  { id: 'underground-lab', name: 'Abandoned Underground Lab', area: 'Underground', desc: 'A random 4-digit coded door (different per player — the code is scratched on a basement wall near a red light); a lift leads to a mysterious lab tunnel.' },
+  { id: 'stonehenge', name: 'Stonehenge & Purple Meteor', area: 'Mount Kalaga', desc: 'Mysterious stone formation on the mountain peak + a smoking purple meteor crater.' },
+  { id: 'cool-dog', name: 'Cool Dog & Buried Treasure', area: 'Gambit Bay', desc: 'Swim to Gambit Bay waters — a unique dog appears and digs up hidden money (~$1,200) on the beach.' },
+  { id: 'cj-house', name: 'CJ / Grove Street House', area: 'Belville', desc: 'A house with a yard + garage layout like the Johnson family house (GTA San Andreas).' },
+  { id: 'crab-lab', name: 'Giant Crab Research Facility', area: 'Pelican Valley', desc: 'A giant broken aquarium; flip the power switch behind the building + check the computer inside for a monster-crab jump scare.' },
+  { id: 'michael-boat', name: "Michael De Santa's Boat", area: 'Key Lento', desc: 'A sailboat identical to Michael\'s (GTA 5) near a coastal dock.' },
+  { id: 'trevor-radio', name: 'Trevor Radio Cameo', area: 'Radio', desc: 'An iconic past character (e.g. Trevor, GTA 5) calls in on a local radio segment.' },
 ];
 
-export function mysteryById(id) { return MYSTERIES.find((m) => m.id === id) || null; }
-export function totalMysteries() { return MYSTERIES.length; }
-// UFO only appears after 02:00 (and before 06:00).
-export function ufoVisible(timeMinutes) {
-  return timeMinutes >= 120 && timeMinutes < 360;
+// 8 secret exploration locations (SPEC §20).
+export const SECRET_LOCATIONS = [
+  'Kraken wreck (ocean floor)', 'Abandoned underground lab', 'Stonehenge & purple meteor (Mount Kalaga)',
+  'Cool Dog treasure (Gambit Bay)', 'Villa & iconic car (Vespucci Island)', 'Dexter apartment & rooftop HQ (Washington Island)',
+  "Arthur Morgan's hat (Port Gellhorn yard sale)", 'New Austin cowboy novel (Jacob\'s Tavern, Millport)',
+];
+
+// UFO only appears after 02:00 (game time).
+export function ufoVisible(hour) {
+  return hour >= 2 && hour < 5;
 }
-export function mysteriesAvailable(timeMinutes) {
-  return MYSTERIES.filter((m) => {
-    if (m.id === "ufo" || m.id === "alien-base") return ufoVisible(timeMinutes);
-    if (m.time === "night") {
-      const h = timeMinutes / 60;
-      return h >= 20 || h < 6;
-    }
-    return true;
-  });
+
+export function undiscovered(foundIds) {
+  const found = new Set(foundIds || []);
+  return MYSTERIES.filter((m) => !found.has(m.id));
 }

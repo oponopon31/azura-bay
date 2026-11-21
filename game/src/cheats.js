@@ -1,107 +1,104 @@
-// AZURA BAY — cheats (round 7 re-compose, written fresh under r7).
-// 61 cheats, SPEC.md Bab 3 + 22. Gated on finishing all 91 missions
-// (storyDone). Each has a D-pad combo, an unlock challenge, and an effect.
-// Activating a cheat disables Trophy/Achievement + Save. $250,000 is the
-// ONLY money cheat. Categories: Player 17, Combat 11, Vehicle Spawn 14,
-// Environment 3, Screen Filters 16.
-
-export const CHEAT_CATEGORIES = { player: 17, combat: 11, vehicle: 14, environment: 3, filter: 16 };
-
-// combo uses U/D/L/R (D-pad). Unlock is the challenge that gates the cheat.
+// cheats.js — 61 cheats, SPEC §3 + §22.
+// Rules (Bab 3): usable ONLY after finishing the main story (91 missions);
+// each cheat must be unlocked first via a challenge; activation is
+// phone (D-Pad Up) + hold L1+R1 / LB+RB + D-Pad combo; activating a cheat
+// disables Trophies/Achievements AND the Save feature.
+// Categories: Player 20, Combat 11, Vehicle Spawn 11, Environment 3,
+// Screen Filters 16 = 61. Money $250,000 is the ONLY money cheat.
 export const CHEATS = [
-  // ---- Player (17) ----
-  { id: "max-ammo", name: "Max Ammo", cat: "player", combo: ["D","U","R","D","L","L","U","U","D","L"], unlock: "25 Bronze medals, Shooting Range", effect: "Full ammo for all weapons." },
-  { id: "inf-ammo", name: "Infinite Ammo", cat: "player", combo: ["D","U","R","D","L","L","U","U","D","D","D"], unlock: "25 Silver medals, Shooting Range", effect: "Ammo never depletes." },
-  { id: "no-reload", name: "No Reload", cat: "player", combo: ["D","U","R","D","L","L","U","U","D","D","U"], unlock: "25 Gold medals, Shooting Range", effect: "Never reload." },
-  { id: "body-armor", name: "Body Armor", cat: "player", combo: ["D","U","L","U","U","U","U","U","D","D"], unlock: "100x Workout", effect: "Full body armor." },
-  { id: "unlim-focus", name: "Unlimited Focus", cat: "player", combo: ["D","U","U","D","U","D","U","D","U","R"], unlock: "Finish the story (91 missions)", effect: "Focus never drains." },
-  { id: "no-fall", name: "No Fall Damage", cat: "player", combo: ["U","D","L","R","U","D","L","R"], unlock: "Survive a 40ft fall 20x", effect: "No damage from falls." },
-  { id: "parachute", name: "Parachute", cat: "player", combo: ["U","U","D","D","L","R","L","R"], unlock: "50 jumps from height", effect: "Always carry a parachute." },
-  { id: "super-jump", name: "Super Jump", cat: "player", combo: ["U","U","U","D","D","D","L","R"], unlock: "Finish the story (91 missions)", effect: "Jump three times higher." },
-  { id: "fast-run", name: "Fast Run", cat: "player", combo: ["L","L","R","R","U","D","U","D"], unlock: "Win 20 races", effect: "Sprint speed doubled." },
-  { id: "slow-mo", name: "Slow Motion", cat: "player", combo: ["D","D","U","U","L","R","L","R"], unlock: "Finish the story (91 missions)", effect: "World runs at half speed." },
-  { id: "invincible", name: "Invincibility", cat: "player", combo: ["U","D","U","D","U","D","U","D"], unlock: "Finish the story (91 missions)", effect: "Cannot take damage." },
-  { id: "attack-force", name: "Attack Force", cat: "player", combo: ["D","U","L","R","D","D","U","D"], unlock: "Finish the story (91 missions)", effect: "Bullets and punches knock enemies back." },
-  { id: "exploding-balls", name: "Exploding Balls", cat: "player", combo: ["D","U","L","L","R","D","D","U","R"], unlock: "Hit 20 enemies with explosions", effect: "Sports balls explode." },
-  { id: "money-250k", name: "Money $250,000", cat: "player", combo: ["R","R","L","L","U","D","U","D"], unlock: "A specific financial challenge", effect: "Gain $250,000. The ONLY money cheat." },
-  { id: "time-forward", name: "Move Time Forward", cat: "player", combo: ["R","U","R","D","L","U","R"], unlock: "Find 10 Luxury Watches", effect: "Advance the clock." },
-  { id: "time-pause", name: "Pause Time", cat: "player", combo: ["L","D","L","U","R","D","L"], unlock: "Find 20 Luxury Watches", effect: "Freeze the clock." },
-  { id: "health-regen", name: "Health Regen Boost", cat: "player", combo: ["U","U","D","D","D","U","U","D"], unlock: "Reach Focus level 5", effect: "Health regenerates faster." },
-
-];
+  // ---- Player (20) ----
+  { id: 'maxammo', name: 'Max Ammo', category: 'Player', combo: ['Down', 'Up', 'Right', 'Down', 'Left', 'Left', 'Up', 'Up', 'Down', 'Left'], unlock: '25 Bronze Shooting Range medals', effect: 'Full ammo for all weapons' },
+  { id: 'infammo', name: 'Infinite Ammo', category: 'Player', combo: ['Down', 'Up', 'Right', 'Down', 'Left', 'Left', 'Up', 'Up', 'Down', 'Down', 'Down'], unlock: '25 Silver Shooting Range medals', effect: 'Ammo never runs out' },
+  { id: 'noreload', name: 'No Reload', category: 'Player', combo: ['Down', 'Up', 'Right', 'Down', 'Left', 'Left', 'Up', 'Up', 'Down', 'Down', 'Up'], unlock: '25 Gold Shooting Range medals', effect: 'Never reload' },
+  { id: 'bodyarmor', name: 'Body Armor', category: 'Player', combo: ['Down', 'Up', 'Left', 'Up', 'Up', 'Up', 'Up', 'Up', 'Down', 'Down'], unlock: '100x Workout', effect: 'Full body armor' },
+  { id: 'unlfocus', name: 'Unlimited Focus', category: 'Player', combo: ['Down', 'Up', 'Up', 'Down', 'Up', 'Down', 'Up', 'Down', 'Up', 'Right'], unlock: 'Finish the story', effect: 'Focus never drains' },
+  { id: 'nofall', name: 'No Fall Damage', category: 'Player', combo: ['Up', 'Down', 'Up', 'Down', 'Left', 'Right', 'Up', 'Down'], unlock: 'Survive a 40 ft fall 20x', effect: 'No damage from falls' },
+  { id: 'parachute', name: 'Parachute', category: 'Player', combo: ['Up', 'Up', 'Down', 'Down', 'Left', 'Right', 'Left', 'Right'], unlock: '50 jumps from height', effect: 'Always carry a parachute' },
+  { id: 'superjump', name: 'Super Jump', category: 'Player', combo: ['Up', 'Up', 'Up', 'Down', 'Down', 'Left', 'Right', 'Up'], unlock: 'Complete 10 Stunt Jumps', effect: 'Jump much higher' },
+  { id: 'fastrun', name: 'Fast Run', category: 'Player', combo: ['Right', 'Right', 'Left', 'Left', 'Up', 'Down', 'Up', 'Down'], unlock: 'Sprint 10 km total', effect: 'Run at double speed' },
+  { id: 'slowmo', name: 'Slow Motion', category: 'Player', combo: ['Left', 'Right', 'Left', 'Right', 'Down', 'Up', 'Down', 'Up'], unlock: 'Finish the story', effect: 'World runs in slow motion' },
+  { id: 'invincible', name: 'Invincibility', category: 'Player', combo: ['Up', 'Down', 'Left', 'Right', 'Up', 'Down', 'Left', 'Right', 'Up', 'Up'], unlock: 'Finish the story', effect: 'Cannot take damage' },
+  { id: 'healthregen', name: 'Health Regen', category: 'Player', combo: ['Down', 'Down', 'Up', 'Up', 'Left', 'Right', 'Left', 'Right'], unlock: 'Reach Level 5 Strength', effect: 'Health regenerates fast' },
+  { id: 'stamina', name: 'Stamina Boost', category: 'Player', combo: ['Up', 'Up', 'Right', 'Right', 'Down', 'Down', 'Left', 'Left'], unlock: 'Reach Level 5 Cardio', effect: 'Stamina never drains' },
+  { id: 'adrenaline', name: 'Adrenaline Rush', category: 'Player', combo: ['Down', 'Up', 'Down', 'Up', 'Right', 'Left', 'Right', 'Left'], unlock: 'Reach Level 5 Focus', effect: 'Adrenaline always full' },
+  { id: 'doublejump', name: 'Double Jump', category: 'Player', combo: ['Up', 'Up', 'Down', 'Up', 'Up', 'Down', 'Left', 'Right'], unlock: 'Complete 25 Stunt Jumps', effect: 'Jump twice in mid-air' },
+  { id: 'moongravity', name: 'Moon Gravity', category: 'Player', combo: ['Down', 'Down', 'Down', 'Up', 'Up', 'Up', 'Left', 'Right'], unlock: 'Complete 5 Base Jumps', effect: 'Low gravity' },
+  { id: 'raiseheat', name: 'Raise Heat Level', category: 'Player', combo: ['Left', 'Down', 'Right', 'Down', 'Up', 'Down', 'Up'], unlock: 'Escape 3-star police 25x', effect: 'Raise wanted level by 1 star' },
+  { id: 'lowerwanted', name: 'Lower Wanted', category: 'Player', combo: ['Right', 'Up', 'Left', 'Up', 'Down', 'Up', 'Right'], unlock: 'Escape 4-star police 10x', effect: 'Lower wanted level by 1 star' },
+  { id: 'neverwanted', name: 'Never Wanted', category: 'Player', combo: ['Up', 'Right', 'Down', 'Left', 'Up', 'Right', 'Down', 'Left'], unlock: 'Finish the story', effect: 'Police never pursue you' },
+  { id: 'money250k', name: 'Money $250,000', category: 'Player', combo: ['Down', 'Right', 'Up', 'Left', 'Down', 'Right', 'Up', 'Left', 'Down', 'Up'], unlock: 'Complete a set financial challenge', effect: 'Adds $250,000 — the ONLY money cheat' },
   // ---- Combat (11) ----
-CHEATS.push(
-  { id: "incendiary", name: "Incendiary Ammo", cat: "combat", combo: ["U","R","D","L","U","R","D","L"], unlock: "Burn 100 enemies", effect: "Bullets set enemies on fire." },
-  { id: "explosive-shotgun", name: "Explosive Shotgun", cat: "combat", combo: ["D","R","U","L","D","R","U","L"], unlock: "Hit 100 enemies with explosive damage", effect: "Shotgun shells explode." },
-  { id: "raise-heat", name: "Raise Heat Level", cat: "combat", combo: ["L","D","R","D","U","D","U"], unlock: "Escape 3-star police 25x", effect: "Raise wanted level by one star." },
-  { id: "explosive-melee", name: "Explosive Melee", cat: "combat", combo: ["R","U","L","D","R","U","L","D"], unlock: "Finish the story (91 missions)", effect: "Melee hits explode." },
-  { id: "one-hit", name: "One-Hit Kill", cat: "combat", combo: ["U","U","R","R","D","D","L","L"], unlock: "Finish the story (91 missions)", effect: "Every hit is lethal." },
-  { id: "bullet-time", name: "Bullet Time", cat: "combat", combo: ["D","D","R","R","U","U","L","L"], unlock: "Reach Focus level 5", effect: "Slow motion while aiming." },
-  { id: "dmg-up", name: "Weapon Damage Up", cat: "combat", combo: ["R","R","U","U","D","D","L","L"], unlock: "Win 10 combat challenges", effect: "Double weapon damage." },
-  { id: "armor-pierce", name: "Armor Piercing", cat: "combat", combo: ["U","L","D","R","U","L","D","R"], unlock: "Finish the story (91 missions)", effect: "Bullets ignore armor." },
-  { id: "rapid-fire", name: "Rapid Fire", cat: "combat", combo: ["R","L","R","L","U","U","D","D"], unlock: "Win 15 combat challenges", effect: "Fire rate doubled." },
-  { id: "no-recoil", name: "No Recoil", cat: "combat", combo: ["D","U","D","U","R","L","R","L"], unlock: "Win 5 combat challenges", effect: "No weapon recoil." },
-  { id: "infinite-focus-combat", name: "Combat Focus", cat: "combat", combo: ["L","U","R","D","L","U","R","D"], unlock: "Reach Focus level 4", effect: "Focus refills on every kill." },
-);
-  // ---- Vehicle Spawn (14) ----
-CHEATS.push(
-  { id: "spawn-tank", name: "Spawn Tank", cat: "vehicle", combo: ["U","D","L","R","U","D","L","R"], unlock: "Destroy 100 vehicles", effect: "Spawn a Rhino tank." },
-  { id: "spawn-banshee", name: "Spawn Bravado Banshee", cat: "vehicle", combo: ["R","U","D","L","R","U","D","L"], unlock: "Finish all Combat Challenges", effect: "Spawn a Bravado Banshee." },
-  { id: "spawn-airboat", name: "Spawn Airboat 09", cat: "vehicle", combo: ["D","L","U","R","D","L","U","R"], unlock: "Finish 5 Survival Challenges", effect: "Spawn an Airboat 09." },
-  { id: "spawn-bmx", name: "Spawn Tuff BMX", cat: "vehicle", combo: ["L","R","U","D","L","R","U","D"], unlock: "Finish 5 Fitness Challenges", effect: "Spawn a Tuff BMX." },
-  { id: "spawn-rhino", name: "Spawn Rhino", cat: "vehicle", combo: ["U","U","L","L","D","D","R","R"], unlock: "Destroy 50 vehicles", effect: "Spawn a Rhino tank." },
-  { id: "spawn-comet", name: "Spawn Comet", cat: "vehicle", combo: ["R","R","D","D","L","L","U","U"], unlock: "Drive 100 vehicle types", effect: "Spawn a Pfister Comet." },
-  { id: "spawn-zorrusso", name: "Spawn Zorrusso", cat: "vehicle", combo: ["U","R","R","D","L","L","U","D"], unlock: "Steal the Zorrusso for Randy", effect: "Spawn a Pegassi Zorrusso." },
-  { id: "spawn-sanchez", name: "Spawn Sanchez", cat: "vehicle", combo: ["D","D","U","U","R","L","R","L"], unlock: "Win 5 off-road races", effect: "Spawn a Maibatsu Sanchez." },
-  { id: "spawn-buzzard", name: "Spawn Buzzard", cat: "vehicle", combo: ["L","L","U","U","R","R","D","D"], unlock: "Finish the story (91 missions)", effect: "Spawn a Nagasaki Buzzard." },
-  { id: "spawn-dodo", name: "Spawn Dodo", cat: "vehicle", combo: ["R","L","U","D","R","L","U","D"], unlock: "Finish the story (91 missions)", effect: "Spawn a Mammoth Dodo." },
-  { id: "spawn-seashark", name: "Spawn Seashark", cat: "vehicle", combo: ["D","U","R","L","D","U","R","L"], unlock: "Catch 50 fish", effect: "Spawn a Speedophile Seashark." },
-  { id: "spawn-faggio", name: "Spawn Faggio", cat: "vehicle", combo: ["U","D","R","L","U","D","R","L"], unlock: "Ride 10 scooters", effect: "Spawn a Pegassi Faggio." },
-  { id: "spawn-bison", name: "Spawn Bison", cat: "vehicle", combo: ["L","U","D","R","L","U","D","R"], unlock: "Drive 50 vehicle types", effect: "Spawn a Bravado Bison." },
-  { id: "spawn-ambulance", name: "Spawn Ambulance", cat: "vehicle", combo: ["R","D","L","U","R","D","L","U"], unlock: "Finish the story (91 missions)", effect: "Spawn an ambulance." },
-);
-
+  { id: 'attackforce', name: 'Attack Force', category: 'Combat', combo: ['Down', 'Up', 'Left', 'Right', 'Down', 'Down', 'Up', 'Down'], unlock: 'Finish the story', effect: 'Bullets and punches knock enemies flying' },
+  { id: 'explodingballs', name: 'Exploding Balls', category: 'Combat', combo: ['Down', 'Up', 'Left', 'Left', 'Right', 'Down', 'Down', 'Up', 'Right'], unlock: 'Hit 20 enemies with explosions', effect: 'Sports balls explode' },
+  { id: 'incendiary', name: 'Incendiary Ammo', category: 'Combat', combo: ['Up', 'Down', 'Right', 'Left', 'Up', 'Down', 'Right', 'Left'], unlock: 'Burn 100 enemies', effect: 'Bullets set enemies on fire' },
+  { id: 'exploshotgun', name: 'Explosive Shotgun', category: 'Combat', combo: ['Left', 'Left', 'Right', 'Right', 'Up', 'Down', 'Up', 'Down'], unlock: 'Hit 100 enemies with explosive damage', effect: 'Shotgun shells explode' },
+  { id: 'explomelee', name: 'Explosive Melee', category: 'Combat', combo: ['Down', 'Left', 'Up', 'Right', 'Down', 'Left', 'Up', 'Right'], unlock: '100 melee knockouts', effect: 'Melee hits explode' },
+  { id: 'onehit', name: 'One-Hit Kill', category: 'Combat', combo: ['Up', 'Up', 'Up', 'Down', 'Down', 'Down', 'Left', 'Right'], unlock: 'Finish the story', effect: 'Every hit is lethal' },
+  { id: 'norecoil', name: 'No Recoil', category: 'Combat', combo: ['Right', 'Left', 'Right', 'Left', 'Up', 'Up', 'Down', 'Down'], unlock: '25 Gold Shooting Range medals', effect: 'Weapons have no recoil' },
+  { id: 'rapidfire', name: 'Rapid Fire', category: 'Combat', combo: ['Up', 'Down', 'Up', 'Down', 'Right', 'Right', 'Left', 'Left'], unlock: '25 Silver Shooting Range medals', effect: 'All weapons fire faster' },
+  { id: 'bighead', name: 'Big Head Mode', category: 'Combat', combo: ['Down', 'Down', 'Left', 'Left', 'Up', 'Up', 'Right', 'Right'], unlock: 'Complete 10 Strangers & Freaks jobs', effect: 'Everyone has a big head' },
+  { id: 'tinyplayer', name: 'Tiny Player', category: 'Combat', combo: ['Up', 'Left', 'Down', 'Right', 'Up', 'Left', 'Down', 'Right'], unlock: 'Complete 20 Stunt Jumps', effect: 'Player shrinks to half size' },
+  { id: 'bullettime', name: 'Bullet Time', category: 'Combat', combo: ['Left', 'Up', 'Right', 'Down', 'Left', 'Up', 'Right', 'Down'], unlock: 'Reach Level 5 Focus', effect: 'Time slows when aiming' },
+  // ---- Vehicle Spawn (11) ----
+  { id: 'spawntank', name: 'Spawn Tank', category: 'Vehicle Spawn', combo: ['Up', 'Down', 'Left', 'Right', 'Up', 'Up', 'Down', 'Down'], unlock: 'Destroy 100 vehicles', effect: 'Spawns a Rhino tank (Hauners H-AT)' },
+  { id: 'spawnbanshee', name: 'Spawn Bravado Banshee', category: 'Vehicle Spawn', combo: ['Right', 'Right', 'Up', 'Down', 'Left', 'Left', 'Up', 'Up'], unlock: 'Complete all Combat Challenges', effect: 'Spawns a Bravado Banshee' },
+  { id: 'spawnairboat', name: 'Spawn Airboat 09', category: 'Vehicle Spawn', combo: ['Down', 'Up', 'Down', 'Up', 'Left', 'Left', 'Right', 'Right'], unlock: 'Complete 5 Survival Challenges', effect: 'Spawns an Airboat 09' },
+  { id: 'spawnbmx', name: 'Spawn Tuff BMX', category: 'Vehicle Spawn', combo: ['Left', 'Right', 'Down', 'Up', 'Left', 'Right', 'Down', 'Up'], unlock: 'Complete 5 Fitness Challenges', effect: 'Spawns a Tuff BMX' },
+  { id: 'spawnsuper', name: 'Spawn Supercar', category: 'Vehicle Spawn', combo: ['Up', 'Right', 'Up', 'Right', 'Down', 'Left', 'Down', 'Left'], unlock: 'Steal 50 Standout Vehicles', effect: 'Spawns a random supercar' },
+  { id: 'spawnheli', name: 'Spawn Helicopter', category: 'Vehicle Spawn', combo: ['Down', 'Left', 'Up', 'Right', 'Down', 'Left', 'Up', 'Right'], unlock: 'Complete 10 Base Jumps', effect: 'Spawns a Buckingham Maverick' },
+  { id: 'spawnboat', name: 'Spawn Boat', category: 'Vehicle Spawn', combo: ['Right', 'Down', 'Left', 'Up', 'Right', 'Down', 'Left', 'Up'], unlock: 'Catch 25 fish', effect: 'Spawns a Speedophile Seashark' },
+  { id: 'spawnbike', name: 'Spawn Motorcycle', category: 'Vehicle Spawn', combo: ['Up', 'Left', 'Up', 'Left', 'Down', 'Right', 'Down', 'Right'], unlock: 'Win 10 street races', effect: 'Spawns a Western Nightblade' },
+  { id: 'spawnrhino', name: 'Spawn Rhino', category: 'Vehicle Spawn', combo: ['Left', 'Down', 'Left', 'Down', 'Right', 'Up', 'Right', 'Up'], unlock: 'Destroy 100 vehicles', effect: 'Spawns a Rhino tank' },
+  { id: 'spawnjet', name: 'Spawn Jet', category: 'Vehicle Spawn', combo: ['Down', 'Right', 'Down', 'Right', 'Up', 'Left', 'Up', 'Left'], unlock: 'Complete the VCIA Takedown mission', effect: 'Spawns a Buckingham Shamal' },
+  { id: 'spawnlimo', name: 'Spawn Limousine', category: 'Vehicle Spawn', combo: ['Right', 'Up', 'Right', 'Up', 'Left', 'Down', 'Left', 'Down'], unlock: 'Reach 100% completion in any chapter', effect: 'Spawns a stretch limousine' },
   // ---- Environment (3) ----
-CHEATS.push(
-  { id: "cycle-weather", name: "Cycle Weather", cat: "environment", combo: ["D","R","U","D","R","U","R"], unlock: "Open the entire map", effect: "Cycle to the next weather." },
-  { id: "clear-weather", name: "Clear Weather", cat: "environment", combo: ["U","R","U","L","D","R","U"], unlock: "Open the entire map", effect: "Clear sunny weather." },
-  { id: "rain-weather", name: "Rainy Weather", cat: "environment", combo: ["D","L","D","R","U","L","D"], unlock: "Open the entire map", effect: "Heavy rain." },
-);
+  { id: 'cycleweather', name: 'Cycle Weather', category: 'Environment', combo: ['Down', 'Right', 'Up', 'Down', 'Right', 'Up', 'Right'], unlock: 'Open the entire map', effect: 'Cycles to the next weather' },
+  { id: 'movetime', name: 'Move Time Forward', category: 'Environment', combo: ['Up', 'Up', 'Right', 'Down', 'Left', 'Up', 'Right', 'Down'], unlock: 'Find 10 Luxury Watches', effect: 'Advances time by 6 hours' },
+  { id: 'pausetime', name: 'Pause Time', category: 'Environment', combo: ['Down', 'Down', 'Left', 'Up', 'Right', 'Down', 'Left', 'Up'], unlock: 'Find 20 Luxury Watches', effect: 'Freezes time' },
   // ---- Screen Filters (16) ----
-CHEATS.push(
-  { id: "filter-sugar", name: "Powdered Sugar", cat: "filter", combo: ["U","U","D","L","R","U","D"], unlock: "Scan all space debris with WAiNK", effect: "Powdered Sugar screen filter." },
-  { id: "filter-pinhole", name: "Pinhole", cat: "filter", combo: ["D","D","U","R","L","D","U"], unlock: "Clear 25 gang HQs with your partner", effect: "Pinhole screen filter." },
-  { id: "filter-neon", name: "Neon Jungle", cat: "filter", combo: ["R","R","U","D","L","U","R"], unlock: "Find 16 Girlypop vehicles", effect: "Neon Jungle screen filter." },
-  { id: "filter-fisheye", name: "Fisheye", cat: "filter", combo: ["L","L","D","U","R","D","L"], unlock: "Catch 100 fish", effect: "Fisheye screen filter." },
-  { id: "filter-pixel", name: "Pixel Art", cat: "filter", combo: ["U","D","U","D","R","R","L","L"], unlock: "Earn $250,000 selling collectibles", effect: "Pixel Art screen filter." },
-  { id: "filter-hell", name: "Hellscape", cat: "filter", combo: ["D","U","D","U","L","R","L","R"], unlock: "Steal 100 police cars", effect: "Hellscape screen filter." },
-  { id: "filter-sepia", name: "Sepia", cat: "filter", combo: ["R","U","L","D","R","U","L"], unlock: "Finish the story (91 missions)", effect: "Sepia screen filter." },
-  { id: "filter-noir", name: "Noir", cat: "filter", combo: ["L","D","R","U","L","D","R"], unlock: "Finish the story (91 missions)", effect: "Noir screen filter." },
-  { id: "filter-vhs", name: "VHS", cat: "filter", combo: ["U","L","D","R","U","L","D"], unlock: "Finish the story (91 missions)", effect: "VHS screen filter." },
-  { id: "filter-sunset", name: "Sunset", cat: "filter", combo: ["D","R","U","L","D","R","U"], unlock: "Watch 10 sunsets", effect: "Sunset screen filter." },
-  { id: "filter-arctic", name: "Arctic", cat: "filter", combo: ["U","U","U","D","L","R","D"], unlock: "Finish the story (91 missions)", effect: "Arctic screen filter." },
-  { id: "filter-desert", name: "Desert", cat: "filter", combo: ["D","D","D","U","R","L","U"], unlock: "Finish the story (91 missions)", effect: "Desert screen filter." },
-  { id: "filter-jungle", name: "Jungle", cat: "filter", combo: ["R","L","R","L","U","D","U"], unlock: "Finish the story (91 missions)", effect: "Jungle screen filter." },
-  { id: "filter-mono", name: "Mono", cat: "filter", combo: ["L","R","L","R","D","U","D"], unlock: "Finish the story (91 missions)", effect: "Monochrome screen filter." },
-  { id: "filter-invert", name: "Invert", cat: "filter", combo: ["U","D","L","R","R","L","D"], unlock: "Finish the story (91 missions)", effect: "Inverted colors screen filter." },
-  { id: "filter-neon2", name: "Neon Nights", cat: "filter", combo: ["R","U","U","D","D","L","R"], unlock: "Finish the story (91 missions)", effect: "Neon Nights screen filter." },
-);
+  { id: 'filter-powder', name: 'Powdered Sugar', category: 'Screen Filters', combo: ['Up', 'Down', 'Left', 'Right', 'Up', 'Up', 'Down', 'Down'], unlock: 'Scan all space debris with WAiNK', effect: 'Powdered-sugar white filter' },
+  { id: 'filter-pinhole', name: 'Pinhole', category: 'Screen Filters', combo: ['Left', 'Up', 'Right', 'Down', 'Left', 'Up', 'Right', 'Down'], unlock: 'Clear 25 gang hideouts with your partner', effect: 'Pinhole vignette filter' },
+  { id: 'filter-neon', name: 'Neon Jungle', category: 'Screen Filters', combo: ['Right', 'Down', 'Left', 'Up', 'Right', 'Down', 'Left', 'Up'], unlock: 'Find 16 Girlypop vehicles', effect: 'Neon jungle filter' },
+  { id: 'filter-fisheye', name: 'Fisheye', category: 'Screen Filters', combo: ['Down', 'Up', 'Down', 'Up', 'Right', 'Right', 'Left', 'Left'], unlock: 'Catch 100 fish', effect: 'Fisheye lens filter' },
+  { id: 'filter-pixel', name: 'Pixel Art', category: 'Screen Filters', combo: ['Up', 'Right', 'Down', 'Left', 'Up', 'Right', 'Down', 'Left'], unlock: 'Earn $250,000 from selling collectibles', effect: 'Pixel-art filter' },
+  { id: 'filter-hell', name: 'Hellscape', category: 'Screen Filters', combo: ['Left', 'Left', 'Down', 'Down', 'Right', 'Right', 'Up', 'Up'], unlock: 'Steal 100 police cars', effect: 'Hellscape red filter' },
+  { id: 'filter-sepia', name: 'Sepia', category: 'Screen Filters', combo: ['Up', 'Up', 'Down', 'Left', 'Right', 'Down', 'Up', 'Left'], unlock: 'Find 10 WAiNK Landmarks', effect: 'Sepia tone filter' },
+  { id: 'filter-noir', name: 'Noir', category: 'Screen Filters', combo: ['Down', 'Left', 'Down', 'Right', 'Up', 'Left', 'Down', 'Right'], unlock: 'Complete 5 Strangers & Freaks jobs', effect: 'Black-and-white noir filter' },
+  { id: 'filter-vintage', name: 'Vintage', category: 'Screen Filters', combo: ['Right', 'Up', 'Left', 'Down', 'Right', 'Up', 'Left', 'Down'], unlock: 'Find 15 WAiNK Curiosities', effect: 'Vintage film filter' },
+  { id: 'filter-vhs', name: 'VHS', category: 'Screen Filters', combo: ['Left', 'Down', 'Right', 'Up', 'Left', 'Down', 'Right', 'Up'], unlock: 'Watch 5 in-game TV shows', effect: 'VHS tracking filter' },
+  { id: 'filter-neon2', name: 'Neon', category: 'Screen Filters', combo: ['Up', 'Down', 'Right', 'Right', 'Left', 'Left', 'Up', 'Down'], unlock: 'Visit 10 nightclubs', effect: 'Neon glow filter' },
+  { id: 'filter-thermal', name: 'Thermal', category: 'Screen Filters', combo: ['Down', 'Right', 'Up', 'Left', 'Down', 'Right', 'Up', 'Left'], unlock: 'Complete 5 hunting challenges', effect: 'Thermal vision filter' },
+  { id: 'filter-xray', name: 'X-Ray', category: 'Screen Filters', combo: ['Right', 'Right', 'Down', 'Down', 'Left', 'Left', 'Up', 'Up'], unlock: 'Find 5 Underwater Discoveries', effect: 'X-ray filter' },
+  { id: 'filter-comic', name: 'Comic', category: 'Screen Filters', combo: ['Left', 'Up', 'Left', 'Down', 'Right', 'Up', 'Right', 'Down'], unlock: 'Collect 20 comic books', effect: 'Comic-book filter' },
+  { id: 'filter-water', name: 'Watercolor', category: 'Screen Filters', combo: ['Up', 'Left', 'Down', 'Right', 'Down', 'Up', 'Left', 'Right'], unlock: 'Find 10 WAiNK Sculptures', effect: 'Watercolor filter' },
+  { id: 'filter-dream', name: 'Dream', category: 'Screen Filters', combo: ['Down', 'Down', 'Up', 'Right', 'Left', 'Up', 'Down', 'Right'], unlock: 'Meditate at all 18 Meditation Spots', effect: 'Dream haze filter' },
+];
 
-export function cheatById(id) { return CHEATS.find((c) => c.id === id) || null; }
-export function cheatsByCategory(cat) { return CHEATS.filter((c) => c.cat === cat); }
-export function totalCheats() { return CHEATS.length; }
-export function comboParts(cheat) { return cheat.combo.join("-"); }
-// Cheats only work after finishing all 91 missions; activating one disables
-// trophies and saving (SPEC Bab 3).
-export function cheatsUnlocked(state) { return state && state.storyDone === true; }
-export function activateCheat(state, id) {
-  const cheat = cheatById(id);
-  if (!cheat) return { ok: false, reason: "unknown cheat" };
-  if (!cheatsUnlocked(state)) return { ok: false, reason: "finish the story first" };
-  state.cheatsActive = state.cheatsActive || {};
-  state.cheatsActive[id] = true;
-  state.trophiesDisabled = true;
-  state.saveDisabled = true;
-  return { ok: true, cheat };
+// Categories and their counts: Player 20, Combat 11, Vehicle Spawn 11,
+// Environment 3, Screen Filters 16 = 61.
+export const CHEAT_CATEGORIES = {
+  Player: 20,
+  Combat: 11,
+  'Vehicle Spawn': 11,
+  Environment: 3,
+  'Screen Filters': 16,
+};
+
+export function cheatsInCategory(category) {
+  return CHEATS.filter((c) => c.category === category);
 }
-export function hasSave(state) { return !state.saveDisabled; }
+
+export function cheatById(id) {
+  return CHEATS.find((c) => c.id === id) || null;
+}
+
+// Cheats only work after the story is finished, and each needs its unlock.
+export function canUseCheat(cheat, storyFinished, unlockedIds) {
+  if (!storyFinished) return false;
+  return (unlockedIds || []).includes(cheat.id);
+}
+
+// Activating any cheat disables trophies and saving (Bab 3).
+export function cheatSideEffects() {
+  return { trophiesDisabled: true, savingDisabled: true };
+}

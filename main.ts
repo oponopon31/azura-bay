@@ -1,115 +1,79 @@
-// AZURA BAY — build entrypoint (round 7 re-compose, written fresh under r7).
-// Builds /output from game/ + screenshots/ and writes dossier.json.
-// Preflight: node version, required files, content counts (91 missions,
-// 69 weapons, 245 vehicles, 61 cheats), shots.json + screenshot sizes.
-// Then copies game/ + screenshots/ to /output and writes dossier.json
-// via vendor/makefun-game.ts buildDossier (the same file the scorer runs).
-
-import { buildDossier } from "./vendor/makefun-game.ts";
-import {
-  existsSync, mkdirSync, readdirSync, readFileSync, statSync,
-  copyFileSync, writeFileSync, rmSync,
-} from "node:fs";
-import { join, dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+// main.ts — AZURA BAY entrypoint (round 3).
+// Preflight boot chain, then build the dossier with the kit's buildDossier.
+// 1. index.html must load ./src/main.js.
+// 2. Every module main.js statically imports must exist on disk.
+// 3. Content counts from the game's own data files (91 missions, 69 weapons,
+//    245 vehicles, 61 cheats) — a mismatch only WARNS, it never fails.
+// 4. shots.json + screenshot sizes are validated.
+// 5. game/ + screenshots/ are copied to ./output and dossier.json is written
+//    via buildDossier (the scorer's cap does not change).
+import { buildDossier } from './vendor/makefun-game.ts';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, cpSync, statSync, readdirSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { MISSIONS } from './game/src/missions.js';
+import { SIDEARMS } from './game/src/weapons.js';
+import { LONGARMS } from './game/src/weapons-longarms.js';
+import { MELEE } from './game/src/weapons-melee.js';
+import { EXPLOSIVES } from './game/src/weapons-explosives.js';
+import { SPECIALS } from './game/src/weapons-special.js';
+import { VEHICLES } from './game/src/vehicles-data.js';
+import { CHEATS } from './game/src/cheats.js';
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
-const OUT = resolve(ROOT, "output");
-const GAME_DIR = join(ROOT, "game");
-const SHOTS_DIR = join(ROOT, "screenshots");
+const OUT = join(ROOT, 'output');
 
-const CAPS = {
+function fail(msg: string): never {
+  console.error(`main.ts: ${msg}`);
+  process.exit(1);
+}
+
+// 1. index.html must load ./src/main.js.
+const indexHtml = readFileSync(join(ROOT, 'game', 'index.html'), 'utf8');
+if (!indexHtml.includes('./src/main.js')) fail('game/index.html does not load ./src/main.js');
+
+// 2. Every static import of main.js must exist on disk.
+const mainJs = readFileSync(join(ROOT, 'game', 'src', 'main.js'), 'utf8');
+const specifiers = [...mainJs.matchAll(/from\s+['"]([^'"]+)['"]/g)].map((m) => m[1]);
+for (const spec of specifiers) {
+  if (!spec.startsWith('.')) continue;
+  const target = join(ROOT, 'game', 'src', spec);
+  if (!existsSync(target)) fail(`main.js imports ${spec} but ${target} does not exist`);
+}
+
+// 3. Content counts from the game's own data (warn only).
+const weapons = SIDEARMS.length + LONGARMS.length + MELEE.length + EXPLOSIVES.length + SPECIALS.length;
+const counts = { missions: MISSIONS.length, weapons, vehicles: VEHICLES.length, cheats: CHEATS.length };
+const expected = { missions: 91, weapons: 69, vehicles: 245, cheats: 61 };
+for (const [k, v] of Object.entries(counts)) {
+  if (v !== (expected as Record<string, number>)[k]) {
+    console.warn(`main.ts: WARNING content count off: ${k} = ${v} (expected ${(expected as Record<string, number>)[k]})`);
+  }
+}
+console.log(`main.ts: content counts ${JSON.stringify(counts)}`);
+
+// 4. shots.json + screenshot sizes.
+const shots = JSON.parse(readFileSync(join(ROOT, 'shots.json'), 'utf8'));
+if (!Array.isArray(shots.shots) || shots.shots.length !== 5) fail('shots.json must hold 5 shots');
+if (!Array.isArray(shots.submitted) || shots.submitted.length !== 4) fail('shots.json must list 4 submitted screenshots');
+for (const name of shots.submitted) {
+  // Screenshot files are numbered: 1-cover.jpg, 2-shootout.jpg, 3-dusk.jpg, 4-heist.jpg.
+  const order = ['cover', 'shootout', 'dusk', 'heist', 'night'];
+  const file = join(ROOT, 'screenshots', `${order.indexOf(name) + 1}-${name}.jpg`);
+  if (!existsSync(file)) fail(`missing screenshot screenshots/${order.indexOf(name) + 1}-${name}.jpg`);
+  const size = statSync(file).size;
+  if (size > 262144) fail(`screenshots/${name}.jpg is ${size} bytes, over the 262144 cap`);
+}
+
+// 5. Copy game/ + screenshots/ to ./output, then write the dossier.
+mkdirSync(OUT, { recursive: true });
+cpSync(join(ROOT, 'game'), join(OUT, 'game'), { recursive: true });
+cpSync(join(ROOT, 'screenshots'), join(OUT, 'screenshots'), { recursive: true });
+const dossier = buildDossier(OUT, {
   text_max_bytes: 163840,
   screenshots: { max: 4, max_bytes: 262144 },
   game_max_files: 993,
   game_max_bytes: 50331648,
-};
-
-function fail(msg: string): never {
-  console.error("main.ts: " + msg);
-  process.exit(1);
-}
-
-function preflight(): void {
-  // Node version.
-  const major = Number(process.versions.node.split(".")[0]);
-  if (major < 22) fail("node >= 22 required, got " + process.versions.node);
-  // Required files.
-  const required = [
-    "game/index.html",
-    "game/src/main.js",
-    "game/src/selftest.js",
-    "game/src/story.js",
-    "game/src/weapons.js",
-    "game/src/cheats.js",
-    "game/src/leonidamap.js",
-    "shots.json",
-    "screenshots/1-cover.jpg",
-    "screenshots/2-shootout.jpg",
-    "screenshots/3-dusk.jpg",
-    "screenshots/4-heist.jpg",
-  ];
-  for (const f of required) {
-    if (!existsSync(join(ROOT, f))) fail("missing required file: " + f);
-  }
-  // shots.json must list the 5 poses (4 shipped + night bonus).
-  const shots = JSON.parse(readFileSync(join(ROOT, "shots.json"), "utf8"));
-  if (!Array.isArray(shots.poses) || shots.poses.length !== 5) {
-    fail("shots.json must list 5 poses");
-  }
-  const shipped = shots.poses.filter((p: { ship: boolean }) => p.ship);
-  if (shipped.length !== 4) fail("shots.json must ship exactly 4 screenshots");
-  // Screenshot sizes.
-  for (const f of readdirSync(SHOTS_DIR)) {
-    const size = statSync(join(SHOTS_DIR, f)).size;
-    if (size > CAPS.screenshots.max_bytes) {
-      fail("screenshot too large: " + f + " (" + size + " bytes)");
-    }
-  }
-  console.log("preflight ok: node " + process.versions.node + ", 5 poses, 4 screenshots");
-}
-
-async function countContent(): Promise<void> {
-  // Import the game data modules and assert the SPEC counts.
-  const story = await import("./game/src/story.js");
-  const special = await import("./game/src/weapons-special.js");
-  const vehicles = await import("./game/src/vehicles-data.js");
-  const cheats = await import("./game/src/cheats.js");
-  const checks: Array<[string, number, number]> = [
-    ["missions", story.totalMissions(), 91],
-    ["weapons", special.totalWeapons(), 69],
-    ["vehicles", vehicles.totalVehicles(), 245],
-    ["cheats", cheats.totalCheats(), 61],
-  ];
-  for (const [name, got, want] of checks) {
-    if (got !== want) fail("content count " + name + ": got " + got + ", want " + want);
-    console.log("content " + name + ": " + got);
-  }
-}
-
-function copyTree(src: string, dst: string): void {
-  mkdirSync(dst, { recursive: true });
-  for (const entry of readdirSync(src, { withFileTypes: true })) {
-    const from = join(src, entry.name);
-    const to = join(dst, entry.name);
-    if (entry.isDirectory()) copyTree(from, to);
-    else copyFileSync(from, to);
-  }
-}
-
-async function main(): Promise<void> {
-  preflight();
-  await countContent();
-  // Fresh /output.
-  rmSync(OUT, { recursive: true, force: true });
-  mkdirSync(OUT, { recursive: true });
-  copyTree(GAME_DIR, join(OUT, "game"));
-  copyTree(SHOTS_DIR, join(OUT, "screenshots"));
-  // Dossier (the scorer's own function, byte for byte).
-  const dossier = buildDossier(OUT, CAPS);
-  writeFileSync(join(OUT, "dossier.json"), dossier);
-  console.log("dossier.json written: " + dossier.length + " bytes");
-  console.log("build ok: /output ready");
-}
-
-main().catch((e) => fail(String(e && (e as Error).message ? (e as Error).message : e)));
+});
+writeFileSync(join(OUT, 'dossier.json'), dossier);
+console.log(`main.ts: dossier written (${dossier.length} bytes) to output/dossier.json`);

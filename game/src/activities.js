@@ -1,60 +1,55 @@
-// AZURA BAY — activities & challenges (round 7 re-compose, fresh under r7).
-// SPEC.md Bab 19–20. Mini-games: basketball, fishing, golf, darts, pool,
-// bowling, arcade, gym, yoga, meditation, kayaking, cycling, swimming,
-// shooting range, races, stunt jumps. 32 challenges (Survival, Fitness,
-// Combat, Driving, Collection). Medal points: bronze 1, silver 2, gold 3.
-
+// activities.js — Free activities, mini-games & challenges, SPEC §19.
+// Mini-games: Top Fun Drone Races, Bowling (Kolt & Associates Bowling Alley),
+// Arcade Games, Scooter Bros App (register & manage up to 10 scooters).
+// 32 exploration challenges / achievements (no mission spoilers).
 export const MINI_GAMES = [
-  "basketball", "fishing", "golf", "darts", "pool", "bowling", "arcade",
-  "gym", "yoga", "meditation", "kayaking", "cycling", "swimming",
-  "shooting-range", "races", "stunt-jumps",
+  { id: 'drones', name: 'Top Fun Drone Races', desc: 'RC drone races at points across the Leonida map.' },
+  { id: 'bowling', name: 'Bowling', desc: 'Play bowling with your partner / friends at Kolt & Associates Bowling Alley.' },
+  { id: 'arcade', name: 'Arcade Games', desc: 'Fully playable retro arcade machines at entertainment locations.' },
+  { id: 'scooterbros', name: 'Scooter Bros App', desc: 'Register & manage a collection of up to 10 scooters / light motorbikes.' },
 ];
 
-export const CHALLENGES = [
-  { id: "surv-1", name: "Survive 1 minute at 5 stars", kind: "survival", medal: "bronze" },
-  { id: "surv-2", name: "Survive 5 minutes at 5 stars", kind: "survival", medal: "silver" },
-  { id: "surv-3", name: "Survive 10 minutes at 5 stars", kind: "survival", medal: "gold" },
-  { id: "surv-4", name: "Escape a 6-star manhunt", kind: "survival", medal: "gold" },
-  { id: "surv-5", name: "Survive a plane crash", kind: "survival", medal: "silver" },
-  { id: "fit-1", name: "Run 10 km", kind: "fitness", medal: "bronze" },
-  { id: "fit-2", name: "Swim 5 km", kind: "fitness", medal: "silver" },
-  { id: "fit-3", name: "Cycle 20 km", kind: "fitness", medal: "silver" },
-  { id: "fit-4", name: "Kayak 10 km", kind: "fitness", medal: "silver" },
-  { id: "fit-5", name: "100x Workout", kind: "fitness", medal: "gold" },
-  { id: "combat-1", name: "100 headshots", kind: "combat", medal: "bronze" },
-  { id: "combat-2", name: "500 headshots", kind: "combat", medal: "silver" },
-  { id: "combat-3", name: "1000 headshots", kind: "combat", medal: "gold" },
-  { id: "combat-4", name: "Win 10 combat challenges", kind: "combat", medal: "silver" },
-  { id: "combat-5", name: "Win 20 combat challenges", kind: "combat", medal: "gold" },
-  { id: "drive-1", name: "Win 10 races", kind: "driving", medal: "bronze" },
-  { id: "drive-2", name: "Win 20 races", kind: "driving", medal: "silver" },
-  { id: "drive-3", name: "Win 50 races", kind: "driving", medal: "gold" },
-  { id: "drive-4", name: "Drive 1000 km", kind: "driving", medal: "silver" },
-  { id: "drive-5", name: "Drive 5000 km", kind: "driving", medal: "gold" },
-  { id: "coll-1", name: "Find 100 collectibles", kind: "collection", medal: "bronze" },
-  { id: "coll-2", name: "Find 500 collectibles", kind: "collection", medal: "silver" },
-  { id: "coll-3", name: "Find 1000 collectibles", kind: "collection", medal: "gold" },
-  { id: "coll-4", name: "Complete all card sets", kind: "collection", medal: "gold" },
-  { id: "coll-5", name: "Find all 34 Luxury Watches", kind: "collection", medal: "gold" },
-  { id: "spec-1", name: "Photograph all 170 wildlife species", kind: "collection", medal: "gold" },
-  { id: "spec-2", name: "Catch all 35 fish", kind: "collection", medal: "gold" },
-  { id: "spec-3", name: "Complete all 397 stunts", kind: "driving", medal: "gold" },
-  { id: "spec-4", name: "Complete all 13 Strangers & Freaks", kind: "collection", medal: "gold" },
-  { id: "spec-5", name: "Reach Focus level 5", kind: "fitness", medal: "gold" },
-  { id: "spec-6", name: "Reach Strength level 5", kind: "fitness", medal: "gold" },
-  { id: "spec-7", name: "Reach Cardio level 5", kind: "fitness", medal: "gold" },
+export const ACHIEVEMENTS = [
+  { id: 'vice-price', name: 'Vice Got a Price!', desc: 'Collect all trophies.' },
+  { id: 'long-road', name: 'A Long Road', desc: 'Reach 100% Completion.' },
+  { id: 'cunning-stunts', name: 'Cunning Stunts', desc: 'Complete 250 Stunt challenges.' },
+  { id: 'shootist', name: 'The Shootist', desc: 'Gold medal in all Shooting Range challenges.' },
+  { id: 'deck', name: "Don't Touch My Deck", desc: 'Complete 3 Collectible Card sets.' },
+  { id: 'wainker', name: 'You WAiNKer!', desc: 'WAiNK activity at 100 locations.' },
+  { id: 'max-withdrawal', name: 'Maximum Withdrawal', desc: 'Rob 5 big bank vaults in the open world and escape.' },
+  { id: 'master-none', name: 'Master of None', desc: 'Try every activity / mini-game type at least once.' },
+  { id: 'top-fun', name: 'Top Fun', desc: 'Win a drone race at every location.' },
+  { id: 'earn-cash', name: 'Earn Cash, Not Kudos', desc: 'Win 20 different races.' },
+  { id: 'stick-fiddler', name: 'Stick Fiddler', desc: 'Finish one Arcade machine game.' },
+  { id: 'positive', name: 'Positive Mental Attitude', desc: 'Meditate at all 18 meditation spots.' },
+  { id: 'one-last', name: 'One Last Thing', desc: 'Complete 50 challenges.' },
+  { id: 'hot-together', name: 'Hot Together', desc: 'Escape a 4-star police chase with your partner.' },
+  { id: 'retail', name: 'Retail Therapy', desc: 'Rob 3 stores in a row with your partner without losing wanted stars.' },
+  { id: 'whip-good', name: 'Whip It Good', desc: 'Find / drive 100 different vehicle types.' },
+  { id: 'gunslinger', name: 'Gunslinger', desc: 'Incapacitate 5 enemies in one Combat Focus use.' },
+  { id: 'catch-me', name: 'Catch Me If You Can', desc: 'Unscheduled departure / escape at VCIA airport.' },
+  { id: 'tank', name: 'Challenging Tank', desc: 'Drive a combat tank (Rhino).' },
+  { id: 'sneakthief', name: 'Sneakthief', desc: 'Rob a jewelry store undetected.' },
+  { id: 'blitz', name: 'A Classic Blitz Play', desc: 'Rob an armored truck (Armored Truck) and escape.' },
+  { id: 'goodtime', name: 'The Goodtime State', desc: 'Explore the entire Leonida map.' },
+  { id: 'pest-control', name: 'Pest Control', desc: 'Rob each gang\'s illegal operation HQ.' },
+  { id: 'beginning', name: 'In The Beginning…', desc: 'Enjoy a drink with a view at Ocean Beach.' },
+  { id: 'capital', name: 'Capital Offense', desc: 'Crash out of a vehicle showroom in classic style.' },
+  { id: 'bowling-ach', name: "Let's Go Bowling", desc: 'Play bowling at Kolt & Associates.' },
+  { id: 'truth', name: 'The Truth Is Out There', desc: 'Find an unexplainable mysterious event.' },
+  { id: 'ten-pin', name: 'Ten Pin', desc: 'Knock down an opponent with a melee drive-by from a vehicle.' },
+  { id: 'dime', name: 'Dime on the Dollar', desc: 'Earn $250,000 from exchanging Marked Bills via a fence.' },
+  { id: 'treat', name: 'Treat Yo Self', desc: 'Spend $100,000 total across all stores.' },
+  { id: 'little-boxes', name: 'Little Boxes', desc: 'Buy all available garage properties.' },
+  { id: 'on-the-spot', name: 'On the Spot', desc: 'Register 10 vehicles in the Scooter Bros app.' },
 ];
 
-export const MEDAL_POINTS = { bronze: 1, silver: 2, gold: 3 };
-
-export function totalChallenges() { return CHALLENGES.length; }
-export function challengeById(id) { return CHALLENGES.find((c) => c.id === id) || null; }
-export function challengesByKind(kind) { return CHALLENGES.filter((c) => c.kind === kind); }
-export function medalPoints(medal) { return MEDAL_POINTS[medal] || 0; }
-export function totalMedalPoints(doneIds) {
-  return doneIds.reduce((s, id) => {
-    const c = challengeById(id);
-    return s + (c ? medalPoints(c.medal) : 0);
-  }, 0);
+// Shooting Range medal points (Bronze 1, Silver 2, Gold 3).
+export function medalPoints(medals) {
+  const pts = { bronze: 1, silver: 2, gold: 3 };
+  return (medals || []).reduce((n, m) => n + (pts[m] || 0), 0);
 }
-export function totalMiniGames() { return MINI_GAMES.length; }
+
+export function achievementById(id) {
+  return ACHIEVEMENTS.find((a) => a.id === id) || null;
+}

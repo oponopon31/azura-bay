@@ -1,6 +1,8 @@
 // config.js — Azura Bay tuning, palette, world layout and mission data.
 // One job: every number and name the rest of the game shares.
 
+import { STORY } from './story.js';
+
 export const GAME_TITLE = 'AZURA BAY';
 export const SAVE_KEY = 'azura-bay-save-v1';
 
@@ -98,39 +100,10 @@ export function policeCarCount(stars) {
 }
 export function helicopterAt(stars) { return stars >= 3; }
 
-// ---- Combat ----
-export const WEAPON = {
-  pistol: { damage: 34, magSize: 12, reloadMs: 1400, range: 90, spread: 0.012 },
-};
-
 // ---- Missions ----
-export const MISSIONS = [
-  {
-    id: 'm1', name: 'Hot Wheels', payout: 800,
-    brief: 'Mara: "First job, rookie. Steal any car off the street and bring it to the garage on Marina Row. Don\'t scratch it too much."',
-    objective: 'Steal a car and deliver it to the garage marker',
-  },
-  {
-    id: 'm2', name: 'Courier Run', payout: 1200, timeLimit: 150,
-    brief: 'Mara: "Three drops, one clock. Hit every marker before the timer dies. The clients pay for speed, not excuses."',
-    objective: 'Deliver to all 3 markers before the timer runs out',
-  },
-  {
-    id: 'm3', name: 'Tail Job', payout: 1500,
-    brief: 'Mara: "A courier is moving product across town. Follow him. Stay close enough to see, far enough that he never sees you. If he spots you, he runs."',
-    objective: 'Tail the target car for 45s — stay 15–60m away, never closer than 12m',
-  },
-  {
-    id: 'm4', name: 'Heat Wave', payout: 2000,
-    brief: 'Mara: "The crew needs to know you can handle heat. Get the cops to three stars, then shake them. Lose them all and come home clean."',
-    objective: 'Reach 3 wanted stars, then lose the cops completely',
-  },
-  {
-    id: 'm5', name: 'Harbor Heist', payout: 5000,
-    brief: 'Mara: "The big one. A package is waiting at the east harbor. Grab it on foot, then get back to the safehouse. The whole bay will be looking for you."',
-    objective: 'Grab the package at the harbor, then escape to the safehouse',
-  },
-];
+// The 91-mission story lives in story.js; MISSIONS is the same list, kept
+// under the old name so the HUD and the self-test keep working.
+export const MISSIONS = STORY;
 
 // ---- Key places (world coordinates; mission markers sit on roads / open ground
 // so they are actually reachable) ----

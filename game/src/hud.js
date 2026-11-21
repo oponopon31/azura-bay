@@ -2,9 +2,25 @@
 // speed, dialogs, toasts, menus and the mission list. One job: the interface.
 
 import { MISSIONS, PLACES, CITY_HALF, PITCH, GRID } from './config.js';
+import { CHAPTERS } from './story.js';
 
 export function createHud(G) {
   const $ = (id) => document.getElementById(id);
+  // The weapon wheel + character badge + ankle monitor are built here so
+  // index.html does not need new markup for them.
+  const wheelEl = document.createElement('div');
+  wheelEl.id = 'weapon-wheel';
+  wheelEl.style.cssText = 'position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:340px;height:340px;border-radius:50%;background:rgba(10,14,24,0.82);border:2px solid rgba(255,210,63,0.5);display:none;z-index:40;pointer-events:auto;';
+  document.body.appendChild(wheelEl);
+  const charBadge = document.createElement('div');
+  charBadge.id = 'char-badge';
+  charBadge.style.cssText = 'position:fixed;left:14px;top:64px;padding:4px 10px;background:rgba(10,14,24,0.7);border:1px solid rgba(255,255,255,0.25);border-radius:4px;color:#ffe9a8;font:600 13px system-ui;z-index:30;';
+  charBadge.textContent = 'JASON';
+  document.body.appendChild(charBadge);
+  const monitorEl = document.createElement('div');
+  monitorEl.id = 'ankle-monitor';
+  monitorEl.style.cssText = 'position:fixed;right:14px;top:110px;padding:6px 10px;background:rgba(20,10,10,0.8);border:1px solid #e74c3c;border-radius:4px;color:#ffb0a0;font:600 13px system-ui;z-index:30;display:none;';
+  document.body.appendChild(monitorEl);
   const els = {
     healthFill: $('health-fill'), healthText: $('health-text'),
     cash: $('cash'), stars: $('stars'), objective: $('objective'),
@@ -56,6 +72,60 @@ export function createHud(G) {
       els.damage.classList.add('show');
       setTimeout(() => els.damage.classList.remove('show'), 220);
     },
+    // Flashbang: a full-screen white flash that fades over ~1 s.
+    flashbang() {
+      const el = els.damage;
+      el.style.background = 'radial-gradient(circle, rgba(255,255,255,0.95), rgba(255,255,255,0.55))';
+      el.classList.add('show');
+      setTimeout(() => {
+        el.classList.remove('show');
+        el.style.background = '';
+      }, 1000);
+    },
+    // Character badge: which protagonist is on screen right now.
+    setCharacter(who) {
+      charBadge.textContent = who === 'lucia' ? 'LUCIA' : 'JASON';
+      charBadge.style.color = who === 'lucia' ? '#ffb0c8' : '#ffe9a8';
+    },
+    // Ankle monitor (Chapter 2): null hides it; {inside:true} shows OK;
+    // {inside:false, secondsLeft} shows the countdown in red.
+    setMonitor(state) {
+      if (!state) { monitorEl.style.display = 'none'; return; }
+      monitorEl.style.display = 'block';
+      if (state.inside) {
+        monitorEl.textContent = 'ANKLE MONITOR — inside Port Gellhorn';
+        monitorEl.style.borderColor = '#2ecc71';
+        monitorEl.style.color = '#a8e6b0';
+      } else {
+        monitorEl.textContent = `ANKLE MONITOR — return to Port Gellhorn! ${state.secondsLeft}s`;
+        monitorEl.style.borderColor = '#e74c3c';
+        monitorEl.style.color = '#ffb0a0';
+      }
+    },
+    // Weapon wheel (hold Tab): owned weapons in a ring, grouped by category.
+    // Click a weapon to equip it; release Tab to close.
+    showWeaponWheel(open) {
+      if (!open) { wheelEl.style.display = 'none'; return; }
+      const W = G.weapons;
+      if (!W) return;
+      const owned = W.ownedList();
+      const active = W.active();
+      let html = `<div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;color:#ffe9a8;font:700 15px system-ui;">${active ? active.name : 'UNARMED'}<div style="font:400 11px system-ui;color:#c8c8c8;">hold TAB — click to equip, Q to cycle</div></div>`;
+      const n = Math.min(owned.length, 12);
+      owned.slice(0, n).forEach((id, i) => {
+        const w = W.byId(id);
+        const angle = (i / n) * Math.PI * 2 - Math.PI / 2;
+        const x = 170 + Math.cos(angle) * 118 - 52;
+        const y = 170 + Math.sin(angle) * 118 - 22;
+        const isActive = active && active.id === id;
+        html += `<button data-w="${id}" style="position:absolute;left:${x}px;top:${y}px;width:104px;padding:5px 4px;font:600 10px system-ui;color:${isActive ? '#111' : '#eee'};background:${isActive ? '#ffd23f' : 'rgba(40,48,64,0.92)'};border:1px solid ${isActive ? '#ffd23f' : 'rgba(255,255,255,0.3)'};border-radius:6px;cursor:pointer;">${w.name}<br><span style="font-weight:400;opacity:0.8;">${w.cat} · ${W.magAmmo[id] ?? w.mag}/${w.mag}</span></button>`;
+      });
+      wheelEl.innerHTML = html;
+      wheelEl.style.display = 'block';
+      wheelEl.querySelectorAll('button[data-w]').forEach((b) => {
+        b.addEventListener('click', () => { W.equip(b.dataset.w); this.showWeaponWheel(false); });
+      });
+    },
     showEndCard(title, sub) {
       els.endTitle.textContent = title;
       els.endSub.textContent = sub;
@@ -65,13 +135,18 @@ export function createHud(G) {
 
     updateMissionList() {
       let html = '';
-      MISSIONS.forEach((m, i) => {
-        const done = G.missions.completed[i];
-        const active = i === G.missions.index && G.missions.index < MISSIONS.length;
-        const cls = done ? 'done' : active ? 'active' : 'locked';
-        const tag = done ? '✓ DONE' : active ? '▶ ACTIVE' : 'LOCKED';
-        html += `<div class="mission-row ${cls}"><b>${i + 1}. ${m.name}</b><span>$${m.payout.toLocaleString()}</span><span class="tag">${tag}</span><p>${m.objective}</p></div>`;
-      });
+      for (const ch of CHAPTERS) {
+        const doneCount = MISSIONS.slice(ch.from - 1, ch.to).filter((m, i) => G.missions.completed[ch.from - 1 + i]).length;
+        html += `<div class="mission-chapter"><b>CHAPTER ${ch.n} — ${ch.title}</b><span>${doneCount}/${ch.to - ch.from + 1} done</span><p>${ch.desc}</p></div>`;
+        MISSIONS.slice(ch.from - 1, ch.to).forEach((m, k) => {
+          const i = ch.from - 1 + k;
+          const done = G.missions.completed[i];
+          const active = i === G.missions.index && G.missions.index < MISSIONS.length;
+          const cls = done ? 'done' : active ? 'active' : 'locked';
+          const tag = done ? '✓ DONE' : active ? '▶ ACTIVE' : 'LOCKED';
+          html += `<div class="mission-row ${cls}"><b>${m.id}. ${m.title}</b><span>$${m.reward.toLocaleString()}</span><span class="tag">${tag}</span><p>${m.who === 'lucia' ? 'LUCIA' : 'JASON'} · ${m.type} · ${m.objective}</p></div>`;
+        });
+      }
       els.missionList.innerHTML = html;
     },
     toggleMissionPanel(show) {
@@ -177,14 +252,18 @@ export function createHud(G) {
       } else {
         els.objectiveDist.textContent = '';
       }
-      // Speed + ammo.
+      // Speed + ammo (from the weapons system: active weapon + magazine).
+      const w = G.weapons ? G.weapons.active() : null;
+      const ammoLine = w
+        ? `${w.name} — ${G.weapons.magAmmo[w.id] ?? w.mag}/${w.mag}${G.weapons.reloading ? ' — reloading…' : ''}${w.id === 'smokeflash' ? ` — ${G.weapons.throwMode === 'flash' ? 'FLASH' : 'SMOKE'}` : ''}`
+        : 'Unarmed';
       if (!G.player.onFoot && G.player.car) {
         els.speed.classList.add('show');
         els.speedVal.textContent = Math.round(Math.abs(G.player.car.speed) * 3.6);
-        els.ammo.textContent = `Ammo ${G.combat.ammo}${G.combat.reloading ? ' — reloading…' : ''}`;
+        els.ammo.textContent = ammoLine;
       } else {
         els.speed.classList.remove('show');
-        els.ammo.textContent = `Ammo ${G.combat.ammo}${G.combat.reloading ? ' — reloading…' : ''}`;
+        els.ammo.textContent = ammoLine;
       }
       // Interact prompt.
       const near = G.driving.nearestEnterable();
@@ -193,8 +272,8 @@ export function createHud(G) {
           ? 'Press E — jack this car'
           : 'Press E — get in the car';
         els.interact.classList.add('show');
-      } else if (G.player.onFoot && G.missions.index === 4 && G.missions.stage === 0 &&
-        Math.hypot(G.player.pos.x - PLACES.harbor.x, G.player.pos.z - PLACES.harbor.z) < 8) {
+      } else if (G.player.onFoot && G.missions.current && G.missions.current.type === 'heist' && G.missions.stage === 0 &&
+        Math.hypot(G.player.pos.x - G.missions.current.x, G.player.pos.z - G.missions.current.z) < 8) {
         els.interact.textContent = 'Walk to the package to grab it';
         els.interact.classList.add('show');
       } else {

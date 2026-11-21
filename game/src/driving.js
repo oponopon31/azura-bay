@@ -8,11 +8,14 @@ import { resolveCollision } from './player.js';
 export function createDriving(G) {
   const D = {
     // Nearest car the player could enter (within 4.5 m), or null.
+    // A wrecked car (health near 0) is not enterable: its engine is dead,
+    // and re-entering it after bailing out just strands the player again.
     nearestEnterable() {
       if (!G.player.onFoot) return null;
       let best = null, bestD = 4.5;
       for (const car of G.cars) {
         if (car.driver === 'player') continue;
+        if ((car.health ?? 1) < 0.15) continue;
         const d = Math.hypot(car.pos.x - G.player.pos.x, car.pos.z - G.player.pos.z);
         if (d < bestD) { best = car; bestD = d; }
       }
@@ -53,9 +56,12 @@ export function createDriving(G) {
       const offRoad = !onRoad(car.pos.x, car.pos.z);
       const gripMul = offRoad ? 0.55 : 1;
       const maxSpd = cls.maxSpeed * (offRoad ? 0.6 : 1);
+      // A wrecked car (health 0) has a dead engine: no throttle, it just
+      // coasts to a stop. The player has to bail out and steal a fresh car.
+      const engineDead = (car.health ?? 1) <= 0;
 
       // Throttle / brake / reverse.
-      if (k['KeyW'] || k['ArrowUp']) car.speed += cls.accel * gripMul * dt;
+      if (!engineDead && (k['KeyW'] || k['ArrowUp'])) car.speed += cls.accel * gripMul * dt;
       else if (k['KeyS'] || k['ArrowDown']) {
         if (car.speed > 0.5) car.speed -= cls.brake * dt;
         else car.speed -= cls.accel * 0.6 * dt; // reverse

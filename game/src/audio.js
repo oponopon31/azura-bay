@@ -95,16 +95,74 @@ export function createAudio() {
     click() { this.blip(880, 0.05, 'square', 0.08); },
     pickup() { this.blip(660, 0.09, 'sine', 0.2); setTimeout(() => this.blip(990, 0.12, 'sine', 0.2), 90); },
     cash() { this.blip(523, 0.1, 'triangle', 0.22); setTimeout(() => this.blip(659, 0.1, 'triangle', 0.22), 100); setTimeout(() => this.blip(784, 0.18, 'triangle', 0.22), 200); },
-    gunshot() {
+    // Noise burst with a filter + envelope — the shared core of every bang.
+    noiseBurst(freq, type, vol, dur, q) {
       if (!this.ctx) return;
       const c = this.ctx, t = c.currentTime;
       const src = c.createBufferSource(); src.buffer = this.noiseBuf;
-      const f = c.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 1800;
+      const f = c.createBiquadFilter(); f.type = type || 'lowpass'; f.frequency.value = freq || 1800;
+      if (q) f.Q.value = q;
       const g = c.createGain();
-      g.gain.setValueAtTime(0.5, t);
-      g.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
+      g.gain.setValueAtTime(vol || 0.5, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + (dur || 0.16));
       src.connect(f); f.connect(g); g.connect(this.master);
-      src.start(t); src.stop(t + 0.2);
+      src.start(t); src.stop(t + (dur || 0.16) + 0.05);
+    },
+    // One gunshot sound per weapon class, so classes feel different.
+    gunshot(kind) {
+      if (!this.ctx) return;
+      switch (kind) {
+        case 'sidearm': this.noiseBurst(2200, 'lowpass', 0.45, 0.12); break; // sharp crack
+        case 'smg': this.noiseBurst(1800, 'lowpass', 0.32, 0.09); break;     // fast pop
+        case 'shotgun': this.noiseBurst(500, 'lowpass', 0.7, 0.3); break;    // deep boom
+        case 'rifle': this.noiseBurst(1400, 'bandpass', 0.5, 0.18, 1); break;
+        case 'lmg': this.noiseBurst(900, 'lowpass', 0.5, 0.2); break;
+        case 'sniper': this.noiseBurst(2600, 'highpass', 0.6, 0.35); break;  // loud crack + tail
+        case 'heavy': this.explosion(); break;
+        case 'melee': this.swing(); break;
+        case 'explosive': this.noiseBurst(300, 'lowpass', 0.4, 0.2); break;  // throw thump
+        case 'special': this.noiseBurst(1200, 'bandpass', 0.55, 0.25, 1); break;
+        default: this.noiseBurst(1800, 'lowpass', 0.5, 0.16);
+      }
+    },
+    // Coil Shocker / flashbang: a short electric crackle.
+    zap() {
+      if (!this.ctx) return;
+      for (let i = 0; i < 5; i++) {
+        setTimeout(() => this.noiseBurst(3200, 'highpass', 0.25, 0.05), i * 30);
+      }
+      this.blip(1800, 0.12, 'sawtooth', 0.1);
+    },
+    explosion() {
+      if (!this.ctx) return;
+      this.noiseBurst(220, 'lowpass', 0.9, 0.8);
+      this.noiseBurst(90, 'lowpass', 0.7, 1.1);
+      this.blip(55, 0.5, 'sine', 0.4);
+    },
+    flame() {
+      if (!this.ctx) return;
+      this.noiseBurst(700, 'bandpass', 0.35, 0.35, 0.6);
+    },
+    swing() {
+      if (!this.ctx) return;
+      this.noiseBurst(900, 'bandpass', 0.2, 0.12, 2);
+    },
+    throwSnd() {
+      if (!this.ctx) return;
+      this.noiseBurst(600, 'bandpass', 0.15, 0.15, 1.5);
+    },
+    // Minigun spin-up: a rising whir before the barrels spin.
+    spinup() {
+      if (!this.ctx) return;
+      const c = this.ctx, t = c.currentTime;
+      const o = c.createOscillator(), g = c.createGain();
+      o.type = 'sawtooth';
+      o.frequency.setValueAtTime(120, t);
+      o.frequency.exponentialRampToValueAtTime(420, t + 0.45);
+      g.gain.setValueAtTime(0.08, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+      o.connect(g); g.connect(this.master);
+      o.start(t); o.stop(t + 0.55);
     },
     crash(intensity) {
       if (!this.ctx) return;

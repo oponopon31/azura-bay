@@ -46,7 +46,7 @@ export function applyShot(G, name) {
     G.missions.active = true;
     G.missions.stage = 1;
     G.missions.setMarker(PLACES.garage.x, PLACES.garage.z, 'Deliver the car');
-    G.hud.showDialog('MARA VOSS', 'Mara: "Two units on your tail, Rio — lose them before the garage."', 9000);
+    G.hud.showDialog('LUCIA', 'Lucia: "Two units on your tail, Jason — lose them before the garage."', 9000);
     G.hud.toast('Wanted level 3 — lose the cops!');
   } else if (name === 'shootout') {
     // On-foot shootout at a mission marker, police closing in.
@@ -55,7 +55,12 @@ export function applyShot(G, name) {
     player.heading = Math.PI * 0.75;
     player.camYaw = Math.PI * 0.75 + Math.PI;
     player.aiming = true;
-    G.combat.ammo = 9;
+    // A full magazine for the shootout pose.
+    if (G.weapons) {
+      G.weapons.give('es9');
+      G.weapons.equip('es9');
+      G.weapons.magAmmo.es9 = 12;
+    }
     G.police.heat = 34;
     G.police.stars = 2;
     G.police.lastSeen = G.elapsed;
@@ -69,7 +74,7 @@ export function applyShot(G, name) {
     G.missions.active = true;
     G.missions.stage = 0;
     G.missions.setMarker(-120, -120, 'Reach 3 stars');
-    G.hud.showDialog('MARA VOSS', 'Mara: "The heat is on — make them regret it, Rio."', 9000);
+    G.hud.showDialog('LUCIA', 'Lucia: "The heat is on — make them regret it, Jason."', 9000);
   } else if (name === 'dusk') {
     // High dusk overview: skyline, beachfront, traffic, golden neon hour.
     G.timeOfDay = 18.7;
@@ -85,7 +90,7 @@ export function applyShot(G, name) {
       pos: new THREE.Vector3(-260, 190, 420),
       look: new THREE.Vector3(40, 10, -60),
     };
-    G.hud.showDialog('MARA VOSS', 'Mara: "Azura Bay at dusk. The whole city is yours, Rio."', 9000);
+    G.hud.showDialog('JASON', 'Jason: "Azura Bay at dusk. The whole city is ours, Lucia."', 9000);
   } else if (name === 'heist') {
     // Harbor heist pickup: on foot at the docks, package grabbed, cash popup.
     G.timeOfDay = 18.2;
@@ -106,7 +111,7 @@ export function applyShot(G, name) {
     pc.speed = 0;
     G.money += 0; // cash lands on completion; show the popup the moment the shot is taken
     G.hud.cashPopup('+$5,000');
-    G.hud.showDialog('MARA VOSS', 'Mara: "Package is hot — every cop in the bay just got your description. RUN."', 9000);
+    G.hud.showDialog('LUCIA', 'Lucia: "Package is hot — every cop in the bay just got your description. RUN."', 9000);
     G.hud.toast('Package secured! Escape to the safehouse.');
   }
   // Force one HUD refresh so the shot shows the staged state immediately.

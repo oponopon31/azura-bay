@@ -88,6 +88,16 @@ export function updatePedestrians(G, dt) {
   const playerPos = G.player.pos;
   for (const ped of G.peds) {
     if (!ped.alive) continue;
+    // Stunned: stays down until the stun expires, then gets back up.
+    if (ped.stunned) {
+      if (G.elapsed >= ped.stunnedUntil) {
+        ped.stunned = false;
+        ped.mesh.rotation.x = 0;
+        ped.mesh.position.y = 0;
+      } else {
+        continue;
+      }
+    }
     // Flee from gunfire, fast cars and the wanted player.
     let danger = null;
     if (G.combat.shotsRecently > 0) {
@@ -141,4 +151,15 @@ export function knockDownPed(G, ped) {
   ped.mesh.rotation.x = -Math.PI / 2;
   ped.mesh.position.y = 0.3;
   G.effects.blood(ped.pos.x, 1, ped.pos.z);
+}
+
+// Stunned (Coil Shocker / flashbang): falls, stays down for `secs`,
+// then gets back up. Non-lethal — does not count as a kill.
+export function stunPed(G, ped, secs) {
+  if (!ped.alive || ped.stunned) return;
+  ped.stunned = true;
+  ped.stunnedUntil = G.elapsed + secs;
+  ped.mesh.rotation.x = -Math.PI / 2;
+  ped.mesh.position.y = 0.3;
+  G.effects.sparks(ped.pos.x, 1, ped.pos.z, 8);
 }

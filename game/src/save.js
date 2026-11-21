@@ -35,8 +35,8 @@ export function createSave(G) {
       try { data = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); } catch { data = null; }
       if (!data || data.version !== 1) return false;
       G.money = data.money ?? START_CASH;
-      G.missions.index = Math.min(data.missionIndex ?? 0, 4);
-      G.missions.completed = data.completed || [false, false, false, false, false];
+      G.missions.index = Math.min(data.missionIndex ?? 0, 90);
+      G.missions.completed = (data.completed && data.completed.length === 91) ? data.completed : new Array(91).fill(false);
       if (data.player) {
         G.player.pos.set(data.player.x, 0, data.player.z);
         G.player.heading = data.player.heading ?? Math.PI;

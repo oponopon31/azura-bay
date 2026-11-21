@@ -5,7 +5,8 @@ import * as THREE from 'three';
 import { PLAYER, onRoad } from './config.js';
 
 export function createPlayer(G) {
-  // Hero mesh: teal jacket, dark jeans — an original character, "Rio".
+  // Hero mesh: teal jacket, dark jeans — Jason by default; setCharacter
+  // swaps the colours for Lucia (crimson jacket, dark hair).
   const g = new THREE.Group();
   const jacket = new THREE.MeshLambertMaterial({ color: 0x0e7c7b });
   const jeans = new THREE.MeshLambertMaterial({ color: 0x2c3e50 });
@@ -35,6 +36,9 @@ export function createPlayer(G) {
 
   const P = {
     mesh: g, legL, legR, armL, armR,
+    jacketMat: jacket, capMesh: cap,
+    who: 'jason', // playable protagonist: 'jason' | 'lucia'
+    flashlight: null, flashlightOn: false,
     pos: new THREE.Vector3(-40, 0, 250),
     vel: new THREE.Vector3(),
     heading: Math.PI, // facing north, into town
@@ -49,6 +53,36 @@ export function createPlayer(G) {
     camPitch: 0.32,
     camDist: 7.5,
     aiming: false,
+
+    // Switch the playable protagonist: the mesh colours change so the
+    // player can tell at a glance who they are.
+    // Jason: teal jacket, yellow cap. Lucia: crimson jacket, dark hair.
+    setCharacter(who) {
+      this.who = who;
+      if (who === 'lucia') {
+        this.jacketMat.color.setHex(0xa01848);
+        this.capMesh.material.color.setHex(0x1a1a1a);
+      } else {
+        this.jacketMat.color.setHex(0x0e7c7b);
+        this.capMesh.material.color.setHex(0xf1c40f);
+      }
+    },
+
+    // L key: the Flashlight melee weapon doubles as a light source.
+    toggleFlashlight() {
+      if (!G.weapons || !G.weapons.has('flashlight')) {
+        G.hud.toast('You need the Flashlight to light the dark.');
+        return;
+      }
+      if (!this.flashlight) {
+        this.flashlight = new THREE.SpotLight(0xfff2cc, 0, 30, 0.5, 0.4);
+        G.scene.add(this.flashlight);
+        G.scene.add(this.flashlight.target);
+      }
+      this.flashlightOn = !this.flashlightOn;
+      this.flashlight.intensity = this.flashlightOn ? 60 : 0;
+      G.hud.toast(this.flashlightOn ? 'Flashlight on' : 'Flashlight off');
+    },
 
     resetToSafehouse() {
       this.pos.set(-40, 0, 250);
@@ -72,7 +106,12 @@ export function createPlayer(G) {
       if (k['ArrowLeft']) this.camYaw += 1.9 * dt;
       if (k['ArrowRight']) this.camYaw -= 1.9 * dt;
       const running = k['ShiftLeft'] || k['ShiftRight'];
-      const targetSpeed = (ix || iz) ? (running ? PLAYER.runSpeed : PLAYER.walkSpeed) : 0;
+      let targetSpeed = (ix || iz) ? (running ? PLAYER.runSpeed : PLAYER.walkSpeed) : 0;
+      // Heavy weapons slow you down (LMG, minigun, launchers).
+      if (G.weapons) {
+        const w = G.weapons.active();
+        if (w && w.moveSlow) targetSpeed *= w.moveSlow;
+      }
       const fwdX = Math.sin(this.camYaw), fwdZ = Math.cos(this.camYaw);
       const rightX = Math.cos(this.camYaw), rightZ = -Math.sin(this.camYaw);
       // Note: camera sits behind the player, so forward is -camYaw direction.
@@ -113,16 +152,38 @@ export function createPlayer(G) {
     // Third-person camera: orbit behind the player, or over the shoulder while aiming.
     updateCamera(dt) {
       const cam = G.camera;
+      // Scope zoom: aiming with a scoped weapon narrows the field of view.
+      let wantFov = 62;
+      if (this.aiming && G.weapons) {
+        const w = G.weapons.active();
+        if (w && w.zoom) wantFov = 62 / w.zoom;
+      }
+      if (Math.abs(cam.fov - wantFov) > 0.5) {
+        cam.fov += (wantFov - cam.fov) * Math.min(1, 12 * dt);
+        cam.updateProjectionMatrix();
+      }
+      // The flashlight beam follows the camera.
+      if (this.flashlight && this.flashlightOn) {
+        this.flashlight.position.copy(cam.position);
+        const ahead = new THREE.Vector3();
+        cam.getWorldDirection(ahead);
+        this.flashlight.target.position.copy(cam.position).addScaledVector(ahead, 10);
+      }
       const target = new THREE.Vector3(this.pos.x, this.pos.y + 1.6, this.pos.z);
       if (this.aiming) {
         const d = 4.2;
         // Over-the-shoulder aim: the crosshair (screen centre) must sit on a
-        // person-sized target at 8–12 m, so the camera looks slightly DOWN
-        // to chest height — aiming at head height made every shot fly over.
+        // person-sized target at 2–20 m. The old numbers put the camera at
+        // y≈2.56 looking at y≈1.84, so the ray crossed 8 m at head-top
+        // height and flew OVER a cop's head at close range (2 m → y≈2.24,
+        // above the 2.03 cap) — a player aiming at a cop two metres away
+        // missed every shot. Lower both ends: camera y≈1.9, lookAt y≈1.3
+        // at the default pitch puts the ray at chest height at 8 m (1.42),
+        // in the head at 2 m (1.66), and at the legs at 20 m (0.94).
         const off = new THREE.Vector3(
-          Math.sin(this.camYaw) * d, 0.7 + this.camPitch * 0.8, Math.cos(this.camYaw) * d);
+          Math.sin(this.camYaw) * d, 0.05 + this.camPitch * 0.8, Math.cos(this.camYaw) * d);
         cam.position.lerp(new THREE.Vector3().addVectors(target, off), Math.min(1, 14 * dt));
-        cam.lookAt(target.x - Math.sin(this.camYaw) * 10, 1.2 + this.camPitch * 2, target.z - Math.cos(this.camYaw) * 10);
+        cam.lookAt(target.x - Math.sin(this.camYaw) * 10, 0.7 + this.camPitch * 2, target.z - Math.cos(this.camYaw) * 10);
         return;
       }
       const d = this.camDist;

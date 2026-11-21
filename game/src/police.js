@@ -83,6 +83,12 @@ export function createPolice(G) {
     // That is what makes losing the cops possible.
     anyPoliceSeesPlayer() {
       const p = G.player.pos;
+      // Smoke: standing inside a smoke cloud hides the player from every unit.
+      if (G.combat) {
+        for (const cloud of G.combat.smokeClouds) {
+          if (Math.hypot(p.x - cloud.pos.x, p.z - cloud.pos.z) < cloud.radius) return false;
+        }
+      }
       const hidden = G.player.onFoot && !onRoad(p.x, p.z);
       for (const car of G.cars) {
         if (car.driver === 'police') {
@@ -203,6 +209,7 @@ export function createPolice(G) {
       const cop = {
         mesh, pos: new THREE.Vector3(x, 0, z), heading: 0,
         health: 100, alive: true, shootCooldown: 1, bustedTimer: 0, walkPhase: 0,
+        stunnedUntil: 0, stunned: false,
       };
       mesh.userData.ref = cop;
       this.cops.push(cop);
@@ -215,6 +222,19 @@ export function createPolice(G) {
       cop.mesh.position.y = 0.3;
       G.effects.blood(cop.pos.x, 1, cop.pos.z);
       G.stats.copsDown++;
+    },
+
+    // Stun (Coil Shocker / flashbang): the cop falls and stays down for
+    // `secs`, then gets back up. Not lethal — it never adds to copsDown.
+    stunCop(cop, secs) {
+      if (!cop.alive || cop.stunned) return;
+      cop.stunned = true;
+      cop.stunnedUntil = G.elapsed + secs;
+      cop.mesh.rotation.x = -Math.PI / 2;
+      cop.mesh.position.y = 0.3;
+      G.effects.sparks(cop.pos.x, 1, cop.pos.z, 8);
+      G.audio.zap();
+      G.hud.toast('Officer stunned.');
     },
 
     spawnHeli() {
@@ -305,10 +325,16 @@ export function createPolice(G) {
         car.speed += THREE.MathUtils.clamp(wantSpeed - car.speed, -18 * dt, 14 * dt);
         car.pos.x += Math.sin(car.heading) * car.speed * dt;
         car.pos.z += Math.cos(car.heading) * car.speed * dt;
-        // Ram damage when touching the player's car.
+        // Ram damage when touching the player's car — one hit per police
+        // car per second, not one per frame: the old per-frame 0.02 wrecked
+        // a car in under a second of contact, which made every chase end
+        // in a dead car before the player could do anything.
         if (G.player.inCar && G.player.car && dist < 5 && Math.abs(car.speed) > 6) {
-          G.player.car.health = Math.max(0, G.player.car.health - 0.02);
-          G.effects.sparks(car.pos.x, 1, car.pos.z, 4);
+          if (G.elapsed - (car.lastRamAt || 0) > 1) {
+            car.lastRamAt = G.elapsed;
+            G.player.car.health = Math.max(0, G.player.car.health - 0.03);
+            G.effects.sparks(car.pos.x, 1, car.pos.z, 4);
+          }
         }
         // A police car that touches the player on foot busts them.
         if (G.player.onFoot && dist < 2.5 && G.player.speed < 1.5) {
@@ -329,6 +355,17 @@ export function createPolice(G) {
       for (let i = this.cops.length - 1; i >= 0; i--) {
         const cop = this.cops[i];
         if (!cop.alive) continue;
+        // Stunned: stays down and does nothing until the stun expires,
+        // then gets back up.
+        if (cop.stunned) {
+          if (G.elapsed >= cop.stunnedUntil) {
+            cop.stunned = false;
+            cop.mesh.rotation.x = 0;
+            cop.mesh.position.y = 0;
+          } else {
+            continue;
+          }
+        }
         const dx = p.x - cop.pos.x, dz = p.z - cop.pos.z;
         const dist = Math.hypot(dx, dz);
         // Lost the trail: after 6 s beyond 45 m, the cop gives up and leaves.

@@ -12,6 +12,7 @@ import { spawnPedestrians, updatePedestrians, knockDownPed } from './pedestrians
 import { createPlayer } from './player.js';
 import { createDriving } from './driving.js';
 import { createCombat } from './combat.js';
+import { createWeapons } from './weapons.js';
 import { createPolice } from './police.js';
 import { createMissions } from './missions.js';
 import { createHud } from './hud.js';
@@ -64,7 +65,7 @@ const G = {
   mode: 'menu',          // menu | playing | paused | busted | wasted
   money: START_CASH,
   cars: [], peds: [],
-  stats: { carsStolen: 0, shotsFired: 0, punches: 0, copsDown: 0, crimes: 0, missionsDone: 0 },
+  stats: { carsStolen: 0, shotsFired: 0, punches: 0, copsDown: 0, crimes: 0, missionsDone: 0, stuns: 0, civiliansHurt: 0, psycho: false, relationship: 40, lastMissionWho: null, choices: {} },
   input: { keys: {}, mouseDown: false, dragging: false },
   shotCamera: null,
   turbo: selftestOn ? 12 : 1, // self-test runs the sim fast, rendering rarely
@@ -77,6 +78,7 @@ G.city = buildCity(G);
 G.player = createPlayer(G);
 G.driving = createDriving(G);
 G.combat = createCombat(G);
+G.weapons = createWeapons(G);
 G.police = createPolice(G);
 G.missions = createMissions(G);
 G.hud = createHud(G);
@@ -126,6 +128,13 @@ function onKeyDown(e) {
   if (e.repeat) return;
   G.input.keys[e.code] = true;
   G.audio.ensure();
+  // Tab (hold) opens the weapon wheel; preventDefault keeps the browser
+  // from moving focus away from the game.
+  if (e.code === 'Tab') {
+    e.preventDefault();
+    if (G.mode === 'playing') G.hud.showWeaponWheel(true);
+    return;
+  }
   if (e.code === 'Escape') {
     if (G.mode === 'playing') pauseGame();
     else if (G.mode === 'paused') resumeGame();
@@ -134,29 +143,49 @@ function onKeyDown(e) {
   if (G.mode !== 'playing') return;
   G.pressKey(e.code);
 }
-function onKeyUp(e) { G.input.keys[e.code] = false; }
+function onKeyUp(e) {
+  G.input.keys[e.code] = false;
+  if (e.code === 'Tab') G.hud.showWeaponWheel(false);
+}
 addEventListener('keydown', onKeyDown);
 addEventListener('keyup', onKeyUp);
 
 G.pressKey = (code) => {
   if (code === 'KeyE') {
     if (G.player.onFoot) {
+      // A weapon pickup on the ground comes before getting in a car.
+      if (G.weapons.tryPickup()) return;
       const car = G.driving.nearestEnterable();
       if (car) G.driving.enterCar(car);
     } else {
       G.driving.exitCar();
     }
   } else if (code === 'KeyF') {
-    G.combat.punch();
+    // Melee weapon equipped: swing it; otherwise throw a bare punch.
+    if (!G.weapons.tryMelee()) G.combat.punch();
   } else if (code === 'KeyR') {
+    G.weapons.startReload();
+  } else if (code === 'KeyV') {
+    // Radio moved here (R is reload now).
     G.audio.setRadio(!G.audio.radioOn);
     G.hud.toast(G.audio.radioOn ? 'Radio on — Azura FM' : 'Radio off');
+  } else if (code === 'KeyQ') {
+    G.weapons.next();
+  } else if (code === 'KeyG') {
+    G.weapons.detonateStickies();
+  } else if (code === 'KeyX') {
+    G.weapons.toggleThrowMode();
+  } else if (code === 'KeyL') {
+    G.player.toggleFlashlight?.();
   } else if (code === 'KeyM') {
     const panel = document.getElementById('mission-panel');
     G.hud.toggleMissionPanel(!panel.classList.contains('show'));
   } else if (code === 'KeyN') {
     G.audio.setMuted(!G.audio.muted);
     G.hud.toast(G.audio.muted ? 'Sound muted' : 'Sound on');
+  } else if (code.startsWith('Digit')) {
+    const n = Number(code.slice(5));
+    if (n >= 1 && n <= 9) G.weapons.equipSlot(n);
   }
 };
 
@@ -165,7 +194,7 @@ canvas.addEventListener('mousedown', (e) => {
   if (G.mode !== 'playing') return;
   if (e.button === 0) {
     G.input.mouseDown = true;
-    G.combat.shoot();
+    G.weapons.triggerDown();
     if (document.pointerLockElement !== canvas) canvas.requestPointerLock?.();
   } else if (e.button === 2) {
     G.player.aiming = true;
@@ -173,6 +202,7 @@ canvas.addEventListener('mousedown', (e) => {
 });
 addEventListener('mouseup', (e) => {
   G.input.mouseDown = false;
+  G.weapons.triggerUp();
   if (e.button === 2) G.player.aiming = false;
 });
 addEventListener('mousemove', (e) => {
@@ -195,9 +225,11 @@ addEventListener('resize', () => {
 G.newGame = () => {
   G.save.clear();
   G.money = START_CASH;
-  G.stats = { carsStolen: 0, shotsFired: 0, punches: 0, copsDown: 0, crimes: 0, missionsDone: 0 };
-  G.missions.index = 0;
-  G.missions.completed = [false, false, false, false, false];
+  G.stats = {
+    carsStolen: 0, shotsFired: 0, punches: 0, copsDown: 0, crimes: 0, missionsDone: 0,
+    stuns: 0, civiliansHurt: 0, psycho: false, relationship: 40, lastMissionWho: null, choices: {},
+  };
+  G.missions.reset();
   G.police.heat = 0; G.police.stars = 0;
   G.player.resetToSafehouse();
   G.timeOfDay = 17.5;
@@ -227,6 +259,15 @@ G.quitToMenu = () => {
   G.hud.showStart(G.save.exists());
 };
 G.saveGame = () => G.save.save();
+
+// Switch the playable protagonist (Lucia / Jason): weapon loadout,
+// player mesh and the HUD character badge all follow.
+G.setCharacter = (who) => {
+  if (who !== 'jason' && who !== 'lucia') return;
+  G.weapons.setCharacter(who);
+  G.player.setCharacter(who);
+  G.hud.setCharacter(who);
+};
 function pauseGame() { G.mode = 'paused'; G.hud.showPause(); }
 G.hud.bindButtons(G);
 
@@ -263,6 +304,7 @@ function update(dt) {
   updatePedestrians(G, dt);
   G.police.update(dt);
   G.combat.update(dt);
+  G.weapons.update(dt);
   G.missions.update(dt);
   G.effects.update(dt);
   // Engine + siren follow the driving state.

@@ -1,3 +1,4 @@
+<!-- SPEC — entry spec, re-composed under the recorded build; content unchanged from the user's spec -->
 # GTA 6 (gta6-01) — SPEC LENGKAP DARI USER
 
 Dokumen ini adalah SATU-SATUNYA sumber kebenaran untuk isi game.

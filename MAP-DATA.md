@@ -1,3 +1,4 @@
+<!-- MAP-DATA — entry map data, re-composed under the recorded build; content unchanged -->
 # MAP-DATA — PETA LEONIDA (GTA 6) UNTUK GAME gta6-01
 
 Sumber utama: https://www.gtabase.com/gta-6/map/ (diakses 2026-11-21, update 2026-11-20)

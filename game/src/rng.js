@@ -1,6 +1,8 @@
-// rng.js — Seeded random numbers so the city, traffic and screenshots are
-// reproducible from a single seed (the ?seed= query).
+// rng.js — Deterministic random numbers, so the city, the traffic and the
+// screenshots all come out the same from one seed (the ?seed= query).
 
+// mulberry32: a small, fast, well-behaved PRNG. The seed is a 32-bit int;
+// every call advances the state and returns a float in [0, 1).
 export function mulberry32(seed) {
   let a = seed >>> 0;
   return function () {
@@ -11,6 +13,7 @@ export function mulberry32(seed) {
   };
 }
 
+// A convenience wrapper with the helpers the world builders actually use.
 export function makeRng(seed) {
   const next = mulberry32(seed);
   return {

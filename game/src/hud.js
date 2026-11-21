@@ -1,13 +1,19 @@
 // hud.js — Every 2D layer: health, cash, wanted stars, objective, minimap,
 // speed, dialogs, toasts, menus and the mission list. One job: the interface.
+// Round 2 adds: hit-markers (Bab 21, white/yellow/red), the 2D Leonida map
+// overlay (B key, Bab 28), the smartphone overlay (U key, Bab 9/26), the
+// Photo Studio overlay (O key, Bab 21), and a fixed weapon wheel that shows
+// the real magazine + reserve ammo per weapon (round 1 showed a wrong
+// per-id magAmmo). Minimap: NO automatic red dots (Bab 26) — police dots
+// only appear while the player is wanted (they are "known" then).
 
 import { MISSIONS, PLACES, CITY_HALF, PITCH, GRID } from './config.js';
 import { CHAPTERS } from './story.js';
 
 export function createHud(G) {
   const $ = (id) => document.getElementById(id);
-  // The weapon wheel + character badge + ankle monitor are built here so
-  // index.html does not need new markup for them.
+  // The weapon wheel + character badge + ankle monitor + hit-marker are
+  // built here so index.html does not need new markup for them.
   const wheelEl = document.createElement('div');
   wheelEl.id = 'weapon-wheel';
   wheelEl.style.cssText = 'position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:340px;height:340px;border-radius:50%;background:rgba(10,14,24,0.82);border:2px solid rgba(255,210,63,0.5);display:none;z-index:40;pointer-events:auto;';
@@ -21,6 +27,27 @@ export function createHud(G) {
   monitorEl.id = 'ankle-monitor';
   monitorEl.style.cssText = 'position:fixed;right:14px;top:110px;padding:6px 10px;background:rgba(20,10,10,0.8);border:1px solid #e74c3c;border-radius:4px;color:#ffb0a0;font:600 13px system-ui;z-index:30;display:none;';
   document.body.appendChild(monitorEl);
+  // Hit-marker: a small X at the crosshair, coloured white/yellow/red.
+  const hitEl = document.createElement('div');
+  hitEl.id = 'hit-marker';
+  hitEl.style.cssText = 'position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);font:700 22px system-ui;color:#fff;opacity:0;pointer-events:none;z-index:35;text-shadow:0 0 4px #000;';
+  hitEl.textContent = '✕';
+  document.body.appendChild(hitEl);
+  // Leonida map overlay (B key): a canvas + a side panel, built by leonidamap.js.
+  const mapEl = document.createElement('div');
+  mapEl.id = 'leonida-map';
+  mapEl.style.cssText = 'position:fixed;inset:0;background:rgba(6,10,16,0.92);display:none;z-index:45;';
+  document.body.appendChild(mapEl);
+  // Smartphone overlay (U key): apps are rendered by phone.js into this.
+  const phoneEl = document.createElement('div');
+  phoneEl.id = 'phone';
+  phoneEl.style.cssText = 'position:fixed;right:18px;top:60px;width:300px;max-height:70vh;overflow:auto;background:rgba(12,16,24,0.95);border:2px solid rgba(255,210,63,0.6);border-radius:14px;padding:12px;display:none;z-index:46;color:#eee;font:13px system-ui;';
+  document.body.appendChild(phoneEl);
+  // Photo Studio overlay (O key): 4 tabs, rendered by world.js.
+  const photoEl = document.createElement('div');
+  photoEl.id = 'photo-studio';
+  photoEl.style.cssText = 'position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:520px;max-width:92vw;max-height:80vh;overflow:auto;background:rgba(12,16,24,0.95);border:2px solid rgba(255,210,63,0.6);border-radius:12px;padding:14px;display:none;z-index:46;color:#eee;font:13px system-ui;';
+  document.body.appendChild(photoEl);
   const els = {
     healthFill: $('health-fill'), healthText: $('health-text'),
     cash: $('cash'), stars: $('stars'), objective: $('objective'),
@@ -34,7 +61,7 @@ export function createHud(G) {
     interact: $('interact'),
     hint: $('hint'),
     damage: $('damage'),
-    startMenu: $('start-menu'), pauseMenu: $('pause-menu'),
+    startMenu: $('start-menu'), pauseMenu: $('pause-menu'), castList: $('cast-list'),
     endCard: $('end-card'), endTitle: $('end-title'), endSub: $('end-sub'),
     missionPanel: $('mission-panel'), missionList: $('mission-list'),
     btnNew: $('btn-new'), btnContinue: $('btn-continue'),
@@ -46,6 +73,7 @@ export function createHud(G) {
   const mm = els.minimap.getContext('2d');
   let dialogTimer = null;
   let toastTimer = null;
+  let hitTimer = null;
 
   const H = {
     toast(msg) {
@@ -82,6 +110,13 @@ export function createHud(G) {
         el.style.background = '';
       }, 1000);
     },
+    // Bab 21 hit-marker: white = hit, yellow = incapacitated, red = killed.
+    showHitMarker(color) {
+      hitEl.style.color = color === 'red' ? '#ff3b30' : color === 'yellow' ? '#ffd23f' : '#ffffff';
+      hitEl.style.opacity = '1';
+      clearTimeout(hitTimer);
+      hitTimer = setTimeout(() => { hitEl.style.opacity = '0'; }, 350);
+    },
     // Character badge: which protagonist is on screen right now.
     setCharacter(who) {
       charBadge.textContent = who === 'lucia' ? 'LUCIA' : 'JASON';
@@ -103,7 +138,8 @@ export function createHud(G) {
       }
     },
     // Weapon wheel (hold Tab): owned weapons in a ring, grouped by category.
-    // Click a weapon to equip it; release Tab to close.
+    // Click a weapon to equip it; release Tab to close. Shows real ammo:
+    // magazine for the equipped weapon, reserve for the rest.
     showWeaponWheel(open) {
       if (!open) { wheelEl.style.display = 'none'; return; }
       const W = G.weapons;
@@ -118,7 +154,10 @@ export function createHud(G) {
         const x = 170 + Math.cos(angle) * 118 - 52;
         const y = 170 + Math.sin(angle) * 118 - 22;
         const isActive = active && active.id === id;
-        html += `<button data-w="${id}" style="position:absolute;left:${x}px;top:${y}px;width:104px;padding:5px 4px;font:600 10px system-ui;color:${isActive ? '#111' : '#eee'};background:${isActive ? '#ffd23f' : 'rgba(40,48,64,0.92)'};border:1px solid ${isActive ? '#ffd23f' : 'rgba(255,255,255,0.3)'};border-radius:6px;cursor:pointer;">${w.name}<br><span style="font-weight:400;opacity:0.8;">${w.cat} · ${W.magAmmo[id] ?? w.mag}/${w.mag}</span></button>`;
+        const ammoTxt = isActive
+          ? `${W.magAmmo}/${w.mag || '—'}`
+          : (w.capped === false ? `${w.mag} · uncapped` : `${W.ammo[id] || 0} reserve`);
+        html += `<button data-w="${id}" style="position:absolute;left:${x}px;top:${y}px;width:104px;padding:5px 4px;font:600 10px system-ui;color:${isActive ? '#111' : '#eee'};background:${isActive ? '#ffd23f' : 'rgba(40,48,64,0.92)'};border:1px solid ${isActive ? '#ffd23f' : 'rgba(255,255,255,0.3)'};border-radius:6px;cursor:pointer;">${w.name}<br><span style="font-weight:400;opacity:0.8;">${w.kind} · ${ammoTxt}</span></button>`;
       });
       wheelEl.innerHTML = html;
       wheelEl.style.display = 'block';
@@ -132,6 +171,27 @@ export function createHud(G) {
       els.endCard.classList.add('show');
     },
     hideEndCard() { els.endCard.classList.remove('show'); },
+
+    // ---- Leonida map overlay (B key) ----
+    showMap(open) {
+      mapEl.style.display = open ? 'block' : 'none';
+      if (open && G.leonidaMap) G.leonidaMap.render(mapEl);
+    },
+    mapVisible() { return mapEl.style.display === 'block'; },
+    // ---- Smartphone overlay (U key) ----
+    showPhone(open) {
+      phoneEl.style.display = open ? 'block' : 'none';
+      if (open && G.phone) G.phone.render(phoneEl);
+    },
+    phoneVisible() { return phoneEl.style.display === 'block'; },
+    phoneEl() { return phoneEl; },
+    // ---- Photo Studio overlay (O key) ----
+    showPhotoStudio(open) {
+      photoEl.style.display = open ? 'block' : 'none';
+      if (open && G.world) G.world.renderPhotoStudio(photoEl);
+    },
+    photoVisible() { return photoEl.style.display === 'block'; },
+    photoEl() { return photoEl; },
 
     updateMissionList() {
       let html = '';
@@ -155,6 +215,9 @@ export function createHud(G) {
     },
 
     // ---- Minimap: roads, beach, harbor, player, cars, police, marker ----
+    // Bab 26: no automatic red dots — police only appear on the minimap
+    // while the player is wanted (they are "known" then); on foot, unseen
+    // cops stay invisible, so stealth still works.
     drawMinimap() {
       const S = 190;
       const worldMin = -380, worldSpan = 880;
@@ -200,20 +263,25 @@ export function createHud(G) {
         mm.lineWidth = 1.5;
         mm.stroke();
       }
-      // Cars (white), police (flashing blue/red), target (orange).
+      // Cars (white), police (flashing blue/red, only while wanted), target (orange).
       for (const car of G.cars) {
         let col = '#e8e8e8';
-        if (car.driver === 'police') col = Math.sin(G.elapsed * 9) > 0 ? '#ff3333' : '#3388ff';
+        if (car.driver === 'police') {
+          if (G.police.stars < 1) continue; // no auto red dots
+          col = Math.sin(G.elapsed * 9) > 0 ? '#ff3333' : '#3388ff';
+        }
         else if (car.driver === 'target') col = '#ff7a1a';
         else if (car.driver === 'player') continue; // player arrow covers it
         mm.fillStyle = col;
         mm.fillRect(toMap(car.pos.x) - 2, toMap(car.pos.z) - 2, 4, 4);
       }
-      // Foot cops.
-      mm.fillStyle = '#3388ff';
-      for (const cop of G.police.cops) {
-        if (!cop.alive) continue;
-        mm.fillRect(toMap(cop.pos.x) - 2, toMap(cop.pos.z) - 2, 4, 4);
+      // Foot cops — only while wanted (Bab 26: no auto red dots).
+      if (G.police.stars >= 1) {
+        mm.fillStyle = '#3388ff';
+        for (const cop of G.police.cops) {
+          if (!cop.alive) continue;
+          mm.fillRect(toMap(cop.pos.x) - 2, toMap(cop.pos.z) - 2, 4, 4);
+        }
       }
       // Player arrow.
       const px = toMap(G.player.pos.x), pz = toMap(G.player.pos.z);
@@ -255,7 +323,7 @@ export function createHud(G) {
       // Speed + ammo (from the weapons system: active weapon + magazine).
       const w = G.weapons ? G.weapons.active() : null;
       const ammoLine = w
-        ? `${w.name} — ${G.weapons.magAmmo[w.id] ?? w.mag}/${w.mag}${G.weapons.reloading ? ' — reloading…' : ''}${w.id === 'smokeflash' ? ` — ${G.weapons.throwMode === 'flash' ? 'FLASH' : 'SMOKE'}` : ''}`
+        ? `${w.name} — ${G.weapons.magAmmo}/${w.mag || '—'}${w.capped === false ? ' · uncapped' : ` · ${G.weapons.ammo[w.id] || 0} reserve`}${G.weapons.reloading ? ' — reloading…' : ''}${w.id === 'smokeflash' ? ` — ${G.weapons.throwMode === 'flash' ? 'FLASH' : 'SMOKE'}` : ''}`
         : 'Unarmed';
       if (!G.player.onFoot && G.player.car) {
         els.speed.classList.add('show');
@@ -295,7 +363,22 @@ export function createHud(G) {
       els.startMenu.classList.remove('show');
       els.pauseMenu.classList.remove('show');
     },
-    showPause() { els.pauseMenu.classList.add('show'); },
+    showPause() {
+      els.pauseMenu.classList.add('show');
+      // Cast credits (SPEC Bab 15): bio + voice-talent name as TEXT only.
+      // Built with textContent so bios with quotes/apostrophes stay safe.
+      if (G.characters && els.castList && !els.castList.children.length) {
+        for (const c of G.characters.roster) {
+          const row = document.createElement('div');
+          const name = document.createElement('b'); name.textContent = c.name + ' ';
+          const role = document.createElement('span'); role.className = 'cast-role'; role.textContent = '— ' + c.role + ' ';
+          const va = document.createElement('span'); va.className = 'cast-va'; va.textContent = c.va ? '(voice: ' + c.va + ')' : '';
+          const bio = document.createElement('div'); bio.textContent = c.bio; bio.style.opacity = '.75'; bio.style.fontSize = '12px';
+          row.append(name, role, va, bio);
+          els.castList.appendChild(row);
+        }
+      }
+    },
     hidePause() { els.pauseMenu.classList.remove('show'); },
 
     bindButtons(G) {

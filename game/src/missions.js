@@ -2,6 +2,10 @@
 // Lucia & Jason. One job: play the STORY entries through ten archetypes
 // (drive, steal, delivery, fetch, tail, escape, heist, combat, chase, timed)
 // with markers, payouts, the Chapter 2 ankle monitor, and the finale.
+// NEW in round 2: setMarker() (a manual marker for other systems — cheats,
+// stunts, strangers — to point the player at a target), and the full
+// five-profile criminalProfile() including Irredeemable and the breaking
+// point warning (Bab 11).
 
 import * as THREE from 'three';
 import { STORY, CHAPTERS, ZONES, MONITOR_ZONE, MONITOR_GRACE_SECS } from './story.js';
@@ -63,6 +67,14 @@ export function createMissions(G) {
       this.targetCar = null;
       this.chaseTarget = null;
     },
+
+    // ---- Manual marker: other systems (stunts, strangers, collectibles,
+    // cheats) point the player at a target with a named beacon. ----
+    setMarker(x, z, label) {
+      this.marker = { x, z, label: label || 'Target' };
+      return this.marker;
+    },
+    clearMarker() { this.marker = null; },
 
     start() {
       if (this.storyComplete) return;
@@ -445,28 +457,52 @@ export function createMissions(G) {
       setTimeout(() => { if (G.mode === 'playing' && this._autoToken === token && !this.active) this.start(); }, 2500);
     },
 
-    // ---- The ending: organic, from four factors across the whole game ----
-    // BuckMe savings (G.money), the Jason–Lucia relationship, the criminal
-    // profile (lethal vs non-lethal play), and mission choices (tracked in
-    // G.stats.choices by key missions; neutral until those moments exist).
+    // ---- Criminal Profile (Bab 11): five profiles, from how you play ----
+    // Professional — stuns and non-lethal takedowns, almost no kills.
+    // Hardened — the default: a working criminal, some blood, no pattern.
+    // Violent & Dangerous — kills are piling up.
+    // Psycho — the body count is the story now.
+    // Irredeemable — no way back: the profile that locks the bad endings.
+    // "Breaking point" = the last warning before Irredeemable: once the
+    // body count is near the Irredeemable line, the game warns the player
+    // that one more spree seals the profile for good.
     criminalProfile() {
       const kills = G.stats.copsDown || 0;
       const stuns = G.stats.stuns || 0;
       const civ = G.stats.civiliansHurt || 0;
       if (G.stats.psycho) return 'Psycho';
+      if (kills >= 50 || civ >= 30) return 'Irredeemable';
       if (kills >= 25 || civ >= 15) return 'Psycho';
       if (kills >= 8 || civ >= 5) return 'Violent & Dangerous';
       if (stuns >= 5 && kills <= 2) return 'Professional';
       return 'Hardened';
     },
+    // True when the player is one spree away from Irredeemable.
+    breakingPoint() {
+      const kills = G.stats.copsDown || 0;
+      const civ = G.stats.civiliansHurt || 0;
+      if (this.criminalProfile() === 'Irredeemable') return false;
+      return kills >= 40 || civ >= 24;
+    },
+    warnBreakingPoint() {
+      if (this.breakingPoint() && !this._bpWarned) {
+        this._bpWarned = true;
+        G.hud.showDialog('STREET', 'You\'re at the breaking point. One more spree and there is no coming back — the city will never see you as anything but a monster.', 8000);
+      }
+      if (!this.breakingPoint()) this._bpWarned = false;
+    },
 
+    // ---- The ending: organic, from four factors across the whole game ----
+    // BuckMe savings (G.money), the Jason–Lucia relationship, the criminal
+    // profile (lethal vs non-lethal play), and mission choices (tracked in
+    // G.stats.choices by key missions; neutral until those moments exist).
     computeEnding() {
       const savings = G.money;
       const rel = G.stats.relationship || 40;
       const profile = this.criminalProfile();
       const choices = G.stats.choices || {};
-      // A Psycho run ends the Bonnie & Clyde way, whatever the money says.
-      if (profile === 'Psycho') return { key: 'bad2', name: 'No Surrender', desc: 'No surrender. The last stand on the bridge, guns out, together to the end.' };
+      // An Irredeemable run ends the Bonnie & Clyde way, whatever the money says.
+      if (profile === 'Irredeemable' || profile === 'Psycho') return { key: 'bad2', name: 'No Surrender', desc: 'No surrender. The last stand on the bridge, guns out, together to the end.' };
       if (savings >= 40000 && rel >= 60) return { key: 'good1', name: 'Top of the World', desc: 'Both of them alive, both of them free — the money, the plan, and the road out of Leonida.' };
       if (rel >= 60 && profile === 'Professional') return { key: 'good2', name: 'Swim For It', desc: 'Jason gives himself up so Lucia walks free. One of them pays, so the other can start over.' };
       if (choices.armed) return { key: 'bad1', name: 'Swim For It — Armed', desc: 'The swim, with guns drawn. The bridge, the sirens, and no way out.' };

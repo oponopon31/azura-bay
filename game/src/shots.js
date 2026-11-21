@@ -1,6 +1,9 @@
 // shots.js — Deterministic screenshot poses. The game reads ?shot=<name>&seed=N
 // and stages that exact scene: fixed seed, fixed camera, fixed time of day,
 // HUD and minimap visible, menus hidden. The same query always stages the same shot.
+// Round 2 fix: the round-1 shootout pose set `G.weapons.magAmmo.es9 = 12`
+// (a property on a number — a TypeError in strict-mode modules); the mag
+// count is now set as the scalar `G.weapons.magAmmo = 12`.
 
 import * as THREE from 'three';
 import { PLACES } from './config.js';
@@ -59,7 +62,7 @@ export function applyShot(G, name) {
     if (G.weapons) {
       G.weapons.give('es9');
       G.weapons.equip('es9');
-      G.weapons.magAmmo.es9 = 12;
+      G.weapons.magAmmo = 12;
     }
     G.police.heat = 34;
     G.police.stars = 2;
@@ -104,6 +107,14 @@ export function applyShot(G, name) {
     G.missions.stage = 1;
     G.missions.hasPackage = true;
     G.missions.setMarker(PLACES.safehouseDoor.x, PLACES.safehouseDoor.z, 'Escape to the safehouse');
+    // Fixed camera: 7 m behind the player at the docks, looking west at
+    // the player with the police car and the city beyond. Without this the
+    // framing depends on the third-person camera lerp converging, which
+    // in slow headless runs leaves the player a speck on the horizon.
+    G.shotCamera = {
+      pos: new THREE.Vector3(PLACES.harbor.x + 1, 2.6, PLACES.harbor.z + 4),
+      look: new THREE.Vector3(PLACES.harbor.x - 6, 1.4, PLACES.harbor.z + 4),
+    };
     G.police.heat = 55;
     G.police.stars = 3;
     G.police.lastSeen = G.elapsed;

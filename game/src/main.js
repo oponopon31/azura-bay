@@ -1,5 +1,12 @@
 // main.js — Boot and the game loop: input, lighting and day/night, camera,
 // menus, autosave and the debug hook. One job: wire every system together.
+// Round 2 wires the new systems (vehicleDb, radio, gunshops, cheats,
+// strangers, collectibles, stunts, mysteries, properties, attributes,
+// phone, events, economy, fishing, activities, world, leonidamap,
+// variants) in dependency-safe order, adds the round-2 key bindings
+// (B map, U phone, V radio station, O Photo Studio, T Auto-Drive /
+// Quick GPS, Y surrender, H hide in car, J call Joey), and extends the
+// debug snapshot with the new systems' counts.
 
 import * as THREE from 'three';
 import { makeRng } from './rng.js';
@@ -8,7 +15,7 @@ import { createAudio } from './audio.js';
 import { createEffects } from './effects.js';
 import { buildCity } from './city.js';
 import { spawnParkedCars, spawnTraffic, updateVehicles } from './vehicles.js';
-import { spawnPedestrians, updatePedestrians, knockDownPed } from './pedestrians.js';
+import { spawnPedestrians, updatePedestrians, knockDownPed, stunPed, interactAnimal, panicNearby } from './pedestrians.js';
 import { createPlayer } from './player.js';
 import { createDriving } from './driving.js';
 import { createCombat } from './combat.js';
@@ -19,6 +26,25 @@ import { createHud } from './hud.js';
 import { createSave } from './save.js';
 import { applyShot } from './shots.js';
 import { createSelfTest } from './selftest.js';
+import { createVehicleDb } from './vehicles-data.js';
+import { createRadio } from './radio.js';
+import { createGunshops } from './gunshops.js';
+import { createCheats } from './cheats.js';
+import { createStrangers } from './strangers.js';
+import { createCollectibles } from './collectibles.js';
+import { createStunts } from './stunts.js';
+import { createMysteries } from './mysteries.js';
+import { createProperties } from './properties.js';
+import { createAttributes } from './attributes.js';
+import { createPhone } from './phone.js';
+import { createEvents } from './events.js';
+import { createEconomy } from './economy.js';
+import { createFishing } from './fishing.js';
+import { createActivities } from './activities.js';
+import { createWorld } from './world.js';
+import { createLeonidaMap } from './leonidamap.js';
+import { createVariants } from './variants.js';
+import { createCharacters } from './characters.js';
 
 const params = new URLSearchParams(location.search);
 const seed = Number(params.get('seed') || 7);
@@ -68,7 +94,9 @@ const G = {
   stats: { carsStolen: 0, shotsFired: 0, punches: 0, copsDown: 0, crimes: 0, missionsDone: 0, stuns: 0, civiliansHurt: 0, psycho: false, relationship: 40, lastMissionWho: null, choices: {} },
   input: { keys: {}, mouseDown: false, dragging: false },
   shotCamera: null,
-  turbo: selftestOn ? 12 : 1, // self-test runs the sim fast, rendering rarely
+  // Turbo: the self-test runs the sim 12x with rare renders. A ?turbo=N
+  // query lets a scripted probe run the sim fast without the self-test.
+  turbo: selftestOn ? 12 : (Math.max(1, Number(params.get('turbo') || 1)) || 1),
   autosaveTimer: 0,
   atSafehouse: false,
 };
@@ -83,7 +111,34 @@ G.police = createPolice(G);
 G.missions = createMissions(G);
 G.hud = createHud(G);
 G.save = createSave(G);
-G.pedestrians = { knockDownPed };
+// ---- Round-2 systems (dependency-safe order) ----
+G.vehicleDb = createVehicleDb();
+G.world = createWorld(G);
+G.settings = G.world.settings;
+G.settings.scopeFirstPerson = false; // player.js reads this for scope zoom
+// police.js reads G.wardrobe.currentOutfit() for Heat memory.
+G.wardrobe = {
+  currentOutfit: () => (G.world ? `${G.world.wardrobe.hat}-${G.world.wardrobe.hoodie}${G.world.wardrobe.glasses ? '-shades' : ''}` : 'default'),
+};
+G.radio = createRadio(G);
+G.gunshops = createGunshops(G);
+G.cheats = createCheats(G);
+G.strangers = createStrangers(G);
+G.collectibles = createCollectibles(G);
+G.stunts = createStunts(G);
+G.mysteries = createMysteries(G);
+G.properties = createProperties(G);
+G.attributes = createAttributes(G);
+G.phone = createPhone(G);
+G.events = createEvents(G);
+G.economy = createEconomy(G);
+G.fishing = createFishing(G);
+G.activities = createActivities(G);
+G.achievements = G.activities; // save.js reads G.achievements
+G.leonidaMap = createLeonidaMap(G);
+G.variants = createVariants(G);
+G.characters = createCharacters(G);
+G.pedestrians = { knockDownPed, stunPed, interactAnimal, panicNearby };
 spawnParkedCars(G);
 spawnTraffic(G);
 spawnPedestrians(G);
@@ -128,6 +183,11 @@ function onKeyDown(e) {
   if (e.repeat) return;
   G.input.keys[e.code] = true;
   G.audio.ensure();
+  // Cheat combos are typed as arrow keys while the phone is open.
+  if (G.hud.phoneVisible() && e.code.startsWith('Arrow')) {
+    G.phone.typeComboKey(e.code);
+    return;
+  }
   // Tab (hold) opens the weapon wheel; preventDefault keeps the browser
   // from moving focus away from the game.
   if (e.code === 'Tab') {
@@ -150,6 +210,7 @@ function onKeyUp(e) {
 addEventListener('keydown', onKeyDown);
 addEventListener('keyup', onKeyUp);
 
+const SLOT_KEYS = ['melee', 'sidearm', 'primary', 'secondary', 'explosive'];
 G.pressKey = (code) => {
   if (code === 'KeyE') {
     if (G.player.onFoot) {
@@ -166,9 +227,9 @@ G.pressKey = (code) => {
   } else if (code === 'KeyR') {
     G.weapons.startReload();
   } else if (code === 'KeyV') {
-    // Radio moved here (R is reload now).
-    G.audio.setRadio(!G.audio.radioOn);
-    G.hud.toast(G.audio.radioOn ? 'Radio on — Azura FM' : 'Radio off');
+    // Radio: next station (and the radio comes on).
+    G.radio.next();
+    G.audio.setRadio(true);
   } else if (code === 'KeyQ') {
     G.weapons.next();
   } else if (code === 'KeyG') {
@@ -183,9 +244,42 @@ G.pressKey = (code) => {
   } else if (code === 'KeyN') {
     G.audio.setMuted(!G.audio.muted);
     G.hud.toast(G.audio.muted ? 'Sound muted' : 'Sound on');
+  } else if (code === 'KeyB') {
+    // Leonida map (2D).
+    G.hud.showMap(!G.hud.mapVisible());
+  } else if (code === 'KeyU') {
+    // Smartphone.
+    G.hud.showPhone(!G.hud.phoneVisible());
+  } else if (code === 'KeyO') {
+    // Photo Studio.
+    G.hud.showPhotoStudio(!G.hud.photoVisible());
+  } else if (code === 'KeyT') {
+    // Auto-Drive / Quick GPS: drive to the mission marker (or the waypoint).
+    const target = G.missions.marker || (G.leonidaMap.waypoint ? { x: 0, z: 0 } : null);
+    if (target && G.player.car) {
+      G.driving.setAutoDrive(true, { x: target.x, z: target.z });
+    } else if (!G.player.car) {
+      G.hud.toast('Auto-Drive needs a car first.');
+    } else {
+      G.hud.toast('Auto-Drive needs a destination — set a marker or a waypoint.');
+    }
+  } else if (code === 'KeyY') {
+    // Surrender (1–2 stars).
+    G.police.surrender();
+  } else if (code === 'KeyH') {
+    // Hide in the car (back seat).
+    G.world.hideInCar(!G.world.hiddenInCar);
+  } else if (code === 'KeyJ') {
+    // Call Joey — clear the heat, for a price.
+    G.world.callJoey();
+  } else if (code === 'KeyC') {
+    // Crouch is held in player.update via the keys map; C here toggles
+    // the non-lethal mode (limb shots incapacitate, never kill).
+    G.world.nonLethalMode = !G.world.nonLethalMode;
+    G.hud.toast(G.world.nonLethalMode ? 'Non-lethal mode on — limb shots incapacitate.' : 'Non-lethal mode off.');
   } else if (code.startsWith('Digit')) {
     const n = Number(code.slice(5));
-    if (n >= 1 && n <= 9) G.weapons.equipSlot(n);
+    if (n >= 1 && n <= 5) G.weapons.equipSlot(SLOT_KEYS[n - 1]);
   }
 };
 
@@ -258,7 +352,14 @@ G.quitToMenu = () => {
   G.mode = 'menu';
   G.hud.showStart(G.save.exists());
 };
-G.saveGame = () => G.save.save();
+// A cheat, once activated, disables saving for the rest of the session.
+G.saveGame = () => {
+  if (G.cheats && G.cheats.saveBlocked()) {
+    G.hud.toast('Saving is disabled — a cheat was activated this session.');
+    return false;
+  }
+  return G.save.save();
+};
 
 // Switch the playable protagonist (Lucia / Jason): weapon loadout,
 // player mesh and the HUD character badge all follow.
@@ -307,6 +408,14 @@ function update(dt) {
   G.weapons.update(dt);
   G.missions.update(dt);
   G.effects.update(dt);
+  // Round-2 systems.
+  G.collectibles.update();
+  G.stunts.update();
+  G.strangers.update();
+  G.events.update(dt);
+  G.mysteries.update();
+  G.world.update(dt);
+  if (frames % 300 === 0) G.activities.checkAchievements();
   // Engine + siren follow the driving state.
   const driving = !G.player.onFoot && G.player.car;
   G.audio.setEngine(driving ? Math.abs(G.player.car.speed) / G.player.car.cls.maxSpeed : 0, driving);
@@ -365,6 +474,25 @@ window.__azura = {
       peds: G.peds.filter((p) => p.alive).length,
       cops: G.police.cops.filter((c) => c.alive).length,
       timeOfDay: Math.round(G.timeOfDay * 100) / 100,
+      // Round-2 systems.
+      weapons: G.weapons.ownedList().length,
+      vehicles: G.vehicleDb.count,
+      radioStation: G.radio.current.name,
+      gunShops: G.gunshops.shops.length,
+      cheats: G.cheats.cheats.length,
+      strangers: G.strangers.doneCount(),
+      collectiblesFound: G.collectibles.foundCount(),
+      collectiblesTotal: G.collectibles.total,
+      stuntsDone: G.stunts.stuntTotal(),
+      robberiesDone: G.stunts.robberyDone(),
+      mysteries: G.mysteries.count(),
+      garagesOwned: G.properties.ownedGarages.length,
+      achievements: G.activities.unlockedCount(),
+      fishCaught: G.fishing.logbookCount(),
+      mapPoints: G.leonidaMap.points.length,
+      variants: G.variants.total(),
+      characters: G.characters.roster.length,
+      profile: G.missions.criminalProfile(),
     };
   },
 };

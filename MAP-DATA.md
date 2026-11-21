@@ -197,7 +197,7 @@ Ikon lain yang relevan untuk HUD/peta (dari halaman yang sama):
 - Criminal Profile: Professional, Hardened, Violent, Psycho, Breaking point
   (peringatan terakhir sebelum Irredeemable), Irredeemable (permanen).
   CATATAN: gtabase memakai "Hardened", bukan "Aggressive" — SPEC.md Bab 11
-  memakai "Aggressive" sebagai profil #2. Perlu diputuskan mana yang dipakai.
+  memakai "Hardened" sebagai profil #2. Sudah diselaraskan.
 - Relationship: Hot Together (4/4), Crazy in Love (3/4), Not So Hot (2/4),
   Running on Empty (1/4); ikon naik/turun.
 - Kendaraan: Personal vehicle, Unowned vehicle, Standout vehicle, Destroyed,
@@ -302,17 +302,19 @@ Aturan posisi untuk membangun peta 2D (koordinat relatif, 0–1000; x=timur, y=s
 - CATATAN: koordinat di atas adalah PERKIRAAN RELATIF dari posisi county +
   analogi Florida, BUKAN koordinat persis dari gtabase (peta interaktifnya
   berbasis JS dan tidak bisa diambil lewat teks). Jangan klaim sebagai posisi
-  resmi.
+  resmi. — Pengecualian: 26 titik bagian (g) diukur langsung dari kursor peta
+  (live check 09:59–10:21 WIB) dan dipakai sebagai skala peta game.
 
 ---
 
 ## (f) YANG TIDAK TERVERIFIKASI / CATATAN KEJUJURAN
 
-1. KOORDINAT PERSIS marker: TIDAK berhasil diambil. Peta interaktif gtabase
+1. KOORDINAT PERSIS marker: TIDAK berhasil diambil lewat teks. Peta interaktif gtabase
    dirender via JavaScript; teks halaman yang bisa dibaca tidak memuat daftar
    marker maupun koordinatnya. Total per live check 21 Nov 2026: 3.064 lokasi /
    93 kategori (teks awal yang terbaca: 2.912/91). Posisi di bagian (e) adalah
-   perkiraan relatif, bukan data resmi.
+   perkiraan relatif, bukan data resmi. — Lihat bagian (g) untuk 26 koordinat
+   yang diukur dari posisi kursor.
 2. VERIFIKASI LIVE 2026-11-21 09:54–09:57 WIB (browser, kolom search peta
    interaktif gtabase, update 21 Nov 2026): ke-11 nama dari SPEC.md Bab 27
    SEMUANYA DITEMUKAN — info user BENAR. Rinciannya:
@@ -348,10 +350,60 @@ Aturan posisi untuk membangun peta 2D (koordinat relatif, 0–1000; x=timur, y=s
    terbaca hanya memberi total 2.912 lokasi / 91 kategori — rincian per kategori
    TIDAK terverifikasi dari gtabase.
 5. "Hardened" vs "Aggressive": gtabase Icons memakai profil Criminal
-   "Hardened" sebagai #2; SPEC.md Bab 11 memakai "Aggressive". Salah satu
-   harus dipilih/diseleraskan.
+   "Hardened" sebagai #2; SPEC.md Bab 11 memakai "Hardened". Sudah selaras.
 6. Peta bocor 18 Agu 2026: gtabase menegaskan itu dari build internal LAMA dan
    belum dikonfirmasi Rockstar; lokasi/batas bisa berubah di final.
 7. Sumber: gtabase.com/gta-6/map/ (update 2026-11-20), /gta-6/map-locations/
    (update 2026-11-17), /gta-6/articles/gta-6-icons-explained (update
    2026-11-20). Diakses 2026-11-21.
+
+## (g) KOORDINAT GTABASE — LIVE CHECK 2026-11-21 09:59–10:21 WIB
+
+Metode: pembacaan posisi kursor di pojok kanan bawah peta (popup TIDAK
+menampilkan koordinat). Format `X -2,366 Y -5,992` — bilangan bulat, koma =
+pemisah ribuan, positif tanpa tanda `+`, negatif dengan `−`. X bertambah ke
+timur, Y bertambah ke utara. Toleransi ±40 unit (lebih besar saat zoom jauh).
+Rentang terukur: X −7.088 (Capri) s.d. +1.530 (Vice Beach); Y −6.470
+(Goose Key Marina) s.d. +6.440 (Mount Kalaga). Tidak ada file data/API massal
+— diukur satu per satu, read-only, tanpa login, tanpa klik "FOUND".
+
+| Nama | X | Y | Marker yang dibuka |
+|---|---|---|---|
+| Key Lento | -2,366 | -5,992 | Cities & Towns 1/10 |
+| Hamlet | -2,864 | -3,120 | Cities & Towns 2/10 |
+| Watson Bay | -4,862 | -3,404 | Cities & Towns 3/10 |
+| Capri | -7,088 | 202 | Cities & Towns 4/10 |
+| Gloriana Key | 722 | -1,398 | Cities & Towns 10/10 |
+| Vice City | -220 | 756 | Cities & Towns 8/10 |
+| Vice Beach | 1,530 | 896 | Cities & Towns 9/10 |
+| Waning Sands | -244 | 4,028 | Cities & Towns 7/10 |
+| Ambrosia | -3,040 | 4,234 | Cities & Towns 6/10 |
+| Port Gellhorn | -6,560 | 4,264 | Cities & Towns 5/10 |
+| Millport | -712 | 6,244 | Millport Train Station (Train & Metro 24/31) |
+| Emerald Springs | -3,960 | 2,164 | Emerald Springs Country Store (Convenience 36/72) |
+| La Perle | -762 | 1,776 | La Perle Fire Station (Fire Stations 9/10) |
+| Bayside | -440 | 1,298 | Bayside Apartments, 201 (Safehouses 2/4) |
+| Salton | -1,414 | -536 | Salton Pawn Shop (Fences 5/14) |
+| Southside | -1,632 | -2,122 | Xero Food Mart - Southside (Convenience 12/72) |
+| Balsero | -2,218 | 460 | Tengah label BALSERO (terdekat: RON Car Wash - Balsero) |
+| Decor District | -296 | 2,168 | Slinger - Decor District (Clothing 31/67) |
+| Goose Key | -6,226 | -6,470 | Goose Key Marina (Marinas 4/11) |
+| Gellhorn International Raceway | -6,718 | 2,376 | Landmark 30/43, sisi utara trek |
+| Leonida Keys | -4,166 | -6,422 | Landmark 2/43 |
+| Grassrivers | -3,280 | -4,270 | Landmark 5/43 |
+| Mount Kalaga National Park | -3,396 | 6,440 | Landmark 41/43 |
+| Lake Leonida | -1,948 | 4,794 | Landmark 36/43 |
+| Vice City International Airport (VCIA) | -2,118 | -662 | Landmark 7/43 |
+| Vice City Port | 854 | -390 | Landmark Port Vice City 18/43 |
+| Breakwater Quarry | -4,462 | -922 | Under the Bridge 177/202 (diukur ulang) |
+
+KOREKSI: nilai lama Breakwater Quarry (X −4.600, Y +643) TIDAK terulang —
+JANGAN dipakai. Nilai baru di atas (ujung popup; pusat ikon −4.446 / −960).
+
+Catatan: lapangan terbang di Goose Key (X −6.226) adalah lapangan terbang yang
+BERBEDA dari VCIA (X −2.118, Y −662) — terpaut ~7.100 unit.
+
+STATUS: pekerjaan peta DIHENTIKAN SEMENTARA atas perintah user 2026-11-21
+10:21 WIB ("udah aja kalo map, entar aja diterusin, asal lu simpen di memory").
+Koordinat di atas tersimpan di file ini + MEMORY.md. Lanjutkan nanti: bangun
+peta 2D game dari koordinat ini (ganti layout relatif 0–1000 di bagian (e)).

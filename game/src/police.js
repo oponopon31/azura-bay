@@ -1,5 +1,8 @@
 // police.js — The wanted system: heat and stars, police cars that chase and ram,
 // foot cops, roadblocks and the helicopter at 3+ stars, plus busted/wasted.
+// Bab 12: Heat is the police memory — outfit, vehicle, weapon, partner — and
+// stars have five states (hollow / solid / blinking / red / 6-star manhunt).
+// Bab 21: at 1–2 stars the police order the player to surrender first.
 
 import * as THREE from 'three';
 import { WANTED, starsFromHeat, policeCarCount, helicopterAt, CITY_HALF, PITCH, GRID, onRoad, nearestRoad } from './config.js';
@@ -62,6 +65,11 @@ export function createPolice(G) {
     seenNow: false,
     bustedTimer: 0,
     spawnCooldown: 0,
+    // Bab 12 Heat memory: what the police remember about the player.
+    memory: { outfit: null, vehicle: null, weapon: null, partner: false, cctv: false },
+    starState: 'none', // hollow | solid | blinking | red | six
+    surrenderOffered: false,
+    escapes3Star: 0,   // counted for the Raise Heat Level cheat unlock
 
     addHeat(amount, why) {
       if (G.mode !== 'playing') return;
@@ -77,6 +85,42 @@ export function createPolice(G) {
       G.stats.crimes++;
     },
 
+    // Bab 12: the police remember the current outfit / vehicle / weapon.
+    // Changing them after the stars clear breaks recognition.
+    rememberClues() {
+      this.memory.outfit = G.wardrobe ? G.wardrobe.currentOutfit() : 'default';
+      this.memory.vehicle = G.player.car ? G.player.car.model : null;
+      this.memory.weapon = G.weapons ? G.weapons.active().id : null;
+      this.memory.partner = !!(G.stats.partnerNearby);
+    },
+    // Recognition check: same outfit + same car after the stars clear =
+    // the police spot the player again ("RECOGNIZED").
+    checkRecognition() {
+      if (this.stars > 0) return false;
+      const sameOutfit = this.memory.outfit && this.memory.outfit === (G.wardrobe ? G.wardrobe.currentOutfit() : 'default');
+      const sameCar = this.memory.vehicle && G.player.car && G.player.car.model === this.memory.vehicle;
+      if ((sameOutfit || sameCar) && G.police.cops.some((c) => c.alive && c.pos.distanceTo(G.player.pos) < 25)) {
+        G.hud.toast('RECOGNIZED! The police remember that outfit / car!');
+        this.addHeat(20, 'recognized by police');
+        return true;
+      }
+      return false;
+    },
+    // Bab 12 escape routes: change clothes (via the car trunk), disguise,
+    // swap cars, Pay 'n' Spray, call Joey, or loot a police trunk.
+    clearMemory(why) {
+      this.memory = { outfit: null, vehicle: null, weapon: null, partner: false, cctv: false };
+      G.hud.toast(`Heat memory cleared — ${why}.`);
+    },
+    lootPoliceTrunk() {
+      const pc = G.cars.find((c) => c.driver === 'police' && c.pos.distanceTo(G.player.pos) < 6);
+      if (!pc) { G.hud.toast('No police car nearby to loot.'); return false; }
+      G.hud.toast('Police trunk looted: Body Armor + shotgun shells.');
+      if (G.weapons) { G.weapons.give('morland850'); G.weapons.magAmmo.morland850 = 6; }
+      if (G.world) G.world.addBodyArmor(50);
+      return true;
+    },
+
     // Line of sight from any police unit to the player (distance-based).
     // Hiding rule: on foot and off the road (in a park, a yard, the beach),
     // the player is hidden unless a unit is right on top of them (< 12 m).
@@ -89,6 +133,8 @@ export function createPolice(G) {
           if (Math.hypot(p.x - cloud.pos.x, p.z - cloud.pos.z) < cloud.radius) return false;
         }
       }
+      // Hide in Car (Bab 18): ducked down in the car, the police eye passes over.
+      if (G.world && G.world.hiddenInCar) return false;
       const hidden = G.player.onFoot && !onRoad(p.x, p.z);
       for (const car of G.cars) {
         if (car.driver === 'police') {
@@ -117,9 +163,26 @@ export function createPolice(G) {
       if (this.stars > 0 && G.elapsed - this.lastSeen > WANTED.decayDelay) {
         this.heat = Math.max(0, this.heat - WANTED.decayRate * dt);
         const s = starsFromHeat(this.heat);
-        if (s < this.stars) G.hud.toast('The heat is cooling off…');
+        if (s < this.stars) {
+          G.hud.toast('The heat is cooling off…');
+          if (s === 0 && this.stars >= 3) { this.escapes3Star++; this.rememberClues(); }
+        }
         this.stars = s;
+        if (this.stars === 0) this.checkRecognition();
       }
+      // Star state (Bab 12): hollow while merely reported, solid while seen,
+      // blinking while out of sight, red while the area is being searched.
+      this.starState = this.stars <= 0 ? 'none'
+        : this.seenNow ? 'solid'
+        : (G.elapsed - this.lastSeen < 4 ? 'blinking' : 'red');
+      // Surrender (Bab 21): at 1–2 stars the police order the player to
+      // give up before they open fire.
+      if ((this.stars === 1 || this.stars === 2) && !this.surrenderOffered && this.seenNow) {
+        this.surrenderOffered = true;
+        G.hud.toast('Police: "Hands up! Surrender now!" (press Y to give up)');
+        G.hud.showDialog('VCPD', '"Put your hands up and this ends clean. Keep running and it ends worse."', 5000);
+      }
+      if (this.stars === 0) this.surrenderOffered = false;
       // Speeding past a police car adds a little heat (close and very fast only).
       if (G.player.inCar && G.player.speed > 30) {
         for (const car of G.cars) {
@@ -144,6 +207,18 @@ export function createPolice(G) {
         siren = nearest < 1e8 ? Math.max(0.15, 1 - nearest / 120) : 0.3;
       }
       G.audio.setSiren(siren);
+    },
+
+    // Bab 21 surrender: give up at 1–2 stars — a fine, no chase, story continues.
+    surrender() {
+      if (this.stars < 1 || this.stars > 2) { G.hud.toast('Too hot to surrender now.'); return false; }
+      const fine = Math.min(G.money, 150);
+      G.money -= fine;
+      this.heat = 0;
+      this.stars = 0;
+      this.starState = 'none';
+      G.hud.toast(`You surrendered. Fine $${fine}. The VCPD lets you walk.`);
+      return true;
     },
 
     maintainUnits(dt) {
@@ -425,6 +500,7 @@ export function createPolice(G) {
       G.money -= fine;
       this.heat = 0;
       this.stars = 0;
+      this.starState = 'none';
       this.bustedTimer = 0;
       G.hud.showEndCard('BUSTED', `The Azura Bay PD caught up with you. Fine: $${fine}. Your crew bailed you out.`);
       G.mode = 'busted';
@@ -441,6 +517,7 @@ export function createPolice(G) {
       G.money -= bill;
       this.heat = 0;
       this.stars = 0;
+      this.starState = 'none';
       G.hud.showEndCard('WASTED', `You flatlined in Azura Bay. Hospital bill: $${bill}. The crew patched you up.`);
       G.mode = 'wasted';
       G.audio.setSiren(0);

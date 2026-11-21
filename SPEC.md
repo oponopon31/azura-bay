@@ -238,6 +238,8 @@ di late-game setelah batas level cerita terbuka.
   3) Violent & Dangerous (sering menembak membabi buta & melukai warga)
   4) Psycho (kekacauan ekstrem — kalau logo sampai pecah/shattered, PERMANEN,
      tidak bisa dikembalikan)
+  5) Irredeemable (status kriminal permanen tertinggi, di atas Psycho — permanen;
+     "breaking point" = peringatan terakhir sebelum Irredeemable)
 - Ending TIDAK dipilih lewat menu instan (bukan GTA 5). Ditentukan organik oleh
   4 faktor: (1) tabungan keluarga di BuckMe, (2) hubungan romantis Jason & Lucia,
   (3) Criminal Profile, (4) pilihan keputusan di misi sebelumnya.
@@ -274,6 +276,10 @@ di late-game setelah batas level cerita terbuka.
 - Eyefind (browser): situs parodi, beli kendaraan, berita terkini soal aksi kriminalmu.
 - Music / Radio App: radio & podcast kapan saja sambil jalan kaki pakai headphone.
 - Camera & Wildlife Logbook: selfie, kejadian aneh, 170+ spesies satwa liar.
+- RydeMe: ojek/taksi online = fast travel bertarif.
+- Wink App: kamera ponsel memindai mobil dari jauh (terkunci/alarm/pelacak GPS).
+- Scooter Bros App: daftarkan & kelola hingga 10 skuter/motor ringan.
+- Snapmatic: aplikasi foto ponsel ke-10 (terhubung Camera Bab 13 + sindiran GTA 7 Bab 21).
 
 ## 14. RANDOM EVENTS & ENCOUNTERS (500+)
 - Liar & aneh: penari gila di atas kap mobil polisi (Crazy Cop Car Dancer),
@@ -324,20 +330,20 @@ topi snapback — tidak termasuk game).
 ---
 CHECKLIST COVERAGE (diisi koordinator saat implementasi — jangan hapus):
 - [x] 91 misi (Ch1 22, Ch2 11, Ch3 26, Ch4 25, Ch5 7) — nama + objektif + playable
-- [ ] 66 senjata (16 sidearms, 37 longarms, 9 melee, 4 explosives) + weapon wheel + toko
-- [ ] 61 cheat (unlock pasca-tamat, kombinasi D-Pad, nonaktifkan trophy/save)
-- [ ] 13 Strangers & Freaks
+- [x] 66 senjata (16 sidearms, 37 longarms, 9 melee, 4 explosives) + weapon wheel + toko
+- [x] 61 cheat (unlock pasca-tamat, kombinasi D-Pad, nonaktifkan trophy/save)
+- [x] 13 Strangers & Freaks
 - [ ] ~3.000 koleksi + tracker 100%
 - [ ] 397 stunt + 175 perampokan bebas
-- [ ] Easter egg (Skunk Ape, UFO 02.00, telur menara, referensi GTA/film)
-- [ ] 24 stasiun radio (headphone + kendaraan)
-- [ ] Properti (safehouse ikut cerita, 12 garasi + 3 bonus) + lokasi bisnis/toko
-- [ ] 3 atribut karakter (Strength, Cardio, Focus; Lv 4 + Lv 5 late-game)
-- [x] Criminal Profile (4 status) + 4 ending + post-game rewind
-- [ ] Wanted & Heat (5 status bintang + ingatan polisi + cara lolos)
-- [ ] Smartphone (BuckMe, WhatUp!, Lifeinvader, Eyefind, Music/Radio, Camera/Logbook)
+- [x] Easter egg (Skunk Ape, UFO 02.00, telur menara, referensi GTA/film)
+- [x] 24 stasiun radio (headphone + kendaraan)
+- [x] Properti (safehouse ikut cerita, 12 garasi + 3 bonus) + lokasi bisnis/toko
+- [x] 3 atribut karakter (Strength, Cardio, Focus; Lv 4 + Lv 5 late-game)
+- [x] Criminal Profile (5 status) + 4 ending + post-game rewind
+- [x] Wanted & Heat (5 status bintang + ingatan polisi + cara lolos)
+- [x] Smartphone (BuckMe, WhatUp!, Lifeinvader, Eyefind, Music/Radio, Camera/Logbook)
 - [ ] 500+ random events
-- [ ] 25 karakter (2 protagonis, 6 central, 17 pendukung)
+- [x] 25 karakter (2 protagonis, 6 central, 17 pendukung)
 
 ## 17. MEKANIK MENDALAM (user spec 2026-11-21 09:34 WIB)
 
@@ -391,7 +397,7 @@ belum ada GTA 6 Online & PC (2027).
 
 ---
 CHECKLIST TAMBAHAN (diisi koordinator — jangan hapus):
-- [ ] Ekonomi 3 jenis uang + penadah spesialis + syarat saldo misi
+- [x] Ekonomi 3 jenis uang + penadah spesialis + syarat saldo misi
 - [ ] Security tiers kendaraan + GPS tracker + bensin/charging + perintah partner
 - [ ] Berat badan dinamis + rambut/salon + detail penampilan
 - [ ] Memancing 35 spesies + taktik tempur (lumpuh non-lethal, suppressing fire, longarm terbuka)
@@ -446,7 +452,7 @@ CHECKLIST TAMBAHAN 2 (diisi koordinator — jangan hapus):
 - [ ] Auto-Drive + Quick GPS + Push Mechanic + Hide in Car + Road Rage + fisika mobil berat
 - [ ] RydeMe + bus/kereta + perahu/pesawat amfibi
 - [ ] VR mini-game + saklar lampu/pintu terkunci/lift + Wink App + efek fisik + No HUD
-- [ ] Fishing Logbook 35 spesies
+- [x] Fishing Logbook 35 spesies
 
 ## 19. AKTIVITAS BEBAS, MINI-GAME & TANTANGAN (user spec 2026-11-21 09:39 WIB)
 
@@ -501,9 +507,9 @@ CHECKLIST TAMBAHAN 2 (diisi koordinator — jangan hapus):
 
 ---
 CHECKLIST TAMBAHAN 3 (diisi koordinator — jangan hapus):
-- [ ] Mini-game: drone races + bowling + arcade + Scooter Bros App
-- [ ] Aturan perampokan bebas (berdua, satpam >2 menembak, lucuti satpam dulu)
-- [ ] 32 achievement/tantangan (track + unlock)
+- [x] Mini-game: drone races + bowling + arcade + Scooter Bros App
+- [x] Aturan perampokan bebas (berdua, satpam >2 menembak, lucuti satpam dulu)
+- [x] 32 achievement/tantangan (track + unlock)
 
 ## 20. FITUR TERSEMBUNYI & EKSPLORASI BEBAS (user spec 2026-11-21 09:40 WIB)
 
@@ -593,8 +599,8 @@ CHECKLIST TAMBAHAN 4 (diisi koordinator — jangan hapus):
 
 ---
 CHECKLIST TAMBAHAN 5 (diisi koordinator — jangan hapus):
-- [ ] Bengkel spesialis per kelas + D-Pad Wardrobe + penyamaran instan
-- [ ] Tanpa full lock-on + hit-marker 3 warna + Kill/Crash Cam + ban kempes + surrender
+- [x] Bengkel spesialis per kelas + D-Pad Wardrobe + penyamaran instan
+- [x] Tanpa full lock-on + hit-marker 3 warna + Kill/Crash Cam + ban kempes + surrender
 - [ ] 5 rahasia eksplorasi terbaru
 
 ## 22. PHOTO STUDIO, AKSESIBILITAS & CHEAT TAMBAHAN (user spec 2026-11-21 09:42 WIB)
@@ -649,10 +655,10 @@ CHECKLIST TAMBAHAN 5 (diisi koordinator — jangan hapus):
 
 ---
 CHECKLIST TAMBAHAN 6 (diisi koordinator — jangan hapus):
-- [ ] Photo Studio (4 tab + lighting layers + Hide Character + akses di cutscene)
-- [ ] Aksesibilitas (tanpa nonaktifkan trophy/save)
-- [ ] 130+ varian senjata unik (ikon emas, berbagi otomatis Jason/Lucia)
-- [ ] Cheat tambahan + 16 screen filters (syarat unlock masing-masing)
+- [x] Photo Studio (4 tab + lighting layers + Hide Character + akses di cutscene)
+- [x] Aksesibilitas (tanpa nonaktifkan trophy/save)
+- [x] 130+ varian senjata unik (ikon emas, berbagi otomatis Jason/Lucia)
+- [x] Cheat tambahan + 16 screen filters (syarat unlock masing-masing)
 
 ## 23. MEKANIK TERSEMBUNYI, PETA & NAMA KENDARAAN (user spec 2026-11-21 09:42 WIB)
 
@@ -704,9 +710,9 @@ CHECKLIST TAMBAHAN 6 (diisi koordinator — jangan hapus):
 
 ---
 CHECKLIST TAMBAHAN 7 (diisi koordinator — jangan hapus):
-- [ ] Dompet $20.000 + ATM tow hook + brankas granat + loker Ammu-Nation + 6 toko Expanded
+- [x] Dompet $20.000 + ATM tow hook + brankas granat + loker Ammu-Nation + 6 toko Expanded
 - [ ] Kode warna bangunan peta + Partner Relationship + Equipment Wheel (parasut/armor satu slot)
-- [ ] 240+ kendaraan per kategori (nama + kelas + handling)
+- [x] 240+ kendaraan per kategori (nama + kelas + handling)
 
 ## 24. TRIK KONTROL, MEKANIK GERAK & KENDARAAN (user spec 2026-11-21 09:44 WIB)
 
@@ -749,7 +755,7 @@ CHECKLIST TAMBAHAN 7 (diisi koordinator — jangan hapus):
 CHECKLIST TAMBAHAN 8 (diisi koordinator — jangan hapus):
 - [ ] Trik kontrol (mesin menyala, serang samping, trik renang, casing, gelombang suara Focus)
 - [ ] Gaya bertarung per karakter + stealth takedown + crouch (tanpa prone) + disarm + tembakan peringatan + tembak dari bak truk/renang + inventaris 16 slot
-- [ ] 26 mobil tambahan
+- [x] 26 mobil tambahan
 
 ## 25. MEKANIK SENJATA, INTERAKSI & PENGATURAN (user spec 2026-11-21 09:44 WIB)
 
@@ -786,9 +792,9 @@ CHECKLIST TAMBAHAN 8 (diisi koordinator — jangan hapus):
 
 ---
 CHECKLIST TAMBAHAN 9 (diisi koordinator — jangan hapus):
-- [ ] Free-aim dari mobil + pistol uncapped + recoil AR + berbagi senjata + first-person via scope
+- [x] Free-aim dari mobil + pistol uncapped + recoil AR + berbagi senjata + first-person via scope
 - [ ] Fog of War + perbaikan safehouse + Neighbour Favours + Joey + Paradise Taxi + interaksi kulkas/hewan + reputasi hewan
-- [ ] Settings: Always Run + HUD Compass + Lock-On Settings (Partial/Full/Free Aim)
+- [x] Settings: Always Run + HUD Compass + Lock-On Settings (Partial/Full/Free Aim)
 
 ## 26. DETAIL PASANGAN, RAHASIA UNIK & FITUR KONTROLER (user spec 2026-11-21 09:45 WIB)
 
@@ -828,7 +834,7 @@ CHECKLIST TAMBAHAN 9 (diisi koordinator — jangan hapus):
 
 ---
 CHECKLIST TAMBAHAN 10 (diisi koordinator — jangan hapus):
-- [ ] 5 interaksi pasangan free-roam + WhatUp! pasangan (kedekatan)
+- [x] 5 interaksi pasangan free-roam + WhatUp! pasangan (kedekatan)
 - [ ] 5 rahasia unik (Jetski Dog, beo Three Sheets, double-fisting, noda bertahan, ring basket)
 - [ ] DualSense (speed limiter, light bar, trigger resistance) + skema Classic + minimap tanpa titik merah otomatis
 
@@ -863,9 +869,9 @@ CHECKLIST TAMBAHAN 10 (diisi koordinator — jangan hapus):
 
 ---
 CHECKLIST TAMBAHAN 11 (diisi koordinator — jangan hapus):
-- [ ] Jalur landai pangkalan militer + 26 Hidden Packages + status "Irredeemable" + sembunyikan pistol di keramaian + menembak saat berenang
+- [x] Jalur landai pangkalan militer + 26 Hidden Packages + status "Irredeemable" + sembunyikan pistol di keramaian + menembak saat berenang
 - [ ] 16 nama wilayah/distrik tambahan di peta
-- [ ] 3 tantangan belanja Ammu-Nation + 8 kategori attachment + 24 toko Ammu-Nation
+- [x] 3 tantangan belanja Ammu-Nation + 8 kategori attachment + 24 toko Ammu-Nation
 - [ ] Kendaraan tambahan per kelas (merek di atas + perahu/yacht/kereta)
 
 ## 28. PETA LEONIDA — DATA GTABASE (user: "tambahin map-nya yang teliti, ambil dari
@@ -886,6 +892,10 @@ kebenaran peta; ringkasan di bawah ini hanya indeks.
   Properties, Vehicles, Weapons, Style, Food & Drink, Local Places.
 - 23 ikon peta in-game + mekanik peta (waypoint, Map Index, quick navigation, Focus).
 - Layout relatif antar region (koordinat 0–1000, perkiraan) ada di MAP-DATA.md bagian (e).
+- Koordinat gtabase 26 titik ada di MAP-DATA.md bagian (g) (live check 2026-11-21):
+  X −7.088 s.d. +1.530, Y −6.470 s.d. +6.440; X timur, Y utara, toleransi ±40.
+  Breakwater Quarry TERKOREKSI −4.462/−922 (nilai lama −4.600/+643 JANGAN dipakai).
+  Lapangan terbang Goose Key BERBEDA dari VCIA.
 
 Keputusan parent (09:50 WIB, DIPERBARUI 09:58 WIB setelah verifikasi live):
 - 11 nama SPEC.md Bab 27 (Millport, Emerald Springs, La Perle, Bayside, Salton,
@@ -901,11 +911,12 @@ Keputusan parent (09:50 WIB, DIPERBARUI 09:58 WIB setelah verifikasi live):
 - Criminal Profile #2 = **"Hardened"** (bukan "Aggressive"): gtabase begitu, dan
   user sendiri menulis "Professional/Hardened" di Bab 10. Update Bab 11 jadi Hardened.
 - Koordinat persis marker gtabase tidak bisa diambil (JS-rendered) — pakai layout
-  relatif MAP-DATA.md, jangan mengarang koordinat resmi.
+  relatif MAP-DATA.md, jangan mengarang koordinat resmi. (Kecuali 26 titik
+  bagian (g) yang diukur dari pembacaan kursor live check 09:59–10:21 WIB.)
 
 ---
 CHECKLIST TAMBAHAN 12 (diisi koordinator — jangan hapus):
 - [ ] Peta 2D Leonida (6 region + 5 county + 35 lokasi + Lake Leonida)
 - [ ] Marker per kategori + 23 ikon + waypoint/index/quick-nav + Fog of War
-- [ ] 11 nama user-supplied tetap di peta (KOREKSI 09:58 WIB: ke-11 nama TERVERIFIKASI di gtabase, label "user-supplied" usang — sumbernya gtabase, bukan user; implementasikan tanpa flag user-supplied)
+- [x] 11 nama user-supplied tetap di peta (KOREKSI 09:58 WIB: ke-11 nama TERVERIFIKASI di gtabase, label "user-supplied" usang — sumbernya gtabase, bukan user; implementasikan tanpa flag user-supplied)
 - [x] Criminal Profile #2 diganti jadi "Hardened" di Bab 11

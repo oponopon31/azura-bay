@@ -75,6 +75,8 @@ export const CAR_CLASSES = {
 };
 
 // ---- Wanted system ----
+// Heat 0..100 maps to 0..5 stars; a 6th star is the total Leonida manhunt
+// (SPEC Bab 12) and is only reached through the Heat system in world.js.
 export const WANTED = {
   stealCar: 18,      // heat added for stealing a car
   hitPedestrian: 26,
@@ -86,6 +88,16 @@ export const WANTED = {
   decayRate: 7,      // heat per second while hidden
   maxHeat: 100,
 };
+// Star states (SPEC Bab 12): hollow = reported, nobody knows who;
+// solid = seen directly; blinking = out of sight; red = searching the area;
+// 6 stars = whole-Leonida manhunt.
+export const STAR_STATES = ['none', 'hollow', 'solid', 'blinking', 'red', 'six'];
+export function starStateFor(stars, seenNow, heat) {
+  if (stars <= 0) return 'none';
+  if (stars >= 6) return 'six';
+  if (!seenNow && heat > 0) return 'red';
+  return 'solid';
+}
 // Stars from heat: 0,1,2,3,4,5 at heat 0,10,28,48,68,86
 export function starsFromHeat(heat) {
   if (heat < 10) return 0;
@@ -99,6 +111,9 @@ export function policeCarCount(stars) {
   return [0, 1, 2, 3, 3, 4][stars] || 0;
 }
 export function helicopterAt(stars) { return stars >= 3; }
+
+// ---- Wallet (SPEC Bab 23) ----
+export const WALLET_MAX = 20000; // cash on hand caps here; the rest goes to BuckMe via ATM
 
 // ---- Missions ----
 // The 91-mission story lives in story.js; MISSIONS is the same list, kept

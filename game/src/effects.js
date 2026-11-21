@@ -16,9 +16,8 @@ export function createEffects(G) {
   G.scene.add(points);
 
   const P = {
-    parts: [], // {x,y,z,vx,vy,vz,life,maxLife,r,g,b,grav,size}
+    parts: [], // {x,y,z,vx,vy,vz,life,maxLife,r,g,b,grav}
     shake: 0,
-    muzzle: null,
 
     spawn(x, y, z, opts) {
       const n = opts.count || 10;
@@ -43,10 +42,16 @@ export function createEffects(G) {
     muzzleFlash(x, y, z) {
       this.spawn(x, y, z, { count: 6, speed: 12, up: 0.5, life: 0.08, r: 1, g: 0.9, b: 0.4 });
     },
+    // Persistent ground stains (Bab 26): blood / scuff marks that linger
+    // for days of game time. Kept as a small list of fading decals.
+    stains: [],
+    addStain(x, z, kind) {
+      if (this.stains.length > 40) this.stains.shift();
+      this.stains.push({ x, z, kind: kind || 'blood', age: 0 });
+    },
     addShake(amount) { this.shake = Math.min(1.2, this.shake + amount); },
 
     update(dt) {
-      // Integrate particles.
       for (let i = this.parts.length - 1; i >= 0; i--) {
         const p = this.parts[i];
         p.life += dt;
@@ -55,7 +60,6 @@ export function createEffects(G) {
         p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt;
         if (p.y < 0.05) { p.y = 0.05; p.vy *= -0.3; p.vx *= 0.7; p.vz *= 0.7; }
       }
-      // Write buffers.
       for (let i = 0; i < MAX; i++) {
         const p = this.parts[i];
         if (p) {

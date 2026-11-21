@@ -2,6 +2,11 @@
 // muzzle flash, tracers, and police who shoot back. The weapon itself (damage,
 // range, spread, recoil, stun) comes from the active weapon in weapons.js;
 // this file only does the raycast and applies the hit.
+// Bab 21: hit-markers — white = hit, yellow = incapacitated (non-lethal),
+// red = killed. Bab 17/24: limb shots incapacitate without killing;
+// a hand shot disarms; a warning shot panics without hurting.
+// Bab 25: free-aim from a car window via Focus can hit the driver, a tire,
+// the engine block or the fuel tank, each with a different effect.
 
 import * as THREE from 'three';
 
@@ -23,6 +28,8 @@ export function createCombat(G) {
     firePools: [],             // molotov ground fire {pos, radius, until, mesh}
     smokeClouds: [],           // smoke grenade clouds {pos, radius, until, mesh}
     stickies: [],              // placed sticky bombs {pos, mesh, car}
+    lastHitMarker: null,       // 'white' | 'yellow' | 'red' (Bab 21)
+    killCam: null,             // {until, kind} — slow-mo replay hook (Bab 21)
 
     // ---- Explosive projectiles (launchers, speargun, firework) ----
     fireProjectile(w) {
@@ -81,6 +88,7 @@ export function createCombat(G) {
             if (hit.kind === 'cop') {
               hit.ref.health -= pr.w.damage;
               G.effects.blood(hit.point.x, hit.point.y, hit.point.z);
+              this.showHitMarker(hit.ref.health <= 0 ? 'red' : 'white');
               if (hit.ref.health <= 0) { G.police.killCop(hit.ref); G.police.addHeat(30, 'took down an officer'); }
             } else if (hit.kind === 'ped') {
               G.pedestrians.knockDownPed(G, hit.ref);
@@ -209,14 +217,61 @@ export function createCombat(G) {
       }
     },
 
+    // Bab 21 hit-marker: white = hit, yellow = incapacitated, red = killed.
+    showHitMarker(color) {
+      this.lastHitMarker = color;
+      if (G.hud && G.hud.showHitMarker) G.hud.showHitMarker(color);
+    },
+    // Bab 21 Kill Cam / Crash Cam: a short slow-mo beat after a kill or a
+    // high-speed crash. Disabled in settings if the player turns it off.
+    triggerKillCam(kind) {
+      if (G.settings && G.settings.killCam === false) return;
+      this.killCam = { until: G.elapsed + 1.2, kind };
+      G.hud.toast(kind === 'crash' ? 'CRASH CAM' : 'KILL CAM');
+    },
+
+    // Bab 17/24 non-lethal: a limb shot incapacitates (yellow marker) without
+    // killing — the Professional profile stays clean.
+    incapacitateCop(cop) {
+      cop.health = Math.min(cop.health, 30);
+      cop.stunned = true;
+      cop.stunnedUntil = G.elapsed + 8;
+      cop.mesh.rotation.x = -Math.PI / 2;
+      cop.mesh.position.y = 0.3;
+      this.showHitMarker('yellow');
+      G.stats.stuns = (G.stats.stuns || 0) + 1;
+      G.hud.toast('Target incapacitated — non-lethal.');
+    },
+    // Bab 24 disarm: shoot the enemy's hand and their weapon drops.
+    disarmCop(cop) {
+      cop.disarmed = true;
+      cop.shootCooldown = 6;
+      this.showHitMarker('white');
+      G.hud.toast('Disarmed! His weapon is on the ground.');
+      G.effects.sparks(cop.pos.x, 1.2, cop.pos.z, 8);
+    },
+    // Bab 17 suppressing fire: a warning shot near (not at) a target makes
+    // NPCs / enemies hit the dirt without anyone getting hurt.
+    warningShot(point) {
+      for (const cop of G.police.cops) {
+        if (cop.alive && cop.pos.distanceTo(point) < 12) cop.cowerUntil = G.elapsed + 3;
+      }
+      for (const ped of G.peds) {
+        if (ped.alive && ped.pos.distanceTo(point) < 12) ped.fleeing = 3;
+      }
+      G.hud.toast('Warning shot — they hit the dirt.');
+    },
+
     // One shot from the camera centre toward the crosshair, with weapon w.
     // `charge` (0.15–1) scales a railgun charge shot. Pellets (shotguns) fire
     // N rays; rifles lose damage with distance (falloff); the railgun pierces
-    // every target along the ray.
+    // every target along the ray. Bloom (Bab 21) widens the spread while
+    // firing; short bursts stay accurate (Bab 25 AR recoil).
     fireShot(w, charge) {
       if (G.mode !== 'playing') return;
       const cam = G.camera;
-      const spread = w.spread * (1.3 - w.handling * 0.6);
+      const bloom = G.world ? G.world.bloom() : 0;
+      const spread = w.spread * (1.3 - w.handling * 0.6) * (1 + bloom);
       const pellets = w.pellets || 1;
       // Damage falloff for rifles/SMGs: full up to falloffStart, then down to
       // falloffMin at falloffEnd. (Weapons without falloff fields stay flat.)
@@ -258,6 +313,9 @@ export function createCombat(G) {
             end = hit.point.clone();
             const dist = hit.distance;
             this.applyHit(hit.object, hit.point, w, w.damage * falloffAt(dist));
+          } else if (G.world && G.world.warningShots) {
+            // No hit: a deliberate warning shot near the crosshair point.
+            this.warningShot(end);
           }
         }
         if (p === 0) tracerEnd = end;
@@ -276,6 +334,7 @@ export function createCombat(G) {
       if (w.stun) G.audio.zap();
       else G.audio.gunshot(w.kind);
       G.effects.addShake(0.05 + w.recoil * 0.06);
+      if (G.world) G.world.noteShotFired(w);
       this.shotsRecently = 2;
       this.lastShotPos.copy(G.player.pos);
       if (!w.stun) G.police.addHeat(12, 'fired a gun');
@@ -300,31 +359,58 @@ export function createCombat(G) {
           // Non-lethal — counts toward the Professional profile.
           G.police.stunCop(cop, w.stunSecs || 5);
           G.stats.stuns = (G.stats.stuns || 0) + 1;
+          this.showHitMarker('yellow');
           G.effects.sparks(point.x, point.y, point.z, 10);
           G.hud.toast('Target stunned — non-lethal.');
+          return;
+        }
+        // Bab 17/24: a low hit (legs/arms, below y 1.1) incapacitates
+        // instead of killing when the player is playing it clean.
+        const lowHit = point.y < 1.1;
+        if (lowHit && (G.missions.criminalProfile() === 'Professional' || G.world?.nonLethalMode)) {
+          this.incapacitateCop(cop);
+          G.effects.blood(point.x, point.y, point.z);
           return;
         }
         cop.health -= dmg;
         G.effects.blood(point.x, point.y, point.z);
         if (cop.health <= 0) {
           G.police.killCop(cop);
+          this.showHitMarker('red');
+          this.triggerKillCam('kill');
           G.police.addHeat(30, 'took down an officer');
+        } else {
+          this.showHitMarker('white');
         }
       } else if (kind === 'ped') {
         const ped = node.userData.ref;
         if (w.stun) {
           G.pedestrians.stunPed(G, ped, w.stunSecs || 5);
           G.stats.stuns = (G.stats.stuns || 0) + 1;
+          this.showHitMarker('yellow');
           G.effects.sparks(point.x, point.y, point.z, 10);
           return;
         }
         G.pedestrians.knockDownPed(G, ped);
+        this.showHitMarker('red');
         G.stats.civiliansHurt = (G.stats.civiliansHurt || 0) + 1;
         G.police.addHeat(26, 'shot a pedestrian');
       } else if (kind === 'car') {
         const car = node.userData.ref;
         if (w.stun) { G.effects.sparks(point.x, point.y, point.z, 6); return; }
+        // Bab 25 free-aim from a car window: aim at a part, get that effect.
+        // Front third = engine block (stalls it), low sides = tires (flat),
+        // rear = fuel tank (fire). A hit on the driver seat area stops a
+        // fleeing driver cold.
+        if (G.world) {
+          const part = G.world.carHitPart(car, point);
+          if (part === 'tire') { car.flatTire = Math.random() < 0.5 ? 'left' : 'right'; G.hud.toast('Tire shot out!'); }
+          else if (part === 'engine') { car.health = Math.max(0, car.health - 0.4); G.hud.toast('Engine block hit — it is stalling.'); }
+          else if (part === 'tank') { car.health = Math.max(0, car.health - 0.3); G.effects.smoke(car.pos.x, 1, car.pos.z, 6); G.hud.toast('Fuel tank hit!'); }
+          else if (part === 'driver' && car.driver === 'flee') { car.health = 0.2; G.hud.toast('Driver hit — the car stops.'); }
+        }
         car.health = Math.max(0, car.health - dmg / 400);
+        this.showHitMarker('white');
         G.effects.sparks(point.x, point.y, point.z, 6);
         if (car.driver === 'traffic') {
           G.police.addHeat(6, 'shot a car');
@@ -335,6 +421,7 @@ export function createCombat(G) {
       } else if (kind === 'heli') {
         if (w.stun) { G.effects.sparks(point.x, point.y, point.z, 6); return; }
         G.police.heli.health -= dmg;
+        this.showHitMarker('white');
         G.effects.sparks(point.x, point.y, point.z, 8);
         if (G.police.heli.health <= 0) G.police.downHelicopter();
       }
@@ -389,11 +476,14 @@ export function createCombat(G) {
     },
 
     // ---- Melee swing: an arc in front of the player ----
+    // Bab 24: Lucia fights kickboxing/MMA (fast, technical), Jason fights
+    // street-style (slower, harder). The style is the character's, not the weapon's.
     meleeSwing(w) {
       if (G.mode !== 'playing' || !G.player.onFoot) return;
       G.audio.swing?.();
       const p = G.player.pos;
       const fx = Math.sin(G.player.heading), fz = Math.cos(G.player.heading);
+      const style = G.player.who === 'lucia' ? { dmgMul: 0.9, speedMul: 1.25 } : { dmgMul: 1.25, speedMul: 0.9 };
       const inArc = (pos) => {
         const dx = pos.x - p.x, dz = pos.z - p.z;
         const d = Math.hypot(dx, dz);
@@ -405,12 +495,12 @@ export function createCombat(G) {
       for (const cop of G.police.cops) {
         if (!cop.alive || !inArc(cop.pos)) continue;
         hitAny = true;
-        cop.health -= w.damage;
+        cop.health -= w.damage * style.dmgMul;
         cop.pos.x += fx * (w.knockback || 2);
         cop.pos.z += fz * (w.knockback || 2);
         G.effects.blood(cop.pos.x, 1, cop.pos.z);
-        if (cop.health <= 0) { G.police.killCop(cop); G.police.addHeat(30, 'took down an officer'); }
-        else G.police.addHeat(10, 'assaulted an officer');
+        if (cop.health <= 0) { G.police.killCop(cop); this.showHitMarker('red'); G.police.addHeat(30, 'took down an officer'); }
+        else { this.showHitMarker('white'); G.police.addHeat(10, 'assaulted an officer'); }
       }
       for (const ped of G.peds) {
         if (!ped.alive || !inArc(ped.pos)) continue;
@@ -427,6 +517,28 @@ export function createCombat(G) {
       }
       if (hitAny) { G.audio.punch(); G.effects.addShake(0.12); }
       G.stats.punches++;
+    },
+
+    // Bab 24 stealth takedown: from behind, unseen (dark / tall grass),
+    // hold the aim and tap the melee key — silent, non-lethal by default.
+    stealthTakedown() {
+      if (!G.player.onFoot) return false;
+      const p = G.player.pos;
+      for (const cop of G.police.cops) {
+        if (!cop.alive || cop.stunned) continue;
+        const d = Math.hypot(cop.pos.x - p.x, cop.pos.z - p.z);
+        if (d > 3) continue;
+        // Behind the target: the cop's heading points away from the player.
+        const dx = p.x - cop.pos.x, dz = p.z - cop.pos.z;
+        const facing = (dx * Math.sin(cop.heading) + dz * Math.cos(cop.heading)) / (d || 1);
+        if (facing > 0.3) continue; // cop is facing the player — no takedown
+        G.police.stunCop(cop, 10);
+        G.stats.stuns = (G.stats.stuns || 0) + 1;
+        this.showHitMarker('yellow');
+        G.hud.toast('Stealth takedown — silent.');
+        return true;
+      }
+      return false;
     },
 
     // ---- Thrown explosives: frag / sticky / molotov / smoke-flash ----
@@ -518,6 +630,8 @@ export function createCombat(G) {
     // Melee punch: F key, hits the nearest cop or pedestrian in front.
     punch() {
       if (G.mode !== 'playing' || !G.player.onFoot) return;
+      // Stealth takedown first: behind an unaware cop, F is silent.
+      if (this.stealthTakedown()) return;
       G.audio.punch();
       const p = G.player.pos;
       const fx = Math.sin(G.player.heading), fz = Math.cos(G.player.heading);
@@ -537,8 +651,8 @@ export function createCombat(G) {
         const cop = best.ref;
         cop.health -= 25;
         cop.pos.x += fx * 1.5; cop.pos.z += fz * 1.5;
-        if (cop.health <= 0) { G.police.killCop(cop); G.police.addHeat(30, 'took down an officer'); }
-        else G.police.addHeat(10, 'assaulted an officer');
+        if (cop.health <= 0) { G.police.killCop(cop); this.showHitMarker('red'); G.police.addHeat(30, 'took down an officer'); }
+        else { this.showHitMarker('white'); G.police.addHeat(10, 'assaulted an officer'); }
       } else {
         G.pedestrians.knockDownPed(G, best.ref);
         G.police.addHeat(20, 'assaulted a pedestrian');
@@ -561,6 +675,8 @@ export function createCombat(G) {
       for (const cop of G.police.cops) {
         if (!cop.alive || cop.shootCooldown > 0) { cop.shootCooldown -= dt; continue; }
         if (cop.stunnedUntil && cop.stunnedUntil > G.elapsed) continue; // stunned: cannot shoot
+        if (cop.cowerUntil && cop.cowerUntil > G.elapsed) continue;     // suppressing fire: cowering
+        if (cop.disarmed) continue; // disarmed: no weapon to shoot with
         const d = cop.pos.distanceTo(G.player.pos);
         if (d < 32 && G.police.stars >= 1) {
           cop.shootCooldown = 1.1 + Math.random() * 0.8;

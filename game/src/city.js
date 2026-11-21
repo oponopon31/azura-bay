@@ -70,14 +70,12 @@ export function buildCity(G) {
   const roadTex = roadTexture();
   roadTex.wrapS = roadTex.wrapT = THREE.RepeatWrapping;
   const roadLen = CITY_HALF * 2 + ROAD;
-  const roadMat = new THREE.MeshLambertMaterial({ map: roadTex });
   for (let i = 0; i < GRID; i++) {
     const c = -CITY_HALF + i * PITCH;
     const texV = roadTex.clone();
     texV.needsUpdate = true;
     texV.repeat.set(1, roadLen / 32);
-    const matV = new THREE.MeshLambertMaterial({ map: texV });
-    const stripV = new THREE.Mesh(new THREE.PlaneGeometry(ROAD, roadLen), matV);
+    const stripV = new THREE.Mesh(new THREE.PlaneGeometry(ROAD, roadLen), new THREE.MeshLambertMaterial({ map: texV }));
     stripV.rotation.x = -Math.PI / 2;
     stripV.position.set(c, 0.02, 0);
     stripV.receiveShadow = true;
@@ -85,8 +83,7 @@ export function buildCity(G) {
     const texH = roadTex.clone();
     texH.needsUpdate = true;
     texH.repeat.set(1, roadLen / 32);
-    const matH = new THREE.MeshLambertMaterial({ map: texH });
-    const stripH = new THREE.Mesh(new THREE.PlaneGeometry(ROAD, roadLen), matH);
+    const stripH = new THREE.Mesh(new THREE.PlaneGeometry(ROAD, roadLen), new THREE.MeshLambertMaterial({ map: texH }));
     stripH.rotation.x = -Math.PI / 2;
     stripH.rotation.z = Math.PI / 2;
     stripH.position.set(0, 0.02, c);
@@ -162,6 +159,10 @@ export function buildCity(G) {
         colliders.push({ minX: cx - 8, maxX: cx + 8, minZ: cz - 8, maxZ: cz + 8 });
         continue;
       }
+      // NOTE: the facade pick MUST stay here, before the tower chance roll:
+      // the seeded city (buildings, parked cars, traffic, peds) is laid out
+      // from one shared rng stream, and moving this pick changes every
+      // downstream draw — round 2 moved it once and the whole city shifted.
       const mat = rng.pick(facadeMats);
       const downtown = 1 - distCentre;
       if (rng.chance(0.28 + downtown * 0.3)) {

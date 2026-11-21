@@ -1,5 +1,7 @@
-// audio.js — All sound is synthesized with WebAudio. No audio files, no network.
-// Engine hum, sirens, gunshots, pickup blips, UI clicks and a procedural radio loop.
+// audio.js — All sound is synthesized with WebAudio. No audio files, no network,
+// no licensed recordings: every note is generated here. Engine hum, sirens,
+// gunshots, pickup blips, UI clicks and a procedural radio loop whose
+// chords/tempo/waveform change per station (radio.js owns the 24-station table).
 
 export function createAudio() {
   const A = {
@@ -8,6 +10,8 @@ export function createAudio() {
     sirenOsc: null, sirenGain: null, sirenLfo: null,
     radioTimer: null, radioStep: 0, radioNextTime: 0,
     noiseBuf: null,
+    // Current radio station's generative profile. Defaults to a synthwave loop.
+    station: { name: 'Azura FM', chords: [[0, 3, 7, 12], [-4, 0, 5, 8], [-9, -5, 0, 3], [-2, 2, 5, 10]], stepSecs: 0.22, wave: 'triangle', bass: true, root: 110, talk: false },
 
     ensure() {
       if (this.ctx) { if (this.ctx.state === 'suspended') this.ctx.resume(); return; }
@@ -178,8 +182,13 @@ export function createAudio() {
     },
     punch() { this.blip(140, 0.08, 'sine', 0.3); },
 
-    // ---- Radio: a lazy synthwave loop (Am – F – C – G), scheduled ahead ----
-    // Chords as semitone offsets from A2 (110 Hz).
+    // ---- Radio: generative loops, one profile per station ----
+    // Chords as semitone offsets from the station root; stepSecs sets the
+    // tempo; talk stations play sparse blips + long pauses instead of music.
+    setStationProfile(profile) {
+      this.station = profile;
+      this.radioStep = 0;
+    },
     setRadio(on) {
       this.radioOn = on;
       if (!this.ctx) return;
@@ -195,31 +204,48 @@ export function createAudio() {
     scheduleRadio() {
       if (!this.ctx || !this.radioOn) return;
       const c = this.ctx;
-      const chords = [[0, 3, 7, 12], [-4, 0, 5, 8], [-9, -5, 0, 3], [-2, 2, 5, 10]]; // Am F C G
+      const st = this.station;
+      const step = st.stepSecs || 0.22;
       while (this.radioNextTime < c.currentTime + 0.35) {
-        const chord = chords[Math.floor(this.radioStep / 8) % 4];
-        const note = chord[this.radioStep % 4];
-        const freq = 110 * Math.pow(2, note / 12);
         const t = this.radioNextTime;
-        const o = c.createOscillator(); o.type = 'triangle'; o.frequency.value = freq * 2;
-        const g = c.createGain();
-        g.gain.setValueAtTime(0.0001, t);
-        g.gain.exponentialRampToValueAtTime(0.055, t + 0.02);
-        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.42);
-        o.connect(g); g.connect(this.master);
-        o.start(t); o.stop(t + 0.45);
-        // Soft bass on the beat.
-        if (this.radioStep % 4 === 0) {
-          const b = c.createOscillator(); b.type = 'sine'; b.frequency.value = freq / 2;
-          const bg = c.createGain();
-          bg.gain.setValueAtTime(0.0001, t);
-          bg.gain.exponentialRampToValueAtTime(0.09, t + 0.02);
-          bg.gain.exponentialRampToValueAtTime(0.0001, t + 0.5);
-          b.connect(bg); bg.connect(this.master);
-          b.start(t); b.stop(t + 0.55);
+        if (st.talk) {
+          // Talk station: a soft voice-like blip every few steps, mostly silence.
+          if (this.radioStep % 16 === 0) {
+            const o = c.createOscillator(); o.type = 'sine';
+            o.frequency.setValueAtTime(220, t);
+            o.frequency.linearRampToValueAtTime(160, t + 0.5);
+            const g = c.createGain();
+            g.gain.setValueAtTime(0.0001, t);
+            g.gain.exponentialRampToValueAtTime(0.04, t + 0.05);
+            g.gain.exponentialRampToValueAtTime(0.0001, t + 0.55);
+            o.connect(g); g.connect(this.master);
+            o.start(t); o.stop(t + 0.6);
+          }
+        } else {
+          const chords = st.chords;
+          const chord = chords[Math.floor(this.radioStep / 8) % chords.length];
+          const note = chord[this.radioStep % chord.length];
+          const freq = (st.root || 110) * Math.pow(2, note / 12);
+          const o = c.createOscillator(); o.type = st.wave || 'triangle'; o.frequency.value = freq * 2;
+          const g = c.createGain();
+          g.gain.setValueAtTime(0.0001, t);
+          g.gain.exponentialRampToValueAtTime(0.055, t + 0.02);
+          g.gain.exponentialRampToValueAtTime(0.0001, t + step * 1.9);
+          o.connect(g); g.connect(this.master);
+          o.start(t); o.stop(t + step * 2);
+          // Soft bass on the beat.
+          if (st.bass !== false && this.radioStep % 4 === 0) {
+            const b = c.createOscillator(); b.type = 'sine'; b.frequency.value = freq / 2;
+            const bg = c.createGain();
+            bg.gain.setValueAtTime(0.0001, t);
+            bg.gain.exponentialRampToValueAtTime(0.09, t + 0.02);
+            bg.gain.exponentialRampToValueAtTime(0.0001, t + step * 2.2);
+            b.connect(bg); bg.connect(this.master);
+            b.start(t); b.stop(t + step * 2.4);
+          }
         }
         this.radioStep++;
-        this.radioNextTime += 0.22;
+        this.radioNextTime += step;
       }
     },
   };

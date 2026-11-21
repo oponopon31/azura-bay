@@ -120,6 +120,11 @@
     text-shadow: 0 4px 30px rgba(255, 40, 40, 0.6); }
   #end-sub { font-size: 15px; color: #e8e8e8; margin: 10px 0 18px; line-height: 1.5; }
   #pause-menu h1 { font-size: 40px; }
+  .cast-block { margin-top: 14px; text-align: left; max-width: 560px; }
+  .cast-title { font-size: 12px; letter-spacing: 2px; opacity: .7; margin-bottom: 6px; }
+  #cast-list { max-height: 180px; overflow-y: auto; font-size: 13px; line-height: 1.5; }
+  #cast-list .cast-role { opacity: .6; }
+  #cast-list .cast-va { opacity: .8; }
 </style>
 <script type="importmap">
 { "imports": { "three": "./vendor/three.module.min.js" } }
@@ -140,34 +145,39 @@
 <div class="hud panel" id="speed"><span id="speed-val">0</span> <span id="speed-unit">km/h</span><div id="ammo"></div><div id="speed-hint">SPACE handbrake</div></div>
 <div class="hud" id="crosshair">✛</div>
 <div class="hud panel" id="interact"></div>
-<div class="hud panel" id="dialog"><div id="dialog-avatar">MV</div><div><div id="dialog-name">MARA VOSS</div><div id="dialog-text"></div></div></div>
-<div class="hud" id="hint"><b>WASD</b> move/drive · <b>Mouse</b> camera · <b>Click</b> shoot · <b>E</b> enter/exit car · <b>F</b> punch · <b>M</b> missions · <b>R</b> radio · <b>Esc</b> pause</div>
+<div class="hud panel" id="dialog"><div id="dialog-avatar">LJ</div><div><div id="dialog-name">LUCIA</div><div id="dialog-text"></div></div></div>
+<div class="hud" id="hint"><b>WASD</b> move/drive · <b>Mouse</b> camera · <b>Click</b> shoot · <b>E</b> enter/exit car · <b>F</b> punch · <b>B</b> map · <b>U</b> phone · <b>V</b> radio · <b>M</b> missions · <b>Esc</b> pause</div>
 <div id="damage"></div>
 
 <!-- Mission list -->
-<div class="hud panel" id="mission-panel"><h2>MISSIONS — THE AZURA JOB</h2><div id="mission-list"></div></div>
+<div class="hud panel" id="mission-panel"><h2>MISSIONS — LUCIA &amp; JASON: 91 JOBS</h2><div id="mission-list"></div></div>
 
 <!-- Start menu -->
 <div class="overlay show" id="start-menu">
   <div class="menu-card panel">
     <h1>AZURA <span>BAY</span></h1>
-    <div class="tagline">A sun-soaked coastal open world. Steal cars, outrun the law, run five jobs for the crew — and own the bay.</div>
+    <div class="tagline">Lucia &amp; Jason. 91 missions across 5 chapters in Leonida — steal cars, outrun the law, run the heists, and own the bay.</div>
     <div id="title-cash"></div>
     <button class="btn" id="btn-new">▶ &nbsp;NEW GAME</button>
     <button class="btn ghost" id="btn-continue">CONTINUE</button>
     <div class="controls">
       <div><b>W A S D</b> — walk / drive</div><div><b>Mouse</b> — look around</div>
       <div><b>Left click</b> — shoot (drive-by too)</div><div><b>E</b> — enter / exit car</div>
-      <div><b>F</b> — punch</div><div><b>Shift</b> — run</div>
-      <div><b>Space</b> — handbrake</div><div><b>M</b> — mission list</div>
-      <div><b>R</b> — radio on/off</div><div><b>N</b> — mute</div>
+      <div><b>F</b> — punch / stealth takedown</div><div><b>Shift</b> — run</div>
+      <div><b>C</b> — crouch</div><div><b>R</b> — reload</div>
+      <div><b>Tab</b> — weapon wheel (hold)</div><div><b>Q</b> — next weapon</div>
+      <div><b>X</b> — grenade mode smoke/flash</div><div><b>G</b> — detonate stickies</div>
+      <div><b>V</b> — radio station</div><div><b>B</b> — Leonida map</div>
+      <div><b>U</b> — smartphone</div><div><b>O</b> — Photo Studio</div>
+      <div><b>T</b> — Auto-Drive / Quick GPS</div><div><b>Y</b> — surrender (1–2 stars)</div>
+      <div><b>M</b> — mission list</div><div><b>N</b> — mute</div>
       <div><b>Esc</b> — pause / save</div><div><b>Arrows</b> — camera</div>
     </div>
     <div class="menu-toggle">
       <button class="btn ghost" id="btn-mute">🔊 Sound: ON</button>
       <button class="btn ghost" id="btn-radio">📻 Radio: OFF</button>
     </div>
-    <div class="menu-foot">Rio returns to Azura Bay with nothing but a stolen jacket and a debt to Mara Voss. Five jobs stand between him and freedom.<br>Progress autosaves — at the safehouse, and every 45 seconds. An original game: no borrowed names, art or music.</div>
+    <div class="menu-foot">Lucia walks out of prison into a Leonida that owes her everything. Jason is waiting with a car, a plan, and 91 jobs between them and freedom.<br>Progress autosaves — at the safehouse, and every 45 seconds. An original game: no borrowed names, art or music.</div>
   </div>
 </div>
 
@@ -179,6 +189,10 @@
     <button class="btn" id="btn-resume">RESUME</button>
     <button class="btn ghost" id="btn-save">SAVE GAME</button>
     <button class="btn ghost" id="btn-quit">SAVE &amp; QUIT TO MENU</button>
+    <div class="cast-block">
+      <div class="cast-title">CAST — voice talent (text credits only)</div>
+      <div id="cast-list"></div>
+    </div>
   </div>
 </div>
 

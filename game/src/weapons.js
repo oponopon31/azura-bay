@@ -1,336 +1,349 @@
-// weapons.js — Weapon data + the inventory / switching / firing system.
-//
-// Data is organised as one table per category inside WEAPON_CATEGORIES, so a
-// new category (rifles, shotguns, …) is just one more table — nothing here is
-// hard-coded to sidearms. Every weapon is a structured object with the same
-// fields; stats are my own design, following the brief for each gun:
-//   damage  — health damage per hit (a foot cop has 100)
-//   rpm     — rounds per minute (the fire interval is 60/rpm seconds)
-//   mag     — rounds in one magazine
-//   mode    — 'semi' (one shot per pull), 'burst' (N shots per pull), 'auto'
-//   handling— 0..1: higher means less spread, faster reload, quicker recovery
-//   range   — effective range in metres
-//   recoil  — camera kick per shot
-//   spread  — base spread in radians
-//   reloadMs— base reload time (handling shortens it)
-//   stun    — true for the shocker: incapacitates instead of killing
+// weapons.js — The arsenal. 66 user-specified weapons + 3 coordinator-added
+// Specials = 69 entries total. The four data tables (sidearms below, and
+// longarms / melee / explosives / special in their own files) are the truth;
+// this file is the engine: slots, switching, reload, recoil, and firing.
+// Categories: Sidearm (pistols & revolvers) / Longarm (SMG, Shotgun, Rifle,
+// LMG, Sniper, Heavy) / Melee / Explosive / Special.
+// Slots: Sidearm, Melee, Primary, Secondary, Explosive — 5 slots total.
+// Wheel: hold Tab → left = melee, right = sidearm, up = primary, down = explosive.
+// Start loadouts: Jason ES9 (Eternal Star 9), Lucia K17 (Kalinga 17).
+// NOTE: the user's arsenal has no minigun, a GTA staple. The Special category
+// (Minigun / Railgun / Firework Launcher) is a COORDINATOR ADDITION, not user
+// spec — vetoable. Delete weapons-special.js and the one import line below
+// and the other 66 weapons keep working exactly as before.
+// Bab 25 mechanics: revolvers and the pistol are uncapped (no mag limit,
+// reload only); rifles have vertical recoil; throwing knives are thrown
+// from the melee slot; the weapon wheel shows ammo and damage.
+// Bab 21: Bloom — continuous fire makes each shot less accurate, so short
+// bursts stay tight. Pistol whip (V): a pistol in the hand is also a club.
 
-import * as THREE from 'three';
 import { LONGARMS } from './weapons-longarms.js';
 import { MELEE } from './weapons-melee.js';
 import { EXPLOSIVES } from './weapons-explosives.js';
 import { SPECIAL } from './weapons-special.js';
 
-export const WEAPON_CATEGORIES = {
-  // ---- Sidearms: pistols and revolvers (including the stun gun) ----
-  sidearms: [
-    { id: 'nipper', name: 'Scorpio Nipper .38', kind: 'pistol', damage: 16, rpm: 420, mag: 10, mode: 'semi', handling: 0.92, range: 50, recoil: 0.30, spread: 0.016, reloadMs: 1000, tracer: 0xffe9a8, price: 400, tier: 0, desc: 'A featherweight pocket pistol — fast in the hand, light on punch.' },
-    { id: 'es9', name: 'Girardi ES9', kind: 'pistol', damage: 22, rpm: 360, mag: 15, mode: 'semi', handling: 0.78, range: 70, recoil: 0.50, spread: 0.012, reloadMs: 1300, tracer: 0xffe9a8, price: 600, tier: 0, desc: "Jason's everyday sidearm — plain, reliable, honest." },
-    { id: 'k17', name: 'Klose K17', kind: 'pistol', damage: 21, rpm: 380, mag: 17, mode: 'semi', handling: 0.82, range: 70, recoil: 0.45, spread: 0.011, reloadMs: 1200, tracer: 0xffe9a8, price: 650, tier: 0, desc: "Lucia's polymer 9mm — light, quick, and always where she left it." },
-    { id: 'duke1992', name: 'Duke Arms 1992', kind: 'pistol', damage: 32, rpm: 240, mag: 8, mode: 'semi', handling: 0.62, range: 65, recoil: 0.80, spread: 0.014, reloadMs: 1500, tracer: 0xffd27a, price: 1100, tier: 1, desc: 'A heavy steel slab in the old style — every round lands like a door slamming.' },
-    { id: 'es18', name: 'Girardi ES18', kind: 'pistol', damage: 20, rpm: 540, mag: 18, mode: 'burst', burst: 3, handling: 0.72, range: 65, recoil: 0.55, spread: 0.014, reloadMs: 1400, tracer: 0xffe9a8, price: 1500, tier: 1, desc: 'Three-round bursts — one trigger pull, three arguments.' },
-    { id: 'k17mcd', name: 'Klose K17 MCD', kind: 'pistol', damage: 18, rpm: 780, mag: 24, mode: 'auto', handling: 0.66, range: 60, recoil: 0.60, spread: 0.020, reloadMs: 1600, tracer: 0xffe9a8, price: 2200, tier: 2, desc: 'The K17 with the fun switch on — a 24-round hose.' },
-    { id: 'drx', name: 'Schlamm DRX', kind: 'pistol', damage: 26, rpm: 300, mag: 12, mode: 'semi', handling: 0.88, range: 90, recoil: 0.45, spread: 0.006, reloadMs: 1300, tracer: 0xbfd9ff, price: 1800, tier: 1, desc: 'A tactical pistol built for tight groups — the most precise handgun in the case.' },
-    { id: 'kalinga', name: 'Fairview Kalinga .50', kind: 'pistol', damage: 48, rpm: 150, mag: 7, mode: 'semi', handling: 0.50, range: 80, recoil: 1.40, spread: 0.016, reloadMs: 1700, tracer: 0xff9a3c, price: 3500, tier: 2, desc: 'A hand cannon in .50 — the hardest-hitting pistol money buys. It kicks like a mule.' },
-    { id: 'shocker', name: 'Coil Shocker', kind: 'stun', damage: 0, rpm: 200, mag: 6, mode: 'semi', handling: 0.80, range: 25, recoil: 0.20, spread: 0.010, reloadMs: 1200, stun: true, stunSecs: 5, tracer: 0x7fd4ff, price: 900, tier: 1, desc: 'A crackling stun gun — drops a target to the ground without killing them.' },
-    { id: 'wcr1', name: 'Wortham WCR-1', kind: 'revolver', damage: 24, rpm: 300, mag: 6, mode: 'semi', handling: 0.96, range: 55, recoil: 0.50, spread: 0.012, reloadMs: 900, tracer: 0xffe9a8, price: 800, tier: 0, desc: 'A snub-nose revolver that handles like a thought — the quickest draw in the drawer.' },
-    { id: 'hawk38', name: 'Hawk & Little .38', kind: 'revolver', damage: 26, rpm: 240, mag: 6, mode: 'semi', handling: 0.78, range: 60, recoil: 0.60, spread: 0.013, reloadMs: 1800, tracer: 0xffe9a8, price: 700, tier: 0, desc: 'A classic double-action wheelgun — old, plain, and always ready.' },
-    { id: 'mustang', name: 'Duke Mustang .357', kind: 'revolver', damage: 38, rpm: 180, mag: 6, mode: 'semi', handling: 0.62, range: 70, recoil: 1.00, spread: 0.014, reloadMs: 2000, tracer: 0xffd27a, price: 2000, tier: 1, desc: 'A .357 magnum with a bark to match its bite.' },
-    { id: 'morgan', name: 'Hawk & Little Morgan', kind: 'revolver', damage: 34, rpm: 200, mag: 6, mode: 'semi', handling: 0.66, range: 75, recoil: 0.90, spread: 0.013, reloadMs: 1900, tracer: 0xffd27a, price: 1700, tier: 1, desc: 'An oversized revolver built for big hands and bigger statements.' },
-    { id: 'akulus', name: 'Scorpio Akulus', kind: 'revolver', damage: 52, rpm: 120, mag: 6, mode: 'semi', handling: 0.45, range: 90, recoil: 1.60, spread: 0.015, reloadMs: 2400, tracer: 0xff9a3c, price: 3200, tier: 2, desc: 'A long-barrelled heavyweight — the hardest-hitting revolver in the case. One round ends the conversation.' },
-    { id: 'capo', name: 'Capo Pistol', kind: 'pistol', damage: 24, rpm: 330, mag: 12, mode: 'semi', handling: 0.72, range: 65, recoil: 0.55, spread: 0.013, reloadMs: 1300, tracer: 0xffe9a8, price: 1000, tier: 0, desc: 'A cartel classic — engraved, loud, and never far from its owner.' },
-    { id: 'service', name: 'Service Pistol', kind: 'pistol', damage: 20, rpm: 360, mag: 15, mode: 'semi', handling: 0.80, range: 70, recoil: 0.45, spread: 0.012, reloadMs: 1300, tracer: 0xffe9a8, price: 850, tier: 0, desc: 'A Beretta-style service pistol — the standard-issue sidearm of the Leonida police.' },
-  ],
-  // Longarms (37), melee (9) and explosives (4) live in their own tables so
-  // each category can grow without touching this file.
-  longarms: LONGARMS,
-  melee: MELEE,
-  explosives: EXPLOSIVES,
-  // *** Kategori Special = tambahan koordinator, BUKAN spesifikasi user — bisa di-veto. ***
-  special: SPECIAL,
-};
+export const WEAPON_CATEGORIES = ['Sidearm', 'Longarm', 'Melee', 'Explosive', 'Special'];
 
-// Flat lookup: id -> weapon def (built from every category table).
-// Each def also gets its category stamped on as `cat`.
+// ---- Sidearms (16) ----
+// Revolvers (`capped: false`) and the standard pistol are uncapped (Bab 25):
+// no magazine limit — they reload by spinning the cylinder, not by a mag.
+export const SIDEARMS = [
+  { id: 'es9', name: 'Eternal Star 9', kind: 'pistol', damage: 25, rpm: 450, mag: 17, mode: 'semi', handling: 0.70, range: 60, recoil: 0.35, spread: 0.012, reloadMs: 1200, tracer: 0xffe9a8, price: 800, tier: 1, desc: 'The standard-issue sidearm — Jason’s start pistol.' },
+  { id: 'k17', name: 'Kalinga 17', kind: 'pistol', damage: 24, rpm: 420, mag: 15, mode: 'semi', handling: 0.72, range: 60, recoil: 0.32, spread: 0.012, reloadMs: 1100, tracer: 0xffe9a8, price: 800, tier: 1, desc: 'A compact pistol — Lucia’s start pistol.' },
+  { id: 'm19', name: 'M19', kind: 'pistol', damage: 27, rpm: 400, mag: 15, mode: 'semi', handling: 0.68, range: 62, recoil: 0.38, spread: 0.011, reloadMs: 1200, tracer: 0xffe9a8, price: 900, tier: 1, desc: 'A military pistol — reliable, accurate, and everywhere.' },
+  { id: 'p12', name: 'P12', kind: 'pistol', damage: 26, rpm: 380, mag: 12, mode: 'semi', handling: 0.70, range: 62, recoil: 0.36, spread: 0.011, reloadMs: 1150, tracer: 0xffe9a8, price: 950, tier: 1, desc: 'A compact pistol — small, light, and quick to draw.' },
+  { id: 'p45', name: 'P45', kind: 'pistol', damage: 32, rpm: 320, mag: 10, mode: 'semi', handling: 0.65, range: 65, recoil: 0.45, spread: 0.012, reloadMs: 1300, tracer: 0xffe9a8, price: 1100, tier: 1, desc: 'A heavy pistol — big bore, big holes.' },
+  { id: 'ap', name: 'AP Pistol', kind: 'pistol', damage: 23, rpm: 750, mag: 18, mode: 'auto', handling: 0.68, range: 55, recoil: 0.42, spread: 0.018, reloadMs: 1400, tracer: 0xffe9a8, price: 1800, tier: 2, desc: 'An automatic pistol — hold the trigger and empty the mag.' },
+  { id: 'hmk', name: 'HMK Machine Pistol', kind: 'pistol', damage: 20, rpm: 850, mag: 24, mode: 'auto', handling: 0.72, range: 50, recoil: 0.40, spread: 0.020, reloadMs: 1500, tracer: 0xffe9a8, price: 1600, tier: 2, desc: 'A machine pistol — a buzzsaw in a handgun’s body.' },
+  { id: 'sawed', name: 'Sawed-off Pistol', kind: 'pistol', damage: 18, pellets: 5, rpm: 300, mag: 6, mode: 'semi', handling: 0.60, range: 30, recoil: 0.90, spread: 0.090, reloadMs: 1600, tracer: 0xffd27a, price: 1400, tier: 1, desc: 'A sawed-off pistol — a shotgun that fits in a holster.' },
+  { id: 'pocket', name: 'Pocket Pistol', kind: 'pistol', damage: 20, rpm: 380, mag: 8, mode: 'semi', handling: 0.75, range: 45, recoil: 0.30, spread: 0.015, reloadMs: 1000, tracer: 0xffe9a8, price: 600, tier: 1, desc: 'A pocket pistol — the smallest gun in the case, and the easiest to hide.' },
+  { id: 'scorp', name: 'Scorpion', kind: 'pistol', damage: 21, rpm: 800, mag: 20, mode: 'auto', handling: 0.70, range: 50, recoil: 0.45, spread: 0.019, reloadMs: 1400, tracer: 0xffe9a8, price: 1700, tier: 2, desc: 'A machine pistol — the Scorpion stings in bursts.' },
+  { id: 'dual', name: 'Dual Pistols', kind: 'pistol', damage: 24, rpm: 500, mag: 30, mode: 'auto', handling: 0.65, range: 55, recoil: 0.40, spread: 0.016, reloadMs: 1500, tracer: 0xffe9a8, price: 2200, tier: 2, desc: 'Two pistols at once — twice the guns, twice the noise.' },
+  { id: 'revolver50', name: 'Hawk & Little .50', kind: 'revolver', damage: 48, rpm: 120, mag: 6, mode: 'semi', capped: false, handling: 0.55, range: 75, recoil: 1.20, spread: 0.010, reloadMs: 2200, tracer: 0xffd27a, price: 2600, tier: 2, desc: 'A .50 revolver — six rounds, each one a conversation ender.' },
+  { id: 'akulus', name: 'Akulus', kind: 'revolver', damage: 52, rpm: 110, mag: 6, mode: 'semi', capped: false, handling: 0.50, range: 78, recoil: 1.30, spread: 0.009, reloadMs: 2300, tracer: 0xffd27a, price: 3000, tier: 2, desc: 'A heavy revolver — the hardest-hitting handgun in the arsenal.' },
+  { id: 'kalinga', name: 'Kalinga 48', kind: 'revolver', damage: 48, rpm: 130, mag: 6, mode: 'semi', capped: false, handling: 0.52, range: 76, recoil: 1.25, spread: 0.010, reloadMs: 2200, tracer: 0xffd27a, price: 2800, tier: 2, desc: 'A heavy revolver — the Kalinga 48 hits harder than any pistol in the case.' },
+  { id: 'stungun', name: 'Stun Gun', kind: 'pistol', damage: 0, rpm: 120, mag: 1, mode: 'semi', stun: true, stunSecs: 5, handling: 0.75, range: 10, recoil: 0.10, spread: 0.005, reloadMs: 800, tracer: 0x7fd4ff, price: 1000, tier: 2, desc: 'A stun gun — drops a target to the ground, unharmed, for five seconds. Non-lethal.' },
+  { id: 'flaregun', name: 'Flare Gun', kind: 'pistol', damage: 60, rpm: 60, mag: 1, mode: 'semi', handling: 0.60, range: 90, recoil: 0.80, spread: 0.008, reloadMs: 1500, fire: true, tracer: 0xff7a1a, price: 1200, tier: 2, desc: 'A flare gun — a burning flare that sets the target alight and signals for miles.' },
+];
+
+export const ALL_WEAPONS = [...SIDEARMS, ...LONGARMS, ...MELEE, ...EXPLOSIVES, ...SPECIAL];
 export const WEAPON_BY_ID = {};
-for (const [cat, list] of Object.entries(WEAPON_CATEGORIES)) {
-  for (const w of list) { w.cat = cat; WEAPON_BY_ID[w.id] = w; }
-}
-export const CATEGORY_ORDER = Object.keys(WEAPON_CATEGORIES);
+for (const w of ALL_WEAPONS) WEAPON_BY_ID[w.id] = w;
 
-// Starting loadout per character: Jason opens with the ES9, Lucia with the K17.
 export const START_LOADOUT = { jason: 'es9', lucia: 'k17' };
 
-// World pickups: a few sidearms are found lying around the city; the rest are
-// earned from mission rewards (missions call W.give(id)).
-const PICKUP_SPOTS = [
-  { weapon: 'nipper', x: -80, z: 360, label: 'Beach pier' },
-  { weapon: 'duke1992', x: 210, z: 250, label: 'Garage' },
-  { weapon: 'wcr1', x: 40, z: 40, label: 'Central park' },
-  { weapon: 'hawk38', x: 400, z: 40, label: 'Harbor' },
-  { weapon: 'capo', x: 80, z: -80, label: 'Downtown alley' },
-  { weapon: 'service', x: -80, z: 280, label: 'Safehouse' },
-];
+function categoryOf(w) {
+  if (w.kind === 'pistol' || w.kind === 'revolver') return 'Sidearm';
+  if (['smg', 'shotgun', 'rifle', 'lmg', 'sniper', 'heavy'].includes(w.kind)) return 'Longarm';
+  if (w.kind === 'melee') return 'Melee';
+  if (w.kind === 'explosive') return 'Explosive';
+  if (w.kind === 'special') return 'Special';
+  return 'Sidearm';
+}
+
+// Which weapon slot a category lives in (wheel: up = primary, down = explosive).
+const SLOT_FOR = { Sidearm: 'sidearm', Melee: 'melee', Longarm: 'primary', Explosive: 'explosive', Special: 'secondary' };
 
 export function createWeapons(G) {
   const W = {
-    byId: WEAPON_BY_ID, // flat id -> def lookup (used by the HUD + self-test)
-    who: 'jason',
-    owned: { jason: [START_LOADOUT.jason], lucia: [START_LOADOUT.lucia] },
-    current: { jason: START_LOADOUT.jason, lucia: START_LOADOUT.lucia },
-    magAmmo: {},        // weapon id -> rounds currently in the magazine
+    // who -> { sidearm, melee, primary, secondary, explosive } (weapon ids)
+    slots: {},
+    // who -> [weapon ids] — EVERY weapon the character has ever owned.
+    // The 5 slots only hold one weapon each, so ownedList() can never
+    // exceed 5; the shop challenges (Well Armed: own 10) must count this
+    // collection instead, or they can never trigger.
+    owned: {},
+    current: null, // weapon id
+    ammo: {},      // id -> reserve ammo (uncapped weapons ignore this)
+    magAmmo: 0,    // rounds in the current magazine
     reloading: false,
-    reloadUntil: 0,
+    throwMode: 'smoke', // smoke/flash for the smoke-flash grenade (X switches)
     lastShotAt: 0,
-    burstLeft: 0,
-    burstNextAt: 0,
-    triggerHeld: false,
-    triggerDownAt: 0,
-    charging: false,     // railgun charge shot in progress
-    chargeStart: 0,
-    spunUp: false,       // minigun spin-up complete
-    spinUpStart: 0,
-    lastSwingAt: 0,      // melee swing timer
-    throwMode: 'smoke',  // smoke/flashbang grenade mode (X toggles)
-    pickups: [],
+    fireHeld: false,
+    charge: 0,     // railgun charge (0–1)
+    spinUp: 0,     // minigun spin-up (0–1)
+    bloom: 0,      // Bab 21 bloom: sustained fire widens spread
+    lastFireTime: 0,
 
-    active() {
-      return WEAPON_BY_ID[this.current[this.who]];
-    },
-    ownedList() {
-      // Owned weapons in category order (sidearms first, then later categories).
-      const ids = this.owned[this.who];
-      const order = [];
-      for (const cat of CATEGORY_ORDER) {
-        for (const w of WEAPON_CATEGORIES[cat]) if (ids.includes(w.id)) order.push(w);
+    setCharacter(who) {
+      if (!this.slots[who]) {
+        // Start loadout: each character starts with their own pistol.
+        this.slots[who] = {
+          sidearm: START_LOADOUT[who] || 'es9',
+          melee: null, primary: null, secondary: null, explosive: null,
+        };
+        this.ammo[START_LOADOUT[who]] = 60;
+        this.owned[who] = [START_LOADOUT[who] || 'es9'];
       }
-      return order;
+      // Equip the character's sidearm if nothing is in hand yet.
+      if (!this.current) this.equip(this.slots[who].sidearm, who);
     },
-    has(id) { return this.owned[this.who].includes(id); },
 
-    give(id, who) {
-      const owner = who || this.who;
-      if (!WEAPON_BY_ID[id]) return false;
-      if (!this.owned[owner].includes(id)) this.owned[owner].push(id);
-      this.magAmmo[id] = WEAPON_BY_ID[id].mag;
+    byId(id) { return WEAPON_BY_ID[id] || null; },
+    active() { return this.byId(this.current); },
+    // Weapons the player owns for the CURRENT character, in wheel order.
+    ownedList(who) {
+      who = who || G.player.who;
+      const s = this.slots[who] || {};
+      return ['melee', 'sidearm', 'primary', 'secondary', 'explosive']
+        .map((k) => s[k]).filter(Boolean);
+    },
+    has(id, who) { return this.ownedList(who).includes(id); },
+    // Every weapon the character has ever owned (the collection, not the
+    // 5 wheel slots). Used by the shop challenges and the save file.
+    ownedAll(who) {
+      who = who || G.player.who;
+      if (!this.owned[who]) this.owned[who] = [];
+      return this.owned[who];
+    },
+
+    give(id) {
+      const w = this.byId(id);
+      if (!w) return false;
+      const who = G.player.who;
+      if (!this.slots[who]) this.setCharacter(who);
+      const slot = SLOT_FOR[categoryOf(w)];
+      this.slots[who][slot] = id;
+      // Record the collection (a weapon leaves the slot when another one
+      // of the same category is picked up, but it stays owned).
+      if (!this.owned[who]) this.owned[who] = [];
+      if (!this.owned[who].includes(id)) this.owned[who].push(id);
+      // Reserve ammo on pickup (uncapped weapons don't need it).
+      if (w.capped !== false && w.mag) {
+        this.ammo[id] = (this.ammo[id] || 0) + w.mag * 2;
+      }
+      if (!this.current) this.equip(id, who);
+      G.hud.toast(`Picked up ${w.name}.`);
+      G.audio.pickup();
       return true;
     },
-    giveAll(who) {
-      for (const id of Object.keys(WEAPON_BY_ID)) this.give(id, who || this.who);
-    },
 
-    equip(id) {
-      if (!this.has(id)) return false;
-      this.current[this.who] = id;
-      this.burstLeft = 0;
+    equip(id, who) {
+      const w = this.byId(id);
+      if (!w || !this.has(id, who)) return false;
+      this.current = id;
+      // Loading a mag from reserve; uncapped weapons load the full mag.
+      const mag = w.mag || 0;
+      if (w.capped === false) {
+        this.magAmmo = mag;
+      } else {
+        const take = Math.min(mag, this.ammo[id] || 0);
+        this.ammo[id] = (this.ammo[id] || 0) - take;
+        this.magAmmo = take;
+      }
       this.reloading = false;
-      const w = WEAPON_BY_ID[id];
-      if (this.magAmmo[id] === undefined) this.magAmmo[id] = w.mag;
-      G.hud.toast(`${w.name} — ${w.mode === 'auto' ? 'full-auto' : w.mode === 'burst' ? `burst ×${w.burst}` : 'semi-auto'}`);
+      this.charge = 0;
+      this.spinUp = 0;
+      this.bloom = 0;
       return true;
     },
-    equipSlot(n) {
-      const list = this.ownedList();
-      if (n >= 1 && n <= list.length) return this.equip(list[n - 1].id);
-      return false;
+
+    equipSlot(slotName, who) {
+      who = who || G.player.who;
+      const s = this.slots[who];
+      if (!s || !s[slotName]) return false;
+      return this.equip(s[slotName], who);
     },
+
+    // Cycle to the next owned weapon (wheel key / number keys).
     next() {
       const list = this.ownedList();
       if (list.length < 2) return;
-      const i = list.findIndex((w) => w.id === this.current[this.who]);
-      this.equip(list[(i + 1) % list.length].id);
-    },
-    setCharacter(who) {
-      if (who !== 'jason' && who !== 'lucia') return;
-      this.who = who;
-      this.burstLeft = 0;
-      this.reloading = false;
-      this.triggerHeld = false;
+      const i = list.indexOf(this.current);
+      this.equip(list[(i + 1) % list.length]);
     },
 
-    // ---- Firing (dispatch by weapon kind) ----
-    triggerDown() {
-      if (G.mode !== 'playing') return;
+    startReload() {
       const w = this.active();
-      this.triggerHeld = true;
-      this.triggerDownAt = performance.now();
-      if (w.kind === 'melee') { this.tryMelee(); return; }
-      if (w.kind === 'explosive') { this.tryThrow(); return; }
-      if (w.mode === 'charge') { this.charging = true; this.chargeStart = performance.now(); return; }
-      if (w.mode === 'burst') {
-        this.burstLeft = w.burst;
-        this.burstNextAt = performance.now();
-      } else {
-        this.tryFire();
+      if (!w || this.reloading || !w.mag) return;
+      if (w.capped !== false && (this.ammo[w.id] || 0) <= 0) {
+        G.hud.toast('No reserve ammo — buy more at a gun store.');
+        return;
       }
+      if (this.magAmmo >= w.mag) return;
+      this.reloading = true;
+      this.reloadDoneAt = G.elapsed + w.reloadMs / 1000;
+      G.audio.click?.();
     },
-    triggerUp() {
-      this.triggerHeld = false;
-      // Railgun: release fires the charged shot (damage scales with charge).
-      const w = this.active();
-      if (this.charging && w.mode === 'charge') {
-        this.charging = false;
-        const charge = Math.min(1, (performance.now() - this.chargeStart) / 800);
-        if (charge > 0.15) this.tryFire(charge);
-      }
-      this.charging = false;
-    },
-    // One trigger pull for a firearm / launcher / flamethrower.
-    // `charge` (railgun) scales the damage 0.5–1.0.
-    tryFire(charge) {
-      if (G.mode !== 'playing' || this.reloading) return false;
-      const w = this.active();
-      if (w.kind === 'melee' || w.kind === 'explosive') return false;
-      const now = performance.now();
-      // Minigun: spin up before the first round leaves the barrel.
-      if (w.spinUp && !this.spunUp) {
-        if (!this.spinUpStart) this.spinUpStart = now;
-        if (now - this.spinUpStart < w.spinUp * 1000) { G.audio.spinup?.(); return false; }
-        this.spunUp = true;
-      }
-      const interval = 60000 / w.rpm;
-      if (now - this.lastShotAt < interval) return false;
-      if ((this.magAmmo[w.id] ?? w.mag) <= 0) { this.startReload(); return false; }
-      this.lastShotAt = now;
-      this.magAmmo[w.id]--;
-      if (w.flame) G.combat.fireFlame(w);
-      else if (w.projectile) G.combat.fireProjectile(w);
-      else G.combat.fireShot(w, charge);
-      if (this.magAmmo[w.id] <= 0) this.startReload();
-      return true;
-    },
-    // Melee swing: arc in front of the player, no ammo.
-    tryMelee() {
-      if (G.mode !== 'playing') return false;
-      const w = this.active();
-      const now = performance.now();
-      const interval = w.swingMs || 400;
-      if (now - this.lastSwingAt < interval) return false;
-      this.lastSwingAt = now;
-      G.combat.meleeSwing(w);
-      return true;
-    },
-    // Throw an explosive (frag / sticky / molotov / smoke-flash).
-    tryThrow() {
-      if (G.mode !== 'playing') return false;
-      const w = this.active();
-      const now = performance.now();
-      if (now - this.lastShotAt < 60000 / w.rpm) return false;
-      if ((this.magAmmo[w.id] ?? 0) <= 0) {
-        G.hud.toast(`No ${w.name} left — buy more at the gun store.`);
-        return false;
-      }
-      this.lastShotAt = now;
-      this.magAmmo[w.id]--;
-      G.combat.throwWeapon(w, this.throwMode);
-      return true;
-    },
-    // Smoke/flashbang mode toggle (X key).
+
     toggleThrowMode() {
-      const w = this.active();
-      if (!w.modes) return;
+      // X switches the smoke/flash grenade between its two modes.
       this.throwMode = this.throwMode === 'smoke' ? 'flash' : 'smoke';
-      G.hud.toast(`${w.name}: ${this.throwMode === 'smoke' ? 'Smoke' : 'Flashbang'} mode`);
+      G.hud.toast(`Grenade mode: ${this.throwMode === 'smoke' ? 'Smoke' : 'Flashbang'}.`);
     },
-    // Detonate all placed sticky bombs (G key).
+
     detonateStickies() {
       G.combat.detonateStickies();
     },
-    startReload() {
-      if (this.reloading) return;
+
+    // Bab 25: the pistol is also a club — V pistol-whips the nearest target.
+    pistolWhip() {
       const w = this.active();
-      if (w.kind === 'melee' || w.kind === 'explosive') return;
-      if ((this.magAmmo[w.id] ?? w.mag) >= w.mag) return;
-      this.reloading = true;
-      // Higher handling reloads faster.
-      const ms = w.reloadMs * (1.25 - w.handling * 0.5);
-      this.reloadUntil = performance.now() + ms;
-      G.hud.toast('Reloading…');
+      if (!w || (w.kind !== 'pistol' && w.kind !== 'revolver')) return;
+      G.combat.meleeSwing({ damage: 20, range: 1.8, swingMs: 300, knockback: 2 });
     },
-    update(dt) {
-      // Burst fire: spaced shots after one trigger pull.
-      if (this.burstLeft > 0 && performance.now() >= this.burstNextAt) {
-        if (this.tryFire()) {
-          this.burstLeft--;
-          this.burstNextAt = performance.now() + 60000 / this.active().rpm;
-        } else {
-          this.burstLeft = 0;
+
+    // Bab 25: throwing knives are thrown from the melee slot (hold Q).
+    throwKnife() {
+      if (!this.has('knife')) return;
+      G.combat.throwWeapon({ id: 'knife-thrown', damage: 30, range: 20, kind: 'explosive' });
+    },
+
+    // ---- Firing ----
+    triggerDown() {
+      const w = this.active();
+      if (!w) return;
+      this.fireHeld = true;
+      const now = G.elapsed;
+      if (w.kind === 'melee') {
+        if (now - this.lastShotAt >= (w.swingMs || 400) / 1000) {
+          this.lastShotAt = now;
+          G.combat.meleeSwing(w);
+        }
+        return;
+      }
+      if (w.flame) {
+        G.combat.fireFlame(w);
+        return;
+      }
+      if (w.projectile) {
+        if (now - this.lastShotAt < 60 / w.rpm) return;
+        if (this.reloading) return;
+        if (this.magAmmo <= 0) { this.startReload(); return; }
+        this.magAmmo--;
+        this.lastShotAt = now;
+        G.combat.fireProjectile(w);
+        return;
+      }
+      if (w.mode === 'throw') {
+        if (now - this.lastShotAt < 60 / w.rpm) return;
+        if (this.reloading) return;
+        this.lastShotAt = now;
+        G.combat.throwWeapon(w, this.throwMode);
+        return;
+      }
+      if (w.mode === 'charge') {
+        // Railgun: hold to charge, release to fire (triggerUp does it).
+        this.charge = Math.min(1, this.charge + 1 / 60);
+        return;
+      }
+      if (w.spinUp !== undefined) {
+        // Minigun: spin up first, then fire at full rate.
+        this.spinUp = Math.min(1, this.spinUp + 1 / 60);
+        if (this.spinUp < 1) { G.audio.spinup?.(); return; }
+      }
+      if (this.reloading) return;
+      if (now - this.lastShotAt < 60 / w.rpm) return;
+      if (this.magAmmo <= 0) { this.startReload(); return; }
+      this.magAmmo--;
+      this.lastShotAt = now;
+      this.bloom = Math.min(1, this.bloom + 0.12); // Bab 21 bloom
+      this.lastFireTime = now;
+      if (G.world) G.world.noteShotFired(w);
+      G.combat.fireShot(w, this.charge);
+    },
+
+    triggerUp() {
+      this.fireHeld = false;
+      const w = this.active();
+      if (w && w.mode === 'charge' && this.charge > 0.15) {
+        // Railgun release: the charge shot, pierces everything in the line.
+        if (this.magAmmo <= 0) { this.startReload(); this.charge = 0; return; }
+        this.magAmmo--;
+        this.lastShotAt = G.elapsed;
+        G.combat.fireShot(w, this.charge);
+      }
+      this.charge = 0;
+      this.spinUp = 0;
+    },
+
+    // Pick up a weapon lying on the ground (dropped by a cop / found in the world).
+    tryPickup() {
+      if (!G.world || !G.world.weaponDrops) return false;
+      const drops = G.world.weaponDrops;
+      for (let i = drops.length - 1; i >= 0; i--) {
+        const d = drops[i];
+        if (G.player.pos.distanceTo(d.pos) < 2) {
+          G.scene.remove(d.mesh);
+          drops.splice(i, 1);
+          this.give(d.id);
+          return true;
         }
       }
-      // Full-auto (and flamethrower / minigun): keep firing while held.
-      const w = this.active();
-      if (this.triggerHeld && (w.mode === 'auto' || w.flame)) this.tryFire();
-      // Minigun spin-down when the trigger is released.
-      if (!this.triggerHeld) { this.spunUp = false; this.spinUpStart = 0; }
-      // Reload completion.
-      if (this.reloading && performance.now() >= this.reloadUntil) {
-        this.reloading = false;
-        const aw = this.active();
-        this.magAmmo[aw.id] = aw.mag;
-      }
-      this.updatePickups(dt);
+      return false;
     },
 
-    // ---- World pickups ----
-    spawnPickups() {
-      for (const spot of PICKUP_SPOTS) {
-        const w = WEAPON_BY_ID[spot.weapon];
-        const group = new THREE.Group();
-        const crate = new THREE.Mesh(
-          new THREE.BoxGeometry(1.1, 0.55, 0.7),
-          new THREE.MeshLambertMaterial({ color: 0x2e2a26 })
-        );
-        crate.position.y = 0.28;
-        const stripe = new THREE.Mesh(
-          new THREE.BoxGeometry(1.12, 0.12, 0.72),
-          new THREE.MeshLambertMaterial({ color: 0xffc247, emissive: 0x664400 })
-        );
-        stripe.position.y = 0.5;
-        const gun = new THREE.Mesh(
-          new THREE.BoxGeometry(0.7, 0.12, 0.16),
-          new THREE.MeshLambertMaterial({ color: 0x1a1a1a })
-        );
-        gun.position.y = 0.68;
-        group.add(crate, stripe, gun);
-        group.position.set(spot.x, 0, spot.z);
-        G.scene.add(group);
-        this.pickups.push({ weapon: spot.weapon, label: spot.label, mesh: group, pos: new THREE.Vector3(spot.x, 0, spot.z), taken: false });
+    // Melee in the hand: tryMelee is what the melee key calls.
+    tryMelee() {
+      const w = this.active();
+      if (w && w.kind === 'melee') {
+        if (G.elapsed - this.lastShotAt >= (w.swingMs || 400) / 1000) {
+          this.lastShotAt = G.elapsed;
+          G.combat.meleeSwing(w);
+        }
+      } else {
+        G.combat.punch();
       }
     },
-    updatePickups(dt) {
-      for (const p of this.pickups) {
-        if (p.taken) continue;
-        p.mesh.rotation.y += dt * 0.6;
-        p.mesh.position.y = Math.sin(G.elapsed * 2 + p.pos.x) * 0.08;
+
+    update(dt) {
+      const w = this.active();
+      if (!w) return;
+      // Reload completion.
+      if (this.reloading && G.elapsed >= this.reloadDoneAt) {
+        this.reloading = false;
+        const mag = w.mag || 0;
+        if (w.capped === false) {
+          this.magAmmo = mag;
+        } else {
+          const take = Math.min(mag - this.magAmmo, this.ammo[w.id] || 0);
+          this.ammo[w.id] = (this.ammo[w.id] || 0) - take;
+          this.magAmmo += take;
+        }
+        G.audio.click?.();
       }
-    },
-    nearestPickup() {
-      for (const p of this.pickups) {
-        if (p.taken) continue;
-        if (Math.hypot(p.pos.x - G.player.pos.x, p.pos.z - G.player.pos.z) < 3) return p;
+      // Auto fire while the trigger is held (auto weapons only).
+      if (this.fireHeld && w.mode === 'auto' && !w.flame && !w.projectile && w.mode !== 'throw') {
+        this.triggerDown();
       }
-      return null;
+      // Bloom decays when not firing (Bab 21).
+      if (G.elapsed - this.lastFireTime > 0.5) this.bloom = Math.max(0, this.bloom - dt * 2);
+      // Minigun spin-down when the trigger is released.
+      if (w.spinUp === undefined && this.spinUp > 0) this.spinUp = Math.max(0, this.spinUp - dt * 2);
     },
-    collectPickup(p) {
-      if (p.taken) return;
-      p.taken = true;
-      G.scene.remove(p.mesh);
-      this.give(p.weapon);
-      this.equip(p.weapon);
-      G.audio.pickup();
-      G.hud.toast(`Picked up ${WEAPON_BY_ID[p.weapon].name} (${p.label})`);
+
+    // ---- Save / load: the owned collection (slots themselves are NOT
+    // saved — a load restores the start loadout, as in round 1) ----
+    serialize() {
+      return { owned: this.owned };
     },
-    // E key: grab a nearby world pickup if one is in reach.
-    tryPickup() {
-      const p = this.nearestPickup();
-      if (!p) return false;
-      this.collectPickup(p);
-      return true;
+    restore(data) {
+      if (!data || !data.owned) return;
+      for (const who of Object.keys(data.owned)) {
+        const ids = data.owned[who].filter((id) => this.byId(id));
+        if (ids.length) this.owned[who] = ids;
+      }
     },
   };
-
-  // Start each character with a full magazine.
-  for (const who of ['jason', 'lucia']) W.magAmmo[START_LOADOUT[who]] = WEAPON_BY_ID[START_LOADOUT[who]].mag;
-  W.spawnPickups();
   return W;
 }

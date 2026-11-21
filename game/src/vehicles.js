@@ -1,8 +1,10 @@
 // vehicles.js — Car meshes and traffic AI. One job: every car in Azura Bay,
 // from parked sedans to police interceptors, and how traffic drives itself.
+// Round 2: makeCar accepts a named model from the 240+ vehicle database
+// (vehicles-data.js); the class handling still comes from CAR_CLASSES.
 
 import * as THREE from 'three';
-import { CAR_CLASSES, PALETTE, TRAFFIC_COUNT, PARKED_COUNT, CITY_HALF, PITCH, GRID, nearestRoad, onRoad } from './config.js';
+import { CAR_CLASSES, PALETTE, TRAFFIC_COUNT, PARKED_COUNT, CITY_HALF, PITCH, GRID, nearestRoad } from './config.js';
 
 let carId = 0;
 
@@ -86,16 +88,24 @@ export function buildCarMesh(kind, colorHex) {
   return { group: g, wheels, lightBar, len, wid };
 }
 
+// kind may be a CAR_CLASSES key ('sedan'…), or a named model — in that case
+// the model table (vehicles-data.js, via G.vehicleDb) resolves the class.
 export function makeCar(G, kind, x, z, heading, driver) {
-  const cls = CAR_CLASSES[kind] || CAR_CLASSES.sedan;
-  const colorHex = kind === 'police' ? 0xf2f2f2 : G.rng.pick(PALETTE.carPaint);
-  const { group, wheels, lightBar, len, wid } = buildCarMesh(kind, colorHex);
+  let clsKey = kind;
+  let modelName = null;
+  if (G.vehicleDb) {
+    const resolved = G.vehicleDb.resolve(kind);
+    if (resolved) { clsKey = resolved.cls; modelName = resolved.name; }
+  }
+  const cls = CAR_CLASSES[clsKey] || CAR_CLASSES.sedan;
+  const colorHex = clsKey === 'police' ? 0xf2f2f2 : G.rng.pick(PALETTE.carPaint);
+  const { group, wheels, lightBar, len, wid } = buildCarMesh(clsKey, colorHex);
   group.position.set(x, 0, z);
   group.rotation.y = heading;
   G.scene.add(group);
   const car = {
     id: ++carId,
-    kind, cls, colorHex, mesh: group, wheels, lightBar,
+    kind: clsKey, model: modelName || kind, cls, colorHex, mesh: group, wheels, lightBar,
     pos: new THREE.Vector3(x, 0, z),
     heading, speed: 0, steer: 0,
     driver: driver || 'parked', // 'traffic' | 'parked' | 'player' | 'police' | 'target' | 'none'
@@ -104,6 +114,11 @@ export function makeCar(G, kind, x, z, heading, driver) {
     route: null,
     radius: 2.4,
     sirenPhase: Math.random() * 10,
+    fuel: 1,            // Bab 17: 1 = full tank / charge
+    tracker: false,     // Bab 17: GPS tracker (expensive cars)
+    securityTier: 0,    // Bab 17: 0 slim-jim, 1 key-cloner, 2 phone-hack
+    flatTire: null,     // Bab 21: 'left' | 'right'
+    trunkStash: null,   // Bab 12/23: loot in the trunk
   };
   group.userData.hitKind = 'car';
   group.userData.ref = car;
@@ -188,7 +203,7 @@ function trafficDrive(G, car, dt) {
   // Slow down for a car ahead in the same lane.
   let wantSpeed = r.targetSpeed;
   for (const other of G.cars) {
-    if (other === car || other.speed === 0 && other.driver === 'parked') continue;
+    if (other === car || (other.speed === 0 && other.driver === 'parked')) continue;
     const dx = other.pos.x - car.pos.x, dz = other.pos.z - car.pos.z;
     const ahead = dx * fwdX + dz * fwdZ;
     const side = Math.abs(dx * fwdZ - dz * fwdX);

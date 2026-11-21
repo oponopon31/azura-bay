@@ -1,5 +1,7 @@
 // pedestrians.js — People on the sidewalks: they stroll, cross at corners,
 // and run away from gunfire, speeding cars and police chases.
+// Bab 24: a longarm carried openly makes them panic and call the police;
+// Bab 26: L2/LT near a dog or animal offers pet / scold (tracked reputation).
 
 import * as THREE from 'three';
 import { PED_COUNT, CITY_HALF, PITCH, nearestRoad } from './config.js';
@@ -58,10 +60,28 @@ export function spawnPedestrians(G) {
       target: null,
       fleeing: 0,
       alive: true,
+      isDog: false,
     };
     group.userData.hitKind = 'ped';
     group.userData.ref = ped;
     G.peds.push(ped);
+  }
+  // A few street dogs (Bab 20/25/26): pet them (L2/LT) or scold them.
+  for (let i = 0; i < 3; i++) {
+    const { group, legL, legR, armL, armR } = buildPedMesh(G, 0x8a6a4a, 0x5d4037);
+    const x = G.rng.range(-200, 200), z = G.rng.range(-200, 300);
+    group.position.set(x, 0, z);
+    group.scale.set(0.8, 0.55, 1.1);
+    G.scene.add(group);
+    const dog = {
+      mesh: group, legL, legR, armL, armR,
+      pos: new THREE.Vector3(x, 0, z),
+      heading: G.rng.range(0, Math.PI * 2),
+      speed: 2.5, walkPhase: 0, target: null, fleeing: 0, alive: true, isDog: true,
+    };
+    group.userData.hitKind = 'ped';
+    group.userData.ref = dog;
+    G.peds.push(dog);
   }
 }
 
@@ -86,6 +106,9 @@ function pickSidewalkTarget(G, ped) {
 
 export function updatePedestrians(G, dt) {
   const playerPos = G.player.pos;
+  // Bab 17: an openly carried longarm panics NPCs, who call the police.
+  const openLongarm = !!(G.weapons && G.weapons.active() &&
+    ['longarms', 'special'].includes(G.weapons.active().cat) && G.player.onFoot);
   for (const ped of G.peds) {
     if (!ped.alive) continue;
     // Stunned: stays down until the stun expires, then gets back up.
@@ -107,6 +130,10 @@ export function updatePedestrians(G, dt) {
     const dp = ped.pos.distanceTo(playerPos);
     if (G.player.inCar && G.player.speed > 8 && dp < 18) danger = playerPos;
     if (G.police.stars >= 2 && dp < 10) danger = playerPos;
+    if (openLongarm && dp < 25 && !ped.isDog) {
+      danger = playerPos;
+      if (!ped.reported) { ped.reported = true; G.police.addHeat(8, 'seen carrying a longarm openly'); }
+    } else if (!openLongarm) ped.reported = false;
     if (danger) ped.fleeing = 2.5;
     ped.fleeing = Math.max(0, ped.fleeing - dt);
 
@@ -162,4 +189,35 @@ export function stunPed(G, ped, secs) {
   ped.mesh.rotation.x = -Math.PI / 2;
   ped.mesh.position.y = 0.3;
   G.effects.sparks(ped.pos.x, 1, ped.pos.z, 8);
+}
+
+// Bab 25/26 animal reputation: pet (kind) or scold (mean) a nearby dog.
+// Recorded in G.stats.animalRep (positive = kind, negative = mean).
+export function interactAnimal(G, kind) {
+  let best = null, bestD = 4;
+  for (const ped of G.peds) {
+    if (!ped.alive || !ped.isDog) continue;
+    const d = Math.hypot(ped.pos.x - G.player.pos.x, ped.pos.z - G.player.pos.z);
+    if (d < bestD) { best = ped; bestD = d; }
+  }
+  if (!best) { G.hud.toast('No animal nearby.'); return false; }
+  G.stats.animalRep = (G.stats.animalRep || 0) + (kind === 'pet' ? 1 : -1);
+  if (kind === 'pet') {
+    G.hud.toast('You pet the dog. It wags its tail.');
+    if (G.attributes) G.attributes.gainFocus(2);
+  } else {
+    G.hud.toast('You scold the dog. It skulks away.');
+    best.fleeing = 3;
+  }
+  return true;
+}
+
+// Bab 17: an open longarm on the street makes nearby NPCs panic and
+// report to the police.
+export function panicNearby(G, radius) {
+  for (const ped of G.peds) {
+    if (!ped.alive) continue;
+    if (ped.pos.distanceTo(G.player.pos) < radius) ped.fleeing = 3;
+  }
+  G.police.addHeat(4, 'someone reported an open longarm');
 }

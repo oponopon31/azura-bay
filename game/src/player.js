@@ -1,8 +1,11 @@
 // player.js — The on-foot hero: third-person movement, camera orbit and the
 // player character mesh. Driving lives in driving.js.
+// Bab 24: crouch is the responsive low stance (prone was REMOVED from the
+// spec); swimming uses Lung Capacity when stamina runs low, and the player
+// can shoot while swimming.
 
 import * as THREE from 'three';
-import { PLAYER, onRoad } from './config.js';
+import { PLAYER, WATER_Z } from './config.js';
 
 export function createPlayer(G) {
   // Hero mesh: teal jacket, dark jeans — Jason by default; setCharacter
@@ -53,6 +56,10 @@ export function createPlayer(G) {
     camPitch: 0.32,
     camDist: 7.5,
     aiming: false,
+    crouching: false, // Bab 24: responsive crouch replaces prone
+    swimming: false,  // in the sea (z past the water line)
+    lungCapacity: 1,  // 0..1 — the swim trick's second wind (Bab 24)
+    stamina: 1,       // 0..1 — sprint/swim stamina, fed by Cardio
 
     // Switch the playable protagonist: the mesh colours change so the
     // player can tell at a glance who they are.
@@ -90,12 +97,18 @@ export function createPlayer(G) {
       this.camYaw = 0;
       this.vel.set(0, 0, 0);
       this.health = this.maxHealth;
+      this.stamina = 1;
+      this.lungCapacity = 1;
+      this.swimming = false;
+      this.crouching = false;
       if (this.car) this.exitCar();
     },
 
     update(dt) {
       if (!this.onFoot) return;
       const k = G.input.keys;
+      // Crouch: hold C (ControlLeft) — the responsive low stance (Bab 24).
+      this.crouching = !!(k['KeyC'] || k['ControlLeft']);
       // Camera-relative movement: W is away from the camera.
       let ix = 0, iz = 0;
       if (k['KeyW'] || k['ArrowUp']) iz += 1;
@@ -105,12 +118,33 @@ export function createPlayer(G) {
       // Arrow keys steer the camera when not moving forward/back.
       if (k['ArrowLeft']) this.camYaw += 1.9 * dt;
       if (k['ArrowRight']) this.camYaw -= 1.9 * dt;
-      const running = k['ShiftLeft'] || k['ShiftRight'];
+      // Always Run (Bab 25 setting): forward = run without holding Shift.
+      const alwaysRun = G.settings && G.settings.alwaysRun;
+      const running = alwaysRun || k['ShiftLeft'] || k['ShiftRight'];
       let targetSpeed = (ix || iz) ? (running ? PLAYER.runSpeed : PLAYER.walkSpeed) : 0;
+      if (this.crouching) targetSpeed *= 0.45;
       // Heavy weapons slow you down (LMG, minigun, launchers).
       if (G.weapons) {
         const w = G.weapons.active();
         if (w && w.moveSlow) targetSpeed *= w.moveSlow;
+      }
+      // Super Run cheat (Bab 3): sprint speed x1.6 while it is active.
+      if (G.cheats && G.cheats.isActive('superrun')) targetSpeed *= 1.6;
+      // Swimming: past the water line the player is in the sea.
+      this.swimming = this.pos.z > WATER_Z;
+      if (this.swimming) {
+        // Sprint-swim drains stamina; near-empty stamina switches to Lung
+        // Capacity, which lets the player surge twice as long (Bab 24 trick).
+        if (running && (ix || iz)) this.stamina = Math.max(0, this.stamina - dt * 0.12);
+        else this.stamina = Math.min(1, this.stamina + dt * 0.05);
+        const onLungs = this.stamina < 0.15;
+        if (onLungs) this.lungCapacity = Math.max(0, this.lungCapacity - dt * 0.03);
+        else this.lungCapacity = Math.min(1, this.lungCapacity + dt * 0.02);
+        targetSpeed = (ix || iz) ? (onLungs ? PLAYER.walkSpeed * 1.6 : PLAYER.walkSpeed * 0.8) : 0;
+      } else {
+        // On land, stamina recovers when not sprinting.
+        if (!running || !(ix || iz)) this.stamina = Math.min(1, this.stamina + dt * 0.08);
+        else this.stamina = Math.max(0, this.stamina - dt * 0.04);
       }
       const fwdX = Math.sin(this.camYaw), fwdZ = Math.cos(this.camYaw);
       const rightX = Math.cos(this.camYaw), rightZ = -Math.sin(this.camYaw);
@@ -142,21 +176,25 @@ export function createPlayer(G) {
       this.legR.rotation.x = -swing;
       this.armL.rotation.x = -swing * 0.8;
       this.armR.rotation.x = swing * 0.8;
+      // Crouch pose: torso dips, legs bend.
       this.mesh.position.copy(this.pos);
+      this.mesh.position.y = this.crouching ? -0.35 : 0;
       this.mesh.rotation.y = this.heading;
       this.mesh.visible = true;
       // Footsteps on the beach slow you a little.
-      if (this.pos.z > 336) this.vel.multiplyScalar(0.985);
+      if (this.pos.z > 336 && this.pos.z <= WATER_Z) this.vel.multiplyScalar(0.985);
     },
 
     // Third-person camera: orbit behind the player, or over the shoulder while aiming.
     updateCamera(dt) {
       const cam = G.camera;
       // Scope zoom: aiming with a scoped weapon narrows the field of view.
+      // First-person via scope (Bab 25): R3 with a sight/scope = FOV 12.
       let wantFov = 62;
       if (this.aiming && G.weapons) {
         const w = G.weapons.active();
         if (w && w.zoom) wantFov = 62 / w.zoom;
+        else if (w && G.settings && G.settings.scopeFirstPerson) wantFov = 14;
       }
       if (Math.abs(cam.fov - wantFov) > 0.5) {
         cam.fov += (wantFov - cam.fov) * Math.min(1, 12 * dt);

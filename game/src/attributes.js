@@ -1,3 +1,4 @@
+// Azura Bay — re-authored under recording r21
 // attributes.js — Character stats (Cole & Mara), SPEC §10.
 // 3 attributes, 4 standard levels each, Level 5 max in late-game once the
 // story level cap opens.

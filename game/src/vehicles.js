@@ -1,3 +1,4 @@
+// Azura Bay — re-authored under recording r21
 // vehicles.js — Vehicle systems, SPEC §17.
 // Car Security Tiers: old/standard cars open with a slim jim or smashed
 // window; luxury/modern cars need a Key-Cloner or Phone-Hacking Tool.

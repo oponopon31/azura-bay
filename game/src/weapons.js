@@ -1,3 +1,4 @@
+// Azura Bay — re-authored under recording r21
 // weapons.js — Sidearms (16), SPEC §2a. User's exact names, no renames.
 // ES9 = Cole's starting pistol, K17 = Mara's standard pistol.
 // Fairview Kalinga .50 has the highest pistol damage (55);

@@ -1,3 +1,4 @@
+// Azura Bay — re-authored under recording r21
 // player.js — Player state (Cole & Mara), SPEC §10 + §17 + §29.
 // Health / Stamina / Focus / Oxygen / Adrenaline, with the Bab 29 rules.
 // Dynamic body: too much food = gain weight; regular gym (timing minigame) =

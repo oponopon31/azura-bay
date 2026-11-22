@@ -1,3 +1,4 @@
+// Azura Bay — re-authored under recording r21
 // stunts.js — Stunts (397) & free-roam robberies, SPEC §6.
 // Stunt Jumps 130, Under the Bridges 202, Knife Flights 40, Base Jumps 25 = 397.
 // Robberies: 72 convenience stores, 23 fast food, 22 bank jobs (14 small banks

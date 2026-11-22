@@ -56,7 +56,7 @@ const RAW = [
   ['Western Duster', 'aircraft', 260, 750000],
   // ---- Bab 23: Trains (4) ----
   ['DF8-90 Train', 'train', 180, 0], ['Freight Train', 'train', 160, 0],
-  ['VCIA Tram', 'train', 90, 0], ['VCMM Metro', 'train', 120, 0],
+  ['ABIA Tram', 'train', 90, 0], ['ABMM Metro', 'train', 120, 0],
   // ---- Bab 23: Commercial / Service / Utility / Emergency (13) ----
   ['Brute Excavator', 'commercial', 60, 0], ['Brute Rubble', 'commercial', 90, 0],
   ['Brute Stockade', 'commercial', 110, 0], ['Buffalo STX Pursuit', 'commercial', 280, 0],

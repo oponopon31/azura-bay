@@ -9,11 +9,11 @@ export const STRANGERS = [
   { id: 'bret-sf', name: 'Bret Vogel', chapter: 2, jobs: 3, desc: 'Veteran hunter with special hunting challenges.' },
   { id: 'moses-sf', name: 'Moses', chapter: 2, jobs: 4, desc: 'Steal a list of special-order cars.' },
   { id: 'yago', name: 'Yago', chapter: 3, jobs: 4, desc: 'Little Cuba street racer (4 race & mentor missions).' },
-  { id: 'andy-sf', name: 'Andy', chapter: 3, jobs: 4, desc: 'Lucia + the mysterious Cellerica group (4 missions).' },
+  { id: 'andy-sf', name: 'Andy', chapter: 3, jobs: 4, desc: 'Mara + the mysterious Cellerica group (4 missions).' },
   { id: 'yasmani', name: 'Yasmani', chapter: 3, jobs: 3, desc: 'Stolen-jewellery fence; robbery jobs.' },
   { id: 'randy-trio', name: 'Randy, Tyrone & Dunk', chapter: 3, jobs: 3, desc: 'Destroy a rival lab and special thefts.' },
   { id: 'eddie', name: 'Eddie Acosta', chapter: 4, jobs: 2, desc: 'Crypto fan, met in the Pool Day mission.' },
-  { id: 'pete-sf', name: 'Pilot Pete', chapter: 4, jobs: 3, desc: 'Smuggler pilot; Jason flies air packages.' },
+  { id: 'pete-sf', name: 'Pilot Pete', chapter: 4, jobs: 3, desc: 'Smuggler pilot; Cole flies air packages.' },
 ];
 
 // Next stranger available given the missions completed so far.

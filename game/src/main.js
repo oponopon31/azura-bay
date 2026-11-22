@@ -1,6 +1,12 @@
-// main.js — AZURA BAY bootstrap (GTA 6 fan open world).
-// Loads the full Leonida data model, builds the 3D scene (three.js), wires the
-// four-corner HUD, and runs the game loop. index.html loads this as a module.
+// main.js — AZURA BAY bootstrap (round 7).
+// Loads the full Solmaris data model, builds the 3D city (three.js), wires the
+// dispatch/objective/dialogue HUD, and runs the game loop. index.html loads
+// this as a module.
+// The city is a real 3D scene: colour-varied facades with lit windows, roads
+// with lane markings, sidewalks, palms, beach + water, golden-hour light,
+// traffic, pedestrians, and a police pursuit with dispatch, roadblock and
+// air unit. Shot poses (?shot=cover|shootout|dusk|heist|night) stage real
+// gameplay scenes for screenshots; the title screen hides itself in shot mode.
 import * as THREE from '../vendor/three.module.min.js';
 import { GAME, WALLET_MAX } from './config.js';
 import { MISSIONS, missionsInChapter } from './missions.js';
@@ -14,7 +20,7 @@ import { CHEATS } from './cheats.js';
 import { CHARACTERS } from './characters.js';
 import { STRANGERS } from './strangers.js';
 import { STATIONS } from './radio.js';
-import { MAP_POINTS, gamePos, REGIONS } from './leonidamap.js';
+import { MAP_POINTS, gamePos, REGIONS } from './solmarismap.js';
 import { COLLECTIBLE_GROUPS, totalCollectibles } from './collectibles.js';
 import { STUNT_KINDS, ROBBERY_KINDS, totalStunts, totalRobberies } from './stunts.js';
 import { MYSTERIES } from './mysteries.js';
@@ -35,10 +41,11 @@ import { buildHud, updateHudCorners, drawMinimap, setBuildTag } from './hud.js';
 import { saveGame, loadGame } from './save.js';
 import { SHOPS } from './gunshops.js';
 import { runSelfTest } from './selftest.js';
+import { FEATURED_MISSIONS, DISPATCH_UNITS } from './featured.js';
 
 // ---- game state ------------------------------------------------------------
 const state = {
-  player: freshPlayer('jason'),
+  player: freshPlayer('cole'),
   world: freshWorld(1337),
   economy: { cash: 500, buckme: 0, marked: 0 },
   police: { stars: 0, starState: 'Clear', memory: freshMemory(), seenNow: false },
@@ -51,6 +58,13 @@ const state = {
   time: 0,
   gpsRoute: [],
   mapBlocks: [],
+  dispatch: [],
+  featured: null,
+  mission: null,
+  dialogue: null,
+  radio: 'Pulse FM',
+  playerMm: { x: 90, y: 90 },
+  missionMarker: { x: 140, y: 40 },
 };
 
 // ---- content totals (for the pause menu / dossier) --------------------------
@@ -79,31 +93,177 @@ export function contentTotals() {
   };
 }
 
+// ---- shot poses -------------------------------------------------------------
+// Each pose is a real gameplay state: hour, wanted level, featured mission,
+// in-car vs on-foot, and camera. Screenshots are taken from the live game.
+const SHOT_POSES = {
+  cover:    { hour: 18.5, stars: 3, mission: 'f8', stage: 1, dialogue: 0, inCar: true,  cam: 'chase', drive: true },
+  shootout: { hour: 14,   stars: 3, mission: 'f5', stage: 2, dialogue: 2, inCar: false, cam: 'street', drive: false },
+  dusk:     { hour: 18.5, stars: 0, mission: 'f6', stage: 0, dialogue: 0, inCar: false, cam: 'beach', drive: false },
+  heist:    { hour: 11,   stars: 4, mission: 'f5', stage: 1, dialogue: 1, inCar: true,  cam: 'chase-side', drive: true },
+  night:    { hour: 21.5, stars: 1, mission: 'f2', stage: 0, dialogue: 0, inCar: false, cam: 'street', drive: false },
+};
+const params = new URLSearchParams(window.location.search);
+const shotId = SHOT_POSES[params.get('shot')] ? params.get('shot') : null;
+const pose = shotId ? SHOT_POSES[shotId] : { hour: 18.5, stars: 0, mission: 'f1', stage: 0, dialogue: 0, inCar: false, cam: 'street', drive: false };
+
 // ---- 3D scene ---------------------------------------------------------------
-let renderer, scene, camera, playerMesh, clock;
+let renderer, scene, camera, playerMesh, playerCar, clock;
+let traffic = [], walkers = [], policeCars = [], heli = null, heliLight = null, rotor = null;
+let missionBeacon = null, barrierMesh = null;
+// Road grid: avenues run north-south, streets east-west. Coral Drive is x=90,
+// the beachfront avenue with the sea to its east.
+const WORLD = { avenues: [-90, -60, -30, 0, 30, 60, 90], streets: [-120, -90, -60, -30, 0, 30, 60, 90, 120] };
+
+// Paint a building facade on a canvas: base colour, shading bands, and a
+// grid of windows, some lit warm, some dark glass. Returns a three texture.
+function facadeTexture(base, litRatio) {
+  const c = document.createElement('canvas');
+  c.width = 128; c.height = 256;
+  const g = c.getContext('2d');
+  g.fillStyle = base;
+  g.fillRect(0, 0, 128, 256);
+  // Ground floor in shadow, roofline catching the sun.
+  g.fillStyle = 'rgba(0,0,0,0.22)';
+  g.fillRect(0, 224, 128, 32);
+  g.fillStyle = 'rgba(255,255,255,0.12)';
+  g.fillRect(0, 0, 128, 8);
+  // Window grid, deterministic per texture so screenshots are stable.
+  let seed = 1234567;
+  const rnd = () => { seed = (seed * 48271) % 2147483647; return seed / 2147483647; };
+  for (let row = 0; row < 12; row++) {
+    for (let col = 0; col < 6; col++) {
+      const lit = rnd() < litRatio;
+      g.fillStyle = lit ? '#ffcf7d' : '#263646';
+      g.fillRect(8 + col * 20, 14 + row * 19, 13, 11);
+    }
+  }
+  const tex = new THREE.CanvasTexture(c);
+  if (THREE.SRGBColorSpace) tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+// A low-poly car: body, cabin, wheels, headlights and taillights. Police
+// cars get a red/blue light bar whose halves flash in the loop.
+function makeCar(color, police) {
+  const group = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.7, 4.6),
+    new THREE.MeshLambertMaterial({ color }));
+  body.position.y = 0.55;
+  group.add(body);
+  const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.6, 2.2),
+    new THREE.MeshLambertMaterial({ color: police ? 0x111111 : 0x22303e }));
+  cabin.position.set(0, 1.15, -0.3);
+  group.add(cabin);
+  const wheelMat = new THREE.MeshLambertMaterial({ color: 0x111111 });
+  for (const [x, z] of [[-1.05, 1.5], [1.05, 1.5], [-1.05, -1.5], [1.05, -1.5]]) {
+    const w = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.3, 10), wheelMat);
+    w.rotation.z = Math.PI / 2;
+    w.position.set(x, 0.42, z);
+    group.add(w);
+  }
+  const hl = new THREE.MeshBasicMaterial({ color: 0xfff2b0 });
+  for (const x of [-0.8, 0.8]) {
+    const h = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.2, 0.1), hl);
+    h.position.set(x, 0.6, 2.32);
+    group.add(h);
+  }
+  const tl = new THREE.MeshBasicMaterial({ color: 0xff2a2a });
+  for (const x of [-0.8, 0.8]) {
+    const t = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.2, 0.1), tl);
+    t.position.set(x, 0.6, -2.32);
+    group.add(t);
+  }
+  if (police) {
+    const barR = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.25, 0.5), new THREE.MeshBasicMaterial({ color: 0xff2222 }));
+    barR.position.set(-0.45, 1.55, -0.3);
+    const barB = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.25, 0.5), new THREE.MeshBasicMaterial({ color: 0x2244ff }));
+    barB.position.set(0.45, 1.55, -0.3);
+    group.add(barR); group.add(barB);
+    group.userData.barR = barR; group.userData.barB = barB;
+  }
+  return group;
+}
+
+// A palm: leaning trunk with a crown of drooping fronds.
+function makePalm() {
+  const group = new THREE.Group();
+  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.42, 7, 6),
+    new THREE.MeshLambertMaterial({ color: 0x7a5a38 }));
+  trunk.position.y = 3.5;
+  trunk.rotation.z = 0.08;
+  group.add(trunk);
+  const leafMat = new THREE.MeshLambertMaterial({ color: 0x2f8f4e });
+  for (let i = 0; i < 6; i++) {
+    const leaf = new THREE.Mesh(new THREE.ConeGeometry(0.7, 3.4, 4), leafMat);
+    const a = (i / 6) * Math.PI * 2;
+    leaf.position.set(Math.cos(a) * 1.1, 7.1, Math.sin(a) * 1.1);
+    leaf.rotation.z = Math.cos(a) * 1.1;
+    leaf.rotation.x = -Math.sin(a) * 1.1;
+    group.add(leaf);
+  }
+  return group;
+}
+
+// A pedestrian: shirt, head, legs. Shirt colour varies per walker.
+function makeWalker(shirt) {
+  const group = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.5, 0.5),
+    new THREE.MeshLambertMaterial({ color: shirt }));
+  body.position.y = 1.35;
+  group.add(body);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.32, 8, 8),
+    new THREE.MeshLambertMaterial({ color: 0xd9a986 }));
+  head.position.y = 2.45;
+  group.add(head);
+  const legs = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.9, 0.45),
+    new THREE.MeshLambertMaterial({ color: 0x2c3e50 }));
+  legs.position.y = 0.45;
+  group.add(legs);
+  return group;
+}
 
 function buildScene() {
   renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize(window.innerWidth, window.innerHeight);
   document.getElementById('game').appendChild(renderer.domElement);
   scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x87b5d6);
-  scene.fog = new THREE.Fog(0x87b5d6, 200, 900);
+  const dusk = isDuskAt(pose.hour);
+  const night = isNightAt(pose.hour);
+  scene.background = new THREE.Color(night ? 0x0a1420 : dusk ? 0xe07a3e : 0x87b5d6);
+  scene.fog = new THREE.Fog(night ? 0x0a1420 : dusk ? 0xe07a3e : 0x87b5d6, 200, 900);
   camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
-  camera.position.set(0, 60, 80);
+  camera.position.set(0, 40, 90);
   camera.lookAt(0, 0, 0);
-  scene.add(new THREE.AmbientLight(0xffffff, 0.7));
-  const sun = new THREE.DirectionalLight(0xfff2cc, 1.2);
-  sun.position.set(100, 200, 50);
+  // Golden-hour light: warm low sun at dusk, cool dim light at night.
+  scene.add(new THREE.AmbientLight(0xffffff, night ? 0.35 : dusk ? 0.55 : 0.7));
+  const sun = new THREE.DirectionalLight(dusk ? 0xffb36b : 0xfff2cc, dusk ? 1.6 : 1.2);
+  sun.position.set(dusk ? -150 : 100, dusk ? 60 : 200, 50);
   scene.add(sun);
-  // Ground (Leonida landmass, game coords from gtabase/8).
+
+  // Ground: grass inland, sand along the beachfront (east of Coral Drive).
   const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(2000, 2000),
-    new THREE.MeshLambertMaterial({ color: 0x4a7c43 })
+    new THREE.MeshLambertMaterial({ color: 0x5d8a4a })
   );
   ground.rotation.x = -Math.PI / 2;
   scene.add(ground);
-  // Lake Leonida (centre).
+  const sand = new THREE.Mesh(
+    new THREE.PlaneGeometry(65, 500),
+    new THREE.MeshLambertMaterial({ color: 0xe8d29a })
+  );
+  sand.rotation.x = -Math.PI / 2;
+  sand.position.set(137, 0.1, 0);
+  scene.add(sand);
+  // The bay itself, east of the sand.
+  const water = new THREE.Mesh(
+    new THREE.PlaneGeometry(300, 900),
+    new THREE.MeshLambertMaterial({ color: dusk ? 0x4a7db0 : 0x2a7db0 })
+  );
+  water.rotation.x = -Math.PI / 2;
+  water.position.set(320, 0.05, 0);
+  scene.add(water);
+  // Lake Solmaris, centre-north.
   const lake = new THREE.Mesh(
     new THREE.CircleGeometry(90, 32),
     new THREE.MeshLambertMaterial({ color: 0x2a6db0 })
@@ -111,17 +271,251 @@ function buildScene() {
   lake.rotation.x = -Math.PI / 2;
   lake.position.set(-243.5, 0.5, -599.25);
   scene.add(lake);
-  // City blocks around Vice City (game coords).
-  const blockMat = new THREE.MeshLambertMaterial({ color: 0x8a8f96 });
-  for (let i = 0; i < 40; i++) {
-    const w = 12 + (i % 5) * 6;
-    const d = 12 + (i % 3) * 8;
-    const h = 8 + (i % 7) * 6;
-    const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), blockMat);
-    b.position.set(-60 + (i % 8) * 18, h / 2, -140 + Math.floor(i / 8) * 22);
-    scene.add(b);
-    state.mapBlocks.push({ x: 0, y: 0, w: 4, h: 4 });
+
+  // Roads: dark asphalt strips along every avenue and street, with dashed
+  // centre lines and pale sidewalk plates on both sides.
+  const roadMat = new THREE.MeshLambertMaterial({ color: 0x2e3138 });
+  const walkMat = new THREE.MeshLambertMaterial({ color: 0x9aa0a3 });
+  const dashMat = new THREE.MeshBasicMaterial({ color: 0xf5e9c8 });
+  for (const x of WORLD.avenues) {
+    const road = new THREE.Mesh(new THREE.PlaneGeometry(10, 340), roadMat);
+    road.rotation.x = -Math.PI / 2;
+    road.position.set(x, 0.15, 0);
+    scene.add(road);
+    for (const side of [-6.5, 6.5]) {
+      const walk = new THREE.Mesh(new THREE.PlaneGeometry(3, 340), walkMat);
+      walk.rotation.x = -Math.PI / 2;
+      walk.position.set(x + side, 0.12, 0);
+      scene.add(walk);
+    }
+    for (let z = -160; z <= 160; z += 16) {
+      const dash = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 5), dashMat);
+      dash.rotation.x = -Math.PI / 2;
+      dash.position.set(x, 0.2, z);
+      scene.add(dash);
+    }
   }
+  for (const z of WORLD.streets) {
+    const road = new THREE.Mesh(new THREE.PlaneGeometry(260, 10), roadMat);
+    road.rotation.x = -Math.PI / 2;
+    road.position.set(0, 0.15, z);
+    scene.add(road);
+    for (let x = -120; x <= 120; x += 16) {
+      const dash = new THREE.Mesh(new THREE.PlaneGeometry(5, 0.5), dashMat);
+      dash.rotation.x = -Math.PI / 2;
+      dash.position.set(x, 0.2, z);
+      scene.add(dash);
+    }
+  }
+
+  // Buildings: colour-varied facades with lit windows, on sidewalk plates.
+  // Blocks fill the grid between avenues; the beachfront row is taller and
+  // pastel, the inland blocks mixed heights and colours.
+  const facades = ['#e8b4b8', '#f2d492', '#a8c8e8', '#c9a0dc', '#f5f5f0', '#e89b6d', '#9fd6c0', '#d98a8a'];
+  let bi = 0;
+  for (let gx = 0; gx < 6; gx++) {
+    for (let gz = 0; gz < 8; gz++) {
+      const bx = -75 + gx * 30;
+      const bz = -105 + gz * 30;
+      if (bx > 80) continue; // beachfront stays open east of Coral Drive
+      const w = 10 + (bi % 3) * 2;
+      const d = 10 + (bi % 2) * 3;
+      const h = 9 + (bi % 6) * 7;
+      const plate = new THREE.Mesh(new THREE.BoxGeometry(w + 2, 0.4, d + 2), walkMat);
+      plate.position.set(bx, 0.2, bz);
+      scene.add(plate);
+      const tex = facadeTexture(facades[bi % facades.length], dusk || night ? 0.55 : 0.3);
+      const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d),
+        new THREE.MeshLambertMaterial({ map: tex }));
+      b.position.set(bx, h / 2 + 0.4, bz);
+      scene.add(b);
+      state.mapBlocks.push({ x: 90 + bx * 0.55, y: 90 + bz * 0.55, w: 8, h: 8 });
+      bi++;
+    }
+  }
+  // Beachfront towers along Coral Drive, taller and pastel, with neon signs
+  // on their east faces that light up at dusk.
+  const neonColors = [0xff4d9d, 0x4dd8ff, 0xffd34d, 0x7dff6a];
+  for (let i = 0; i < 6; i++) {
+    const z = -100 + i * 40;
+    const h = 34 + (i % 3) * 12;
+    const tex = facadeTexture(facades[(i + 2) % facades.length], dusk || night ? 0.6 : 0.35);
+    const t = new THREE.Mesh(new THREE.BoxGeometry(14, h, 14),
+      new THREE.MeshLambertMaterial({ map: tex }));
+    t.position.set(72, h / 2, z);
+    scene.add(t);
+    const sign = new THREE.Mesh(new THREE.BoxGeometry(0.5, 2.2, 8),
+      new THREE.MeshBasicMaterial({ color: neonColors[i % neonColors.length] }));
+    sign.position.set(79.4, h * 0.7, z);
+    scene.add(sign);
+  }
+  // Palms line the beach edge and the Coral Drive sidewalk.
+  for (let z = -140; z <= 140; z += 24) {
+    const palm = makePalm();
+    palm.position.set(112, 0, z);
+    scene.add(palm);
+    if ((z / 24) % 2 === 0) {
+      const palm2 = makePalm();
+      palm2.position.set(80, 0, z + 8);
+      scene.add(palm2);
+    }
+  }
+
+  // Traffic: coloured cars circulating on the avenues, plus parked cars.
+  const trafficColors = [0xc0392b, 0x2e86c1, 0xf1c40f, 0xecf0f1, 0x1a1a1a, 0x7d3c98, 0x16a085];
+  for (let i = 0; i < 14; i++) {
+    const car = makeCar(trafficColors[i % trafficColors.length], false);
+    const avenue = WORLD.avenues[i % WORLD.avenues.length];
+    car.position.set(avenue + (i % 2 === 0 ? -2.5 : 2.5), 0, -140 + i * 20);
+    car.rotation.y = i % 2 === 0 ? 0 : Math.PI;
+    car.userData.dir = i % 2 === 0 ? 1 : -1;
+    car.userData.speed = 9 + (i % 4) * 2;
+    scene.add(car);
+    traffic.push(car);
+  }
+  for (let i = 0; i < 8; i++) {
+    const car = makeCar(trafficColors[(i + 3) % trafficColors.length], false);
+    car.position.set(90 + (i % 2 === 0 ? -7.5 : 7.5), 0, -90 + i * 24);
+    car.rotation.y = (i % 2 === 0 ? 0 : Math.PI) + (i % 3 === 0 ? 0.1 : 0);
+    scene.add(car);
+  }
+  // Two parked cars on the avenue where on-foot poses start, so the street
+  // shots always have traffic in frame.
+  for (const [x, z, ry] of [[-7.5, -18, 0], [-7.5, 8, 0]]) {
+    const car = makeCar(0x2e86c1, false);
+    car.position.set(x, 0, z);
+    car.rotation.y = ry;
+    scene.add(car);
+  }
+  // Pedestrians stroll the sidewalks, clustered near the player's start so
+  // the on-foot shots have people in frame.
+  const shirtColors = [0xe74c3c, 0x3498db, 0xf1c40f, 0xecf0f1, 0x9b59b6, 0x1abc9c, 0xe67e22];
+  for (let i = 0; i < 16; i++) {
+    const w = makeWalker(shirtColors[i % shirtColors.length]);
+    const lane = WORLD.avenues[i % WORLD.avenues.length] + (i % 2 === 0 ? -6.5 : 6.5);
+    w.position.set(lane, 0, -44 + i * 6);
+    w.userData.dir = i % 2 === 0 ? 1 : -1;
+    w.userData.speed = 1.2 + (i % 3) * 0.4;
+    w.userData.lane = lane;
+    scene.add(w);
+    walkers.push(w);
+  }
+  // Beach strollers on the sand near the dusk pose.
+  for (let i = 0; i < 3; i++) {
+    const w = makeWalker(shirtColors[(i + 2) % shirtColors.length]);
+    w.position.set(125 + (i % 2) * 4, 0, -8 + i * 14);
+    w.userData.dir = i % 2 === 0 ? 1 : -1;
+    w.userData.speed = 0.8;
+    w.userData.lane = 125 + (i % 2) * 4;
+    scene.add(w);
+    walkers.push(w);
+  }
+
+  // Player: on-foot figure + player car (one is shown per pose).
+  playerMesh = new THREE.Group();
+  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.5, 0.5),
+    new THREE.MeshLambertMaterial({ color: 0x2a6db0 }));
+  torso.position.y = 1.35;
+  playerMesh.add(torso);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.32, 8, 8),
+    new THREE.MeshLambertMaterial({ color: 0xd9a986 }));
+  head.position.y = 2.45;
+  playerMesh.add(head);
+  const legs = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.9, 0.45),
+    new THREE.MeshLambertMaterial({ color: 0x2c3e50 }));
+  legs.position.y = 0.45;
+  playerMesh.add(legs);
+  playerMesh.position.set(0, 0, 0);
+  scene.add(playerMesh);
+  playerCar = makeCar(0xd4242c, false);
+  playerCar.position.set(90, 0, 20);
+  scene.add(playerCar);
+
+  // Police: 6 pursuit cars spawn around the player's start (so they are in
+  // frame from the first second) + roadblock + helicopter with spotlight.
+  const startX = pose.drive ? 90 : 0;
+  const startZ = pose.drive ? 20 : 0;
+  const spawnOffsets = [[-2.5, -16], [2.5, -22], [-2.5, 18], [2.5, 28], [-3, -45], [3, -48]];
+  for (let i = 0; i < 6; i++) {
+    const pc = makeCar(0x111111, true);
+    // White doors read as a police livery against the black body.
+    const door = new THREE.Mesh(new THREE.BoxGeometry(2.25, 0.4, 1.6),
+      new THREE.MeshLambertMaterial({ color: 0xecf0f1 }));
+    door.position.set(0, 0.75, 0.4);
+    pc.add(door);
+    pc.position.set(startX + spawnOffsets[i][0], 0, startZ + spawnOffsets[i][1]);
+    scene.add(pc);
+    policeCars.push(pc);
+  }
+  // Roadblock barrier: striped barricade held ahead of the player on the road.
+  barrierMesh = new THREE.Group();
+  const barMat = new THREE.MeshLambertMaterial({ color: 0xff7a1a });
+  const barMat2 = new THREE.MeshLambertMaterial({ color: 0xecf0f1 });
+  for (let i = 0; i < 5; i++) {
+    const seg = new THREE.Mesh(new THREE.BoxGeometry(2, 1, 0.4), i % 2 === 0 ? barMat : barMat2);
+    seg.position.set(-4 + i * 2, 0.9, 0);
+    barrierMesh.add(seg);
+  }
+  for (const x of [-4.5, 4.5]) {
+    const leg = new THREE.Mesh(new THREE.BoxGeometry(0.4, 1, 0.4), barMat);
+    leg.position.set(x, 0.5, 0);
+    barrierMesh.add(leg);
+  }
+  barrierMesh.position.set(90, 0, -25);
+  scene.add(barrierMesh);
+
+  // Helicopter: body, tail, beacon, spinning rotor, and a spotlight cone
+  // tracking the player.
+  heli = new THREE.Group();
+  heli.scale.setScalar(1.5);
+  const heliBody = new THREE.Mesh(new THREE.BoxGeometry(3.4, 1.4, 6),
+    new THREE.MeshLambertMaterial({ color: 0x1a2a3a }));
+  heli.add(heliBody);
+  const tail = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.7, 4.5),
+    new THREE.MeshLambertMaterial({ color: 0x1a2a3a }));
+  tail.position.set(0, 0.3, -5);
+  heli.add(tail);
+  const beacon = new THREE.Mesh(new THREE.SphereGeometry(0.3, 8, 8),
+    new THREE.MeshBasicMaterial({ color: 0xff2222 }));
+  beacon.position.set(0, 0.9, 0);
+  heli.add(beacon);
+  heli.userData.beacon = beacon;
+  rotor = new THREE.Group();
+  const bladeMat = new THREE.MeshLambertMaterial({ color: 0x111111 });
+  for (const a of [0, Math.PI / 2]) {
+    const blade = new THREE.Mesh(new THREE.BoxGeometry(9, 0.12, 0.5), bladeMat);
+    blade.rotation.y = a;
+    rotor.add(blade);
+  }
+  rotor.position.y = 1;
+  heli.add(rotor);
+  const cone = new THREE.Mesh(new THREE.ConeGeometry(4.5, 22, 16, 1, true),
+    new THREE.MeshBasicMaterial({ color: 0xfff2b0, transparent: true, opacity: 0.16, side: THREE.DoubleSide }));
+  cone.position.y = -11;
+  cone.rotation.x = Math.PI;
+  heli.add(cone);
+  heliLight = new THREE.SpotLight(0xfff2b0, 60, 90, 0.35, 0.5);
+  heliLight.position.set(0, 0, 0);
+  heli.add(heliLight);
+  heliLight.target.position.set(0, -45, 0);
+  heli.add(heliLight.target);
+  heli.position.set(102, 20, -14);
+  scene.add(heli);
+
+  // Mission beacon: gold pillar marking the next objective.
+  missionBeacon = new THREE.Group();
+  const beam = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, 30, 12, 1, true),
+    new THREE.MeshBasicMaterial({ color: 0xffd34d, transparent: true, opacity: 0.35, side: THREE.DoubleSide }));
+  beam.position.y = 15;
+  missionBeacon.add(beam);
+  const orb = new THREE.Mesh(new THREE.SphereGeometry(1.4, 10, 10),
+    new THREE.MeshBasicMaterial({ color: 0xffd34d }));
+  orb.position.y = 8;
+  missionBeacon.add(orb);
+  missionBeacon.children[0].position.y = 8;
+  missionBeacon.position.set(30, 0, -30);
+  scene.add(missionBeacon);
+
   // Mission markers (gold) at map points.
   const markerMat = new THREE.MeshBasicMaterial({ color: 0xffd34d });
   for (const p of MAP_POINTS.slice(0, 12)) {
@@ -130,13 +524,6 @@ function buildScene() {
     m.position.set(pos.x, 6, pos.z);
     scene.add(m);
   }
-  // Player (Jason, blue; Lucia, pink on switch).
-  playerMesh = new THREE.Mesh(
-    new THREE.BoxGeometry(2, 4, 2),
-    new THREE.MeshLambertMaterial({ color: 0x2a6db0 })
-  );
-  playerMesh.position.set(0, 2, 0);
-  scene.add(playerMesh);
   clock = new THREE.Clock();
 }
 
@@ -146,63 +533,197 @@ window.addEventListener('keydown', (e) => { keys[e.key.toLowerCase()] = true; })
 window.addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; });
 
 // ---- game loop --------------------------------------------------------------
+let frames = 0;
 function loop() {
   requestAnimationFrame(loop);
   const dt = Math.min(0.05, clock.getDelta());
   state.time += dt;
-  const speed = 24 * dt;
-  let dx = 0, dz = 0;
-  if (keys['w'] || keys['arrowup']) dz -= speed;
-  if (keys['s'] || keys['arrowdown']) dz += speed;
-  if (keys['a'] || keys['arrowleft']) dx -= speed;
-  if (keys['d'] || keys['arrowright']) dx += speed;
-  if (dx || dz) {
-    const pos = clampToBounds(playerMesh.position.x + dx, playerMesh.position.z + dz);
-    playerMesh.position.x = pos.x;
-    playerMesh.position.z = pos.z;
-    updatePlayer(state.player, dt, { time: state.time, aiming: !!keys['shift'], sprinting: !!keys['shift'], inCrowd: false });
+  frames++;
+
+  // Player: drive the beachfront avenue (chase poses) or walk (on-foot poses).
+  const speedKmh = pose.drive ? 96 : 0;
+  if (pose.drive) {
+    // Chase runs north up Coral Drive (x = 90): open beach and sky to the
+    // east, so the helicopter and roadblock stay in the open, in frame.
+    playerCar.position.x = 90;
+    playerCar.position.z -= 14 * dt;
+    if (playerCar.position.z < -110) playerCar.position.z = 110;
+    playerCar.visible = true;
+    playerMesh.visible = false;
+    if (state.vehicle) state.vehicle.speedKmh = speedKmh;
+  } else if (shotId) {
+    playerMesh.position.z += 1.2 * dt;
+    if (playerMesh.position.z > 40) playerMesh.position.z = -40;
+    playerMesh.visible = true;
+    playerCar.visible = false;
+    if (pose.cam === 'beach') {
+      playerMesh.position.x = 118;
+      playerMesh.position.z = Math.sin(state.time * 0.1) * 10;
+    }
+  } else {
+    // Free roam: WASD moves the player on foot.
+    const speed = 24 * dt;
+    let dx = 0, dz = 0;
+    if (keys['w'] || keys['arrowup']) dz -= speed;
+    if (keys['s'] || keys['arrowdown']) dz += speed;
+    if (keys['a'] || keys['arrowleft']) dx -= speed;
+    if (keys['d'] || keys['arrowright']) dx += speed;
+    if (dx || dz) {
+      const pos = clampToBounds(playerMesh.position.x + dx, playerMesh.position.z + dz);
+      playerMesh.position.x = pos.x;
+      playerMesh.position.z = pos.z;
+      updatePlayer(state.player, dt, { time: state.time, aiming: !!keys['shift'], sprinting: !!keys['shift'], inCrowd: false });
+    }
+    playerMesh.visible = true;
+    playerCar.visible = false;
   }
-  // Camera follows the player.
-  camera.position.set(playerMesh.position.x, 55, playerMesh.position.z + 75);
-  camera.lookAt(playerMesh.position.x, 0, playerMesh.position.z);
-  // Day/night: sun dims at night.
-  scene.background = new THREE.Color(isNightAt(state.world.time) ? 0x0a1420 : isDuskAt(state.world.time) ? 0xd67a4a : 0x87b5d6);
-  // HUD.
+
+  // Traffic circulates; pedestrians stroll the sidewalks.
+  for (const car of traffic) {
+    car.position.z += car.userData.dir * car.userData.speed * dt;
+    if (car.position.z > 150) car.position.z = -150;
+    if (car.position.z < -150) car.position.z = 150;
+  }
+  for (const w of walkers) {
+    w.position.z += w.userData.dir * w.userData.speed * dt;
+    if (w.position.z > 140) { w.position.z = -140; }
+    if (w.position.z < -140) { w.position.z = 140; }
+    w.position.x = w.userData.lane + Math.sin(state.time * 0.7 + w.position.z) * 0.4;
+  }
+
+  // Police: chase cars close on the player, staying ON the road (never
+  // inside buildings); roadblock cars hold ahead.
+  const px = pose.drive ? playerCar.position.x : playerMesh.position.x;
+  const pz = pose.drive ? playerCar.position.z : playerMesh.position.z;
+  const pursuit = state.police.stars > 0;
+  // The road the pursuit runs on: Coral Drive (x = 90) while driving, the
+  // nearest avenue while on foot.
+  const roadX = pose.drive ? 90 : WORLD.avenues.reduce((a, b) => (Math.abs(b - px) < Math.abs(a - px) ? b : a));
+  policeCars.forEach((pc, i) => {
+    if (i < 4 && pursuit) {
+      // Two units ahead of the player (visible in frame), two trailing,
+      // all in the lanes of the same road.
+      const tx = roadX + [-2.5, 2.5, -2.5, 2.5][i];
+      const tz = pz + [-16, -22, 18, 28][i];
+      pc.position.x += (tx - pc.position.x) * Math.min(1, dt * 4);
+      pc.position.z += (tz - pc.position.z) * Math.min(1, dt * 4);
+      pc.rotation.y = Math.atan2(px - pc.position.x, pz - pc.position.z);
+      // Flash the light bar.
+      const on = Math.floor(state.time * 6) % 2 === 0;
+      pc.userData.barR.material.color.setHex(on ? 0xff2222 : 0x551111);
+      pc.userData.barB.material.color.setHex(on ? 0x111155 : 0x2244ff);
+    }
+    if (i >= 4 && pose.drive) {
+      // Roadblock stays ahead of the player car, on the road.
+      pc.position.z = pz - 45 - (i - 4) * 3;
+      pc.position.x = roadX + (i === 4 ? -3 : 3);
+      if (barrierMesh) { barrierMesh.position.z = pz - 45; barrierMesh.position.x = roadX; }
+    }
+  });
+  // Helicopter circles just ahead of the player, low, east of the road over
+  // the open beach — clearly inside the chase camera's frame — spotlight tracking.
+  if (heli) {
+    const a = state.time * 0.35;
+    heli.position.set(px + 12 + Math.cos(a) * 4, 20, pz - 28 + Math.sin(a) * 5);
+    heli.lookAt(px, 0, pz);
+    rotor.rotation.y = state.time * 22;
+    heli.visible = pursuit || shotId === 'cover' || shotId === 'heist';
+    if (heli.userData.beacon) heli.userData.beacon.material.color.setHex(Math.floor(state.time * 4) % 2 === 0 ? 0xff2222 : 0x771111);
+    heliLight.target.position.set(px - heli.position.x, -20, pz - heli.position.z);
+  }
+  // Mission beacon bobs.
+  if (missionBeacon) missionBeacon.children[0].position.y = 8 + Math.sin(state.time * 2) * 0.8;
+
+  // Camera per pose: tight chase cam on the road, low street cam on foot,
+  // close beach cam with palms + water in frame.
+  if (pose.cam === 'chase') {
+    camera.position.set(px, 9, pz + 19);
+    camera.lookAt(px + 6, 9, pz - 38);
+  } else if (pose.cam === 'chase-side') {
+    // High side view of the pursuit from the beach side: player car, police
+    // and the helicopter read from a different angle than the cover's chase
+    // cam. Kept high and back so the helicopter stays fully in frame and no
+    // palm crown sits against the lens.
+    camera.position.set(px + 30, 14, pz + 26);
+    camera.lookAt(px + 2, 6, pz - 30);
+  } else if (pose.cam === 'beach') {
+    camera.position.set(100, 4.5, playerMesh.position.z + 16);
+    camera.lookAt(150, 2.5, playerMesh.position.z - 12);
+  } else if (shotId) {
+    camera.position.set(px + 7, 5.5, pz + 13);
+    camera.lookAt(px, 2.5, pz - 12);
+  } else {
+    camera.position.set(playerMesh.position.x, 55, playerMesh.position.z + 75);
+    camera.lookAt(playerMesh.position.x, 0, playerMesh.position.z);
+  }
+
+  // HUD: dispatch distances from live police positions, mission timer, dialogue.
+  const mm = (x, z) => ({ x: 90 + x * 0.55, y: 90 + z * 0.55 });
+  state.dispatch = DISPATCH_UNITS.slice(0, state.police.stars > 0 ? 6 : 2).map((u, i) => {
+    const pc = policeCars[i % policeCars.length];
+    const d = pc ? Math.hypot(pc.position.x - px, pc.position.z - pz) : 120 + i * 40;
+    return { ...u, distance: d, mm: pc ? mm(pc.position.x, pc.position.z) : mm(60 + i * 10, 60) };
+  });
+  if (state.mission && state.mission.timer != null) {
+    state.mission.timer = Math.max(0, state.mission.timer - dt);
+  }
+  // Dialogue cycles through the mission lines every 7s.
+  const fm = state.featured;
+  if (fm && fm.dialogue.length) {
+    const idx = Math.floor(state.time / 7) % fm.dialogue.length;
+    state.dialogue = fm.dialogue[idx];
+  }
+  state.playerMm = mm(px, pz);
+  state.missionMarker = mm(30, -30);
   state.profileName = profileFromChaos(state.player.chaos).name;
   updateHudCorners(window.__hudEls, state);
-  const mm = document.getElementById('minimap-canvas');
-  if (mm) drawMinimap(mm.getContext('2d'), state);
+  const mmCanvas = document.getElementById('minimap-canvas');
+  if (mmCanvas) drawMinimap(mmCanvas.getContext('2d'), state);
   renderer.render(scene, camera);
+  if (frames === 3) {
+    window.__shotReady = true;
+    console.log('AZURA_BAY_READY shot=' + (shotId || 'free') + ' stars=' + state.police.stars);
+  }
 }
 
 // ---- boot -------------------------------------------------------------------
 export function boot() {
   const totals = contentTotals();
-  // Warn (not fail) if a content count is off — the selftest is the authority.
   for (const [k, v] of Object.entries({ missions: 91, weapons: 69, vehicles: 245, cheats: 61 })) {
     if (totals[k] !== v) console.warn(`content count off: ${k} = ${totals[k]} (expected ${v})`);
   }
   document.getElementById('title').textContent = GAME.title;
-  document.getElementById('subtitle').textContent = GAME.subtitle;
   setBuildTag(document.getElementById('build-tag'), GAME.build);
   window.__hudEls = buildHud(document.getElementById('hud'));
-  // Minimap canvas (rounded, satellite top-down).
-  const mm = document.createElement('canvas');
-  mm.id = 'minimap-canvas';
-  mm.width = 180;
-  mm.height = 180;
-  document.getElementById('mapbox').appendChild(mm);
-  // GPS route: player -> road -> Vice City marker (pink).
+  const mmCanvas = document.createElement('canvas');
+  mmCanvas.id = 'minimap-canvas';
+  mmCanvas.width = 180;
+  mmCanvas.height = 180;
+  document.getElementById('mapbox').appendChild(mmCanvas);
+
+  // Pose state: hour, wanted level, featured mission, vehicle.
+  state.world.time = pose.hour;
+  state.police.stars = pose.stars;
+  state.police.starState = STAR_STATES[pose.stars] ? STAR_STATES[pose.stars].name : 'Clear';
+  const fm = FEATURED_MISSIONS.find((m) => m.id === pose.mission) || FEATURED_MISSIONS[0];
+  state.featured = fm;
+  state.mission = { title: fm.title, stage: fm.stages[pose.stage] || fm.stages[0], timer: fm.timer };
+  state.dialogue = fm.dialogue[pose.dialogue] || fm.dialogue[0];
+  if (pose.inCar) {
+    state.vehicle = { name: 'Velluto Furia', fuel: 78, health: 0.92, speedKmh: 96 };
+  }
   state.gpsRoute = [{ x: 90, y: 90 }, { x: 90, y: 40 }, { x: 140, y: 40 }, { x: 140, y: 90 }];
   buildScene();
-  // Starting weapon per protagonist.
   const start = startingSidearm(state.player.protagonist);
   state.weapon = { name: start.name, mag: start.capacity, reserve: start.capacity * 3 };
-  // Mission rewards sweep wallet excess to BuckMe (Bab 23).
   const reward = 5000;
   const swept = enforceWalletCap(state.economy.cash + reward, state.economy.buckme);
   state.economy.cash = swept.cash;
   state.economy.buckme = swept.buckme;
+  if (shotId) {
+    const ts = document.getElementById('title-screen');
+    if (ts) ts.style.display = 'none';
+  }
   loop();
 }
 

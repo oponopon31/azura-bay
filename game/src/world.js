@@ -29,7 +29,7 @@ export function trafficDensity(hour) {
 // Spawn a deterministic crowd of pedestrians for an area.
 export function crowdSize(area, seed) {
   const rand = mulberry32(seed);
-  const base = { 'vicecity': 60, 'vicebeach': 45, 'oceanbeach': 50, 'keys': 12, 'grassrivers': 6, 'portgellhorn': 20, 'ambrosia': 15, 'mountkalaga': 4 }[area] || 20;
+  const base = { 'azurabay': 60, 'coralstrand': 45, 'coraldrive': 50, 'keys': 12, 'reedmarsh': 6, 'portmarlowe': 20, 'ambrosia': 15, 'mountcorvina': 4 }[area] || 20;
   return base + Math.floor(rand() * 20);
 }
 

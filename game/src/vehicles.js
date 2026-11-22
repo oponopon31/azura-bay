@@ -6,7 +6,7 @@
 // Fuel & charging: fuel/battery indicator is live; conventional cars refuel
 // at gas stations, EVs at charging stations.
 // Partner driving commands: as a passenger in a chase, give your partner
-// (Jason/Lucia) driving directions.
+// (Cole/Mara) driving directions.
 export const SECURITY_TIERS = [
   { tier: 1, name: 'Standard', method: 'slim jim or smashed window', note: 'old / standard cars' },
   { tier: 2, name: 'Modern', method: 'Key-Cloner', note: 'modern cars' },

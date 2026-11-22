@@ -1,11 +1,11 @@
 // police.js — Wanted & Heat system, SPEC §12.
 // Heat = police memory: they remember face, outfit, plate, weapon and whether
-// Jason & Lucia acted as a duo. Even after the stars fade, police can recognise
+// Cole & Mara acted as a duo. Even after the stars fade, police can recognise
 // you again if you wear the same clothes / drive the same car.
 // Star states: Hollow (reported by a witness, suspect unknown — walk past
 // police unnoticed), White Solid (seen directly), White Blinking (out of
 // police sight), Red (police lost your exact location, sweeping the area),
-// 6 Stars (total manhunt across all of Leonida).
+// 6 Stars (total manhunt across all of Solmaris).
 export const STAR_STATES = [
   { stars: 0, name: 'Clear', desc: 'No wanted level.' },
   { stars: 1, name: 'Hollow', desc: 'Crime reported by a witness; suspect unknown — walk past police unnoticed.' },
@@ -13,7 +13,7 @@ export const STAR_STATES = [
   { stars: 3, name: 'White Blinking', desc: 'Out of police sight.' },
   { stars: 4, name: 'Red', desc: 'Police lost your exact location; sweeping the area of the incident.' },
   { stars: 5, name: 'Red', desc: 'Police lost your exact location; sweeping a wider radius.' },
-  { stars: 6, name: 'Six Stars', desc: 'Total manhunt across all of Leonida.' },
+  { stars: 6, name: 'Six Stars', desc: 'Total manhunt across all of Solmaris.' },
 ];
 
 // What the police remember about you (Heat). Each clue can be cleared.
@@ -26,7 +26,7 @@ export const ESCAPE_METHODS = [
   'Destroy CCTV footage at the robbery location before police arrive',
   'Change clothes (via personal car trunk)',
   'Mask / hat',
-  'Split Jason & Lucia up',
+  'Split Cole & Mara up',
   'Change car, repaint at Pay \'n\' Spray, or call Joey for a clean personal car',
   'Loot police car trunks (Body Armor + Shotgun / Assault Rifle)',
 ];

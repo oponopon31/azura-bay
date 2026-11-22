@@ -1,25 +1,25 @@
-// city.js — Vice City districts & day/night, SPEC §28 + MAP-DATA.md.
+// city.js — Azura Bay districts & day/night, SPEC §28 + MAP-DATA.md.
 // Building map colours: light blue = decoration outside only;
 // DARK BLUE = has an enterable interior.
-// District labels (verified on gtabase): La Perle, Bayside, Salton, Southside,
-// Balsero, Decor District are Vice City district labels; Millport is a town;
+// District labels: La Perle, Bayside, Salton, Southside,
+// Balsero, Decor District are Azura Bay district labels; Millport is a town;
 // Emerald Springs has 5 named places and no map label.
 export const DISTRICTS = [
-  { name: 'Ocean Beach', kind: 'beach', note: 'pastel art-deco hotels, white sand' },
-  { name: 'South Beach', kind: 'beach', note: 'neon nightlife strip' },
-  { name: 'Washington Beach', kind: 'beach', note: 'beachfront district' },
+  { name: 'Coral Strand', kind: 'beach', note: 'pastel art-deco hotels, white sand' },
+  { name: 'Coral Drive', kind: 'beach', note: 'neon nightlife strip' },
+  { name: 'Marlin Bay', kind: 'beach', note: 'beachfront district' },
   { name: 'Downtown', kind: 'downtown', note: 'glass towers' },
   { name: 'Little Havana', kind: 'district', note: 'panaderías, Cuban shops (also called Little Cuba)' },
   { name: 'Little Haiti', kind: 'district', note: 'Haitian district' },
   { name: 'Stockyard', kind: 'district', note: 'art / mural district' },
-  { name: 'Crosstown', kind: 'district', note: 'Vice-Dale district' },
+  { name: 'Crosstown', kind: 'district', note: 'Azura Bay district' },
   { name: 'La Perle', kind: 'district', note: 'district label (18 search results)' },
   { name: 'Bayside', kind: 'district', note: 'district label (12 results); safehouse 201 here' },
   { name: 'Salton', kind: 'district', note: 'district label (30 results)' },
   { name: 'Southside', kind: 'district', note: 'district label (17 results)' },
   { name: 'Balsero', kind: 'district', note: 'district label (12 results)' },
   { name: 'Decor District', kind: 'district', note: 'district label (8 results)' },
-  { name: 'Venetian Islands', kind: 'islands', note: 'island chain in Vice-Dale' },
+  { name: 'Venetian Islands', kind: 'islands', note: 'island chain in the bay' },
   { name: 'Leaf Links', kind: 'place', note: 'golf area' },
 ];
 

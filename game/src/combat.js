@@ -3,7 +3,7 @@
 // (keeps the Professional profile). Suppressing fire (warning shots) makes
 // civilians/enemies afraid and prone. Carrying a longarm openly on the street
 // makes NPCs panic and report to police.
-// NO full auto-aim lock-on (not GTA 5): realistic aim assist + weapon bloom
+// NO full auto-aim lock-on: realistic aim assist + weapon bloom
 // (bullet spread) + Shoulder Switch. Hit markers: white = hit, yellow =
 // target incapacitated (cannot get up again without being killed), red =
 // target killed. Kill Cam & Crash Cam on high-speed crashes / eliminations
@@ -11,7 +11,7 @@
 // Free-aim from a car window via Focus Mode (driver, tyre, engine block,
 // fuel tank). Pistol fire rate is uncapped (as fast as you pull R2/RT).
 // Realistic AR recoil: short bursts are far more accurate than holding the
-// trigger. Jason & Lucia hand weapons to each other in the field.
+// trigger. Cole & Mara hand weapons to each other in the field.
 // First-person via scope/optic (R3) — NOT full first-person on foot.
 // Shoot an enemy's hand = their weapon drops. Warning shots to the air =
 // enemies & civilians panic without being hurt. Shoot from a pickup truck
@@ -57,8 +57,8 @@ export const INVENTORY_SLOTS = { weapons: 8, gear: 8, total: 16 };
 
 // Hand-to-hand style differs per character (Bab 24).
 export const FIGHTING_STYLES = {
-  lucia: 'kickboxing & MMA (technical, trained)',
-  jason: 'street fighting (rough, brutal)',
+  mara: 'kickboxing & MMA (technical, trained)',
+  cole: 'street fighting (rough, brutal)',
 };
 
 // Stealth takedown: approach from behind unseen (dark shadow / tall grass),

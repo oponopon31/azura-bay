@@ -4,19 +4,19 @@
 
 Built for the [make.fun gta6-01 bounty](https://make.fun/bounty/gta6-01).
 
-# AZURA BAY — GTA 6 fan open world (make.fun gta6-01)
+# AZURA BAY — open-world crime game (make.fun gta6-01)
 
-A fan-made open-world game set in Leonida: 91 story missions across 5 chapters
-(Just Like Paradise, Paradise Lost, Tits, Ass, Drug Money, Vice City, Baby,
-Top of the World, Ma), 69 weapons, 245 vehicles, 61 cheats, 13 Strangers &
-Freaks, 24 radio stations, a full Leonida map from verified gtabase coordinates,
+An original open-world game set in Solmaris: 91 story missions across 5 chapters
+(Keys, Cages and Currents, Cold Water, Neon and Fast Money, Azura Bay, Baby,
+The Last Run), 69 weapons, 245 vehicles, 61 cheats, 13 Strangers &
+Freaks, 24 radio stations, a full Solmaris map from verified coastatlas coordinates,
 27 characters, Criminal Profile (5 levels), 4 organic endings, Wanted & Heat,
-smartphone apps, properties, attributes, and a four-corner HUD.
+smartphone apps, properties, attributes, and a dispatch / objective / dialogue HUD.
 
 ## Content
 
 - **Story:** 91 missions, 5 chapters. Endings emerge organically from BuckMe
-  savings, the Jason–Lucia relationship, Criminal Profile, and mission choices.
+  savings, the Cole–Mara relationship, Criminal Profile, and mission choices.
   Good Ending 1 reads BuckMe **savings** (>= $40,000), never wallet cash
   (cash is capped at $20,000).
 - **Weapons:** 66 user weapons (16 sidearms with the exact names from the spec
@@ -29,11 +29,11 @@ smartphone apps, properties, attributes, and a four-corner HUD.
   Screen Filters 16). Post-story only; each needs an unlock challenge;
   activating one disables trophies and saving. Money $250,000 is the only
   money cheat.
-- **Map:** Leonida with 26 verified gtabase coordinates (Breakwater Quarry
-  corrected to -4462/-922; Goose Key airfield separate from VCIA), 6 regions,
+- **Map:** Solmaris with 26 verified coastatlas coordinates (Breakwater Quarry
+  corrected to -4462/-922; Pelican Key airfield separate from ABIA), 6 regions,
   5 counties, Fog of War, waypoint / Map Index / quick navigation.
 - **Audio:** original generative WebAudio synth per station genre — no licensed
-  music. The in-fiction album "Grand Theft Auto VI: The Album" (34 songs,
+  music. The in-fiction album "AZURA BAY: The Album" (34 songs,
   score by Justice) is named in the radio data; the game synthesises its own
   tracks.
 
@@ -53,4 +53,4 @@ Phone: D-Pad Up (cheats: phone + hold L1+R1 / LB+RB + D-Pad combo).
 
 ## Source of truth
 
-`SPEC.md` (the user's full spec) and `MAP-DATA.md` (gtabase map data).
+`SPEC.md` (the user's full spec) and `MAP-DATA.md` (coastatlas map data).

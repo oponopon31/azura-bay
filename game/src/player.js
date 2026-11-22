@@ -1,10 +1,10 @@
-// player.js — Player state (Jason & Lucia), SPEC §10 + §17 + §29.
+// player.js — Player state (Cole & Mara), SPEC §10 + §17 + §29.
 // Health / Stamina / Focus / Oxygen / Adrenaline, with the Bab 29 rules.
 // Dynamic body: too much food = gain weight; regular gym (timing minigame) =
 // muscular. Food/drink give temporary buffs. Hair & beard do NOT grow
 // automatically; new styles are bought at barbershops/salons (each shop has
 // exclusive cuts); at the safehouse wardrobe you can only shorten or shave.
-// Appearance detail: nail length, nail polish colour, Lucia makeup, spare
+// Appearance detail: nail length, nail polish colour, Mara makeup, spare
 // clothes in the car trunk. Pistols are auto-hidden behind the back in crowds.
 // You can still shoot while swimming.
 import {
@@ -16,7 +16,7 @@ import {
 
 export function freshPlayer(protagonist) {
   return {
-    protagonist, // 'jason' | 'lucia'
+    protagonist, // 'cole' | 'mara'
     health: 100, maxHealth: 100,
     stamina: 100, focus: 100,
     oxygen: 100, lungCapacity: 100,
@@ -68,14 +68,14 @@ export function onKill(p) {
   return p;
 }
 
-// Clamp a position to the Leonida playfield bounds (game coords).
+// Clamp a position to the Solmaris playfield bounds (game coords).
 export function clampToBounds(x, z) {
   const B = 1000;
   return { x: Math.max(-B, Math.min(B, x)), z: Math.max(-B, Math.min(B, z)) };
 }
 
-// Switch protagonist (Jason <-> Lucia).
+// Switch protagonist (Cole <-> Mara).
 export function switchProtagonist(p) {
-  p.protagonist = p.protagonist === 'jason' ? 'lucia' : 'jason';
+  p.protagonist = p.protagonist === 'cole' ? 'mara' : 'cole';
   return p;
 }

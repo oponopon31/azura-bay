@@ -3,14 +3,14 @@
 // The spec's "~3,000" is the in-fiction total toward 100%; the itemized
 // list below is fully implemented and tracked.
 export const CARD_SETS = [
-  { name: 'Vice City Flamingos', count: 24, theme: 'Sports' },
+  { name: 'Azura Bay Flamingos', count: 24, theme: 'Sports' },
   { name: 'Narcos', count: 24, theme: 'Sports' },
   { name: 'Manatees', count: 24, theme: 'Sports' },
   { name: 'Club De Fútbol', count: 30, theme: 'Sports' },
-  { name: 'Liberty City Swingers', count: 24, theme: 'Sports' },
+  { name: 'Harbor City Swingers', count: 24, theme: 'Sports' },
   { name: 'Penetrators', count: 24, theme: 'Sports' },
   { name: 'Wrath', count: 24, theme: 'Sports' },
-  { name: 'Los Santos Corkers', count: 24, theme: 'Sports' },
+  { name: 'Sunset Corkers', count: 24, theme: 'Sports' },
   { name: 'Panic', count: 24, theme: 'Sports' },
   { name: 'Pounders', count: 24, theme: 'Sports' },
   { name: 'Backyard Wrestling', count: 12, theme: 'Entertainment & Comics' },
@@ -24,7 +24,7 @@ export const CARD_SETS = [
 ];
 
 export const COLLECTIBLE_GROUPS = [
-  { id: 'cards', name: 'Collectible Cards', total: 480, sets: 18, sellTo: 'Vice City Pawn & Pawn Stash' },
+  { id: 'cards', name: 'Collectible Cards', total: 480, sets: 18, sellTo: 'Azura Bay Pawn & Pawn Stash' },
   { id: 'flamingos', name: 'Cocaine Flamingos', total: 125, note: 'flamingo statues hiding hidden packages' },
   { id: 'watches', name: 'Luxury Watches', total: 34, note: 'unlock the time-control cheats' },
   { id: 'underwater', name: 'Underwater Discoveries', total: 33, note: 'sunken treasure & shipwrecks' },
@@ -37,7 +37,7 @@ export const COLLECTIBLE_GROUPS = [
   { id: 'meditation', name: 'Meditation Spots', total: 18 },
   { id: 'hoops', name: 'Basketball Hoops', total: 100 },
   { id: 'standout', name: 'Standout Vehicles', total: 280 },
-  { id: 'hidden-packages', name: 'Hidden Packages', total: 26, note: '26 locations across Leonida (Bab 27)' },
+  { id: 'hidden-packages', name: 'Hidden Packages', total: 26, note: '26 locations across Solmaris (Bab 27)' },
 ];
 
 export function totalCollectibles() {

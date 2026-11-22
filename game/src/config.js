@@ -1,4 +1,4 @@
-// config.js — AZURA BAY core constants (GTA 6 fan game, SPEC Bab 11/23/29).
+// config.js — AZURA BAY core constants (SPEC Bab 11/23/29).
 // All numbers below come straight from the user's spec; nothing is invented.
 
 // Money (Bab 11, 23): wallet cap $20,000 — excess sweeps to BuckMe automatically.
@@ -43,16 +43,16 @@ export const COUNTS = {
   mapPoints: 27,
 };
 
-// Night shot location (round 3): Ocean Drive nightclub, 21:30, 1 star.
-// Game-city coords (relative), NOT gtabase coords.
+// Night shot location (round 3): Coral Drive nightclub, 21:30, 1 star.
+// Game-city coords (relative), NOT atlas coords.
 export const PLACES = {
-  nightclub: { name: 'Ocean Drive Nightclub', x: 120, z: -240, hour: 21.5, stars: 1 },
-  viceCityPort: { name: 'Vice City Port', x: 854, z: 390 },
+  nightclub: { name: 'Coral Drive Nightclub', x: 120, z: -240, hour: 21.5, stars: 1 },
+  azuraHarbor: { name: 'Azura Harbor', x: 854, z: 390 },
 };
 
 export const GAME = {
   title: 'AZURA BAY',
-  subtitle: 'GTA 6 fan open world: 91 story missions across Leonida',
-  build: 'AZURA BAY · Round 3',
+  subtitle: 'AZURA BAY open world: 91 story missions across Solmaris',
+  build: 'AZURA BAY · Round 7',
   chapters: 5,
 };

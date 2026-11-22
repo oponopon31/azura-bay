@@ -1,13 +1,10 @@
-// hud.js — Four-corner HUD, SPEC §29 (user spec 2026-11-21 15:40 WIB).
-// Four panels wired to REAL game state — no fake / hardcoded values.
-// All bars update every frame via updateHudCorners(); hudCorners() is the
-// helper the selftest reads.
-// Criminal Profile levels follow Bab 10 (Professional / Hardened /
-// Violent & Dangerous / Psycho, + Irredeemable at the breaking point) —
-// NOT the "Good / Neutral" wording from the HUD spec text (that was wrong).
+// hud.js — Round 7 HUD: dispatch top-left, weapons top-right, minimap
+// bottom-left, speed bottom-right, mission objective top-centre, NPC dialogue
+// with portrait bottom-centre. Every value is wired to live game state.
+// Health / stamina / focus / oxygen bars sit under the dispatch panel.
 import { WALLET_MAX, HEALTH_REGEN_CAP } from './config.js';
 
-// Build the four HUD panels into a container element. Returns the element refs.
+// Build the HUD panels into a container element. Returns the element refs.
 export function buildHud(container) {
   container.innerHTML = '';
   const mk = (id, cls) => {
@@ -18,22 +15,23 @@ export function buildHud(container) {
     return el;
   };
   return {
-    status: mk('hud-status', 'hud-corner hud-topleft'),
+    dispatch: mk('hud-dispatch', 'hud-corner hud-topleft'),
+    status: mk('hud-status', 'hud-corner hud-topleft2'),
     topright: mk('hud-topright', 'hud-corner hud-topright'),
-    vehicle: mk('hud-vehicle', 'hud-corner hud-bottomleft'),
-    profile: mk('hud-profile', 'hud-corner hud-bottomright'),
+    objective: mk('hud-objective', 'hud-corner hud-topcenter'),
+    dialogue: mk('hud-dialogue', 'hud-corner hud-bottomcenter'),
+    vehicle: mk('hud-vehicle', 'hud-corner hud-bottomright'),
+    profile: mk('hud-profile', 'hud-corner hud-bottomright2'),
     mapbox: mk('mapbox', 'hud-minimap'),
   };
 }
 
-// Read the four corners' live values from game state (pure, testable).
+// Read the live values from game state (pure, testable).
 export function hudCorners(state) {
   const p = state.player;
   const e = state.economy;
   const pol = state.police;
   return {
-    // Top-left: Health (pink heart), Stamina (lime lightning), Focus (purple
-    // eye, slow-mo aiming), Oxygen (O2, diving), Buff & Adrenaline badges.
     health: { value: p.health, max: p.maxHealth, regenCap: p.maxHealth * HEALTH_REGEN_CAP },
     stamina: { value: p.stamina, max: 100 },
     focus: { value: p.focus, max: 100 },
@@ -43,12 +41,11 @@ export function hudCorners(state) {
       focusInfinite: !!state.cheatsActive?.includes('unlfocus'),
       adrenaline: p.adrenaline,
     },
-    // Bottom-left: minimap + vehicle warnings (fuel / engine).
     vehicle: state.vehicle
-      ? { fuel: state.vehicle.fuel, engine: state.vehicle.health, lowFuel: state.vehicle.fuel < 25, engineFailing: state.vehicle.health < 0.35 }
-      : null,
-    // Top-right: Wanted & Heat + clue chips, weapon/ammo, cash + BuckMe.
+      ? { fuel: state.vehicle.fuel, engine: state.vehicle.health, lowFuel: state.vehicle.fuel < 25, engineFailing: state.vehicle.health < 0.35, speedKmh: state.vehicle.speedKmh || 0, name: state.vehicle.name || '' }
+      : { speedKmh: 0, name: '' },
     wanted: { stars: pol.stars, state: pol.starState },
+    dispatch: (state.dispatch || []).map((u) => ({ name: u.name, distance: u.distance, tactic: u.tactic })),
     clues: {
       cctv: !!pol.memory.cctv,
       face: !!pol.seenNow,
@@ -59,10 +56,12 @@ export function hudCorners(state) {
     cash: e.cash,
     buckme: e.buckme,
     walletMax: WALLET_MAX,
-    // Bottom-right: Criminal Profile + Relationship Status.
     profile: state.profileName,
     breakingPoint: !!state.breakingPoint,
     relationship: { value: p.relationship, label: relationshipLabel(p.relationship) },
+    mission: state.mission || null,
+    dialogue: state.dialogue || null,
+    radio: state.radio || null,
   };
 }
 
@@ -73,9 +72,16 @@ export function relationshipLabel(v) {
   return 'Bonnie & Clyde';
 }
 
-// Update all four corners every frame from live state.
+// Update all HUD panels every frame from live state.
 export function updateHudCorners(els, state) {
   const c = hudCorners(state);
+  if (els.dispatch) {
+    const rows = c.dispatch.map((u) =>
+      `<div class="dispatch-row"><span class="dispatch-unit">${u.name}</span><span class="dispatch-dist">${Math.round(u.distance)}m</span><span class="dispatch-tactic">${u.tactic}</span></div>`).join('');
+    els.dispatch.innerHTML =
+      `<div class="dispatch-title">ABPD DISPATCH ${c.wanted.stars > 0 ? '— PURSUIT' : '— CLEAR'}</div>` +
+      (rows || '<div class="dispatch-row">No units assigned</div>');
+  }
   if (els.status) {
     els.status.innerHTML =
       `<div class="bar health" style="--v:${c.health.value}%"><span>♥</span></div>` +
@@ -97,16 +103,33 @@ export function updateHudCorners(els, state) {
       (c.weapon ? `<div class="weapon">${c.weapon.name} ${c.weapon.mag}/${c.weapon.reserve}</div>` : '') +
       `<div class="money">$${c.cash.toLocaleString()} · BuckMe $${c.buckme.toLocaleString()}</div>`;
   }
-  if (els.vehicle) {
-    els.vehicle.innerHTML = c.vehicle
-      ? `<div class="fuel">FUEL ${Math.round(c.vehicle.fuel)}%${c.vehicle.lowFuel ? ' — LOW FUEL' : ''}</div>` +
-        `<div class="engine">ENGINE ${Math.round(c.vehicle.engine * 100)}%${c.vehicle.engineFailing ? ' — ENGINE FAILING' : ''}</div>`
+  if (els.objective) {
+    els.objective.innerHTML = c.mission
+      ? `<div class="objective-title">${c.mission.title}</div><div class="objective-text">${c.mission.stage}</div>` +
+        (c.mission.timer != null ? `<div class="objective-timer">${Math.floor(c.mission.timer / 60)}:${String(Math.floor(c.mission.timer % 60)).padStart(2, '0')}</div>` : '')
       : '';
+  }
+  if (els.dialogue) {
+    els.dialogue.innerHTML = c.dialogue
+      ? `<div class="dialogue-portrait" style="background:${c.dialogue.color}">${c.dialogue.initials}</div>` +
+        `<div class="dialogue-body"><div class="dialogue-speaker">${c.dialogue.speaker}</div><div class="dialogue-line">${c.dialogue.line}</div></div>`
+      : '';
+  }
+  if (els.vehicle) {
+    const v = c.vehicle;
+    els.vehicle.innerHTML =
+      (v.name ? `<div class="speed-name">${v.name}</div>` : '') +
+      `<div class="speed">${Math.round(v.speedKmh || 0)}<span> km/h</span></div>` +
+      (state.vehicle && state.vehicle.fuel != null
+        ? `<div class="fuel">FUEL ${Math.round(state.vehicle.fuel)}%${v.lowFuel ? ' — LOW FUEL' : ''}</div>` +
+          `<div class="engine">ENGINE ${Math.round(state.vehicle.health * 100)}%${v.engineFailing ? ' — ENGINE FAILING' : ''}</div>`
+        : '');
   }
   if (els.profile) {
     els.profile.innerHTML =
       `<div class="profile${c.breakingPoint ? ' breaking' : ''}">${c.profile}${c.breakingPoint ? ' — BREAKING POINT' : ''}</div>` +
-      `<div class="relationship">${c.relationship.label} (${Math.round(c.relationship.value)})</div>`;
+      `<div class="relationship">${c.relationship.label} (${Math.round(c.relationship.value)})</div>` +
+      (c.radio ? `<div class="radio">♪ ${c.radio}</div>` : '');
   }
   return c;
 }
@@ -118,9 +141,9 @@ export function setBuildTag(el, tag) {
 
 // Minimap: transparent, rounded corners (16px panel / 12px canvas),
 // satellite top-down view. Blocks are drawn with a darker bottom edge so
-// they read as raised (pseudo-3D — true 3D tilt is impossible on a 2D canvas,
-// so this is the honest documentation: satellite top-down with block shadow).
-// Pink GPS route from the player to the mission marker, following roads.
+// they read as raised. Pink GPS route from the player to the mission marker,
+// following roads. Dispatch units show as blue dots, the mission marker as
+// a gold diamond, the player as a white dot.
 export function drawMinimap(ctx, state) {
   const w = ctx.canvas.width;
   const h = ctx.canvas.height;
@@ -143,9 +166,29 @@ export function drawMinimap(ctx, state) {
     for (const pt of state.gpsRoute.slice(1)) ctx.lineTo(pt.x, pt.y);
     ctx.stroke();
   }
+  // Dispatch units (blue dots).
+  for (const u of state.dispatch || []) {
+    if (!u.mm) continue;
+    ctx.fillStyle = '#4db8ff';
+    ctx.beginPath();
+    ctx.arc(u.mm.x, u.mm.y, 3, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // Mission marker (gold diamond).
+  if (state.missionMarker) {
+    ctx.fillStyle = '#ffd34d';
+    ctx.beginPath();
+    ctx.moveTo(state.missionMarker.x, state.missionMarker.y - 5);
+    ctx.lineTo(state.missionMarker.x + 5, state.missionMarker.y);
+    ctx.lineTo(state.missionMarker.x, state.missionMarker.y + 5);
+    ctx.lineTo(state.missionMarker.x - 5, state.missionMarker.y);
+    ctx.closePath();
+    ctx.fill();
+  }
   // Player dot.
+  const pp = state.playerMm || { x: w / 2, y: h / 2 };
   ctx.fillStyle = '#fff';
   ctx.beginPath();
-  ctx.arc(w / 2, h / 2, 4, 0, Math.PI * 2);
+  ctx.arc(pp.x, pp.y, 4, 0, Math.PI * 2);
   ctx.fill();
 }

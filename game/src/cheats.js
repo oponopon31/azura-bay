@@ -49,7 +49,7 @@ export const CHEATS = [
   { id: 'spawnboat', name: 'Spawn Boat', category: 'Vehicle Spawn', combo: ['Right', 'Down', 'Left', 'Up', 'Right', 'Down', 'Left', 'Up'], unlock: 'Catch 25 fish', effect: 'Spawns a Speedophile Seashark' },
   { id: 'spawnbike', name: 'Spawn Motorcycle', category: 'Vehicle Spawn', combo: ['Up', 'Left', 'Up', 'Left', 'Down', 'Right', 'Down', 'Right'], unlock: 'Win 10 street races', effect: 'Spawns a Western Nightblade' },
   { id: 'spawnrhino', name: 'Spawn Rhino', category: 'Vehicle Spawn', combo: ['Left', 'Down', 'Left', 'Down', 'Right', 'Up', 'Right', 'Up'], unlock: 'Destroy 100 vehicles', effect: 'Spawns a Rhino tank' },
-  { id: 'spawnjet', name: 'Spawn Jet', category: 'Vehicle Spawn', combo: ['Down', 'Right', 'Down', 'Right', 'Up', 'Left', 'Up', 'Left'], unlock: 'Complete the VCIA Takedown mission', effect: 'Spawns a Buckingham Shamal' },
+  { id: 'spawnjet', name: 'Spawn Jet', category: 'Vehicle Spawn', combo: ['Down', 'Right', 'Down', 'Right', 'Up', 'Left', 'Up', 'Left'], unlock: 'Complete the ABIA Takedown mission', effect: 'Spawns a Buckingham Shamal' },
   { id: 'spawnlimo', name: 'Spawn Limousine', category: 'Vehicle Spawn', combo: ['Right', 'Up', 'Right', 'Up', 'Left', 'Down', 'Left', 'Down'], unlock: 'Reach 100% completion in any chapter', effect: 'Spawns a stretch limousine' },
   // ---- Environment (3) ----
   { id: 'cycleweather', name: 'Cycle Weather', category: 'Environment', combo: ['Down', 'Right', 'Up', 'Down', 'Right', 'Up', 'Right'], unlock: 'Open the entire map', effect: 'Cycles to the next weather' },

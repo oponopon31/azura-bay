@@ -12,7 +12,7 @@ import { CHEATS, CHEAT_CATEGORIES, cheatsInCategory, canUseCheat, cheatSideEffec
 import { CHARACTERS } from './characters.js';
 import { STRANGERS } from './strangers.js';
 import { STATIONS } from './radio.js';
-import { MAP_POINTS, REGIONS, COUNTIES, MAP_ICONS, pointById, gooseKeyVsVciaDistance } from './leonidamap.js';
+import { MAP_POINTS, REGIONS, COUNTIES, MAP_ICONS, pointById, pelicanKeyVsAbiaDistance } from './solmarismap.js';
 import { CARD_SETS, COLLECTIBLE_GROUPS, totalCards, totalCollectibles, progressPct } from './collectibles.js';
 import { STUNT_KINDS, ROBBERY_KINDS, totalStunts, totalRobberies } from './stunts.js';
 import { MYSTERIES, ufoVisible } from './mysteries.js';
@@ -51,8 +51,8 @@ export function runSelfTest() {
   const sidearmNames = SIDEARMS.map((w) => w.name);
   check('sidearms: exact user names',
     ['Girardi ES9', 'Klose K17', 'Scorpio Nipper .38', 'Fairview Kalinga .50', 'Scorpio Akulus', 'Beretta-style Service Pistol', 'Coil Shocker', 'Wortham WCR-1'].every((n) => sidearmNames.includes(n)));
-  check('ES9 = Jason start, K17 = Lucia standard',
-    sidearmById('es9').role === 'jason-start' && sidearmById('k17').role === 'lucia-standard');
+  check('ES9 = Cole start, K17 = Mara standard',
+    sidearmById('es9').role === 'cole-start' && sidearmById('k17').role === 'mara-standard');
   const pistols = SIDEARMS.filter((w) => !['nipper', 'wcr1', 'hawk38', 'mustang357', 'morgan', 'akulus'].includes(w.id));
   const revolvers = SIDEARMS.filter((w) => ['nipper', 'wcr1', 'hawk38', 'mustang357', 'morgan', 'akulus'].includes(w.id));
   check('Kalinga .50 damage 55 (highest pistol); Akulus 58 (highest revolver)',
@@ -87,7 +87,7 @@ export function runSelfTest() {
   check('map points: 27', MAP_POINTS.length === 27);
   const bq = pointById('breakwater');
   check('Breakwater Quarry corrected -4462/-922', bq && bq.gx === -4462 && bq.gy === -922);
-  check('Goose Key airfield separate from VCIA (~7100 apart)', (() => { const d = gooseKeyVsVciaDistance(); return d > 7000 && d < 7200; })(), `distance ${gooseKeyVsVciaDistance()}`);
+  check('Pelican Key airfield separate from ABIA (~7100 apart)', (() => { const d = pelicanKeyVsAbiaDistance(); return d > 7000 && d < 7200; })(), `distance ${pelicanKeyVsAbiaDistance()}`);
 
   // 23-26. Collections, stunts, robberies.
   check('cards: 480 in 18 sets', totalCards() === 480 && CARD_SETS.length === 18);

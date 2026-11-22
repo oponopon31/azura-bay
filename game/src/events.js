@@ -19,13 +19,13 @@ export const EVENT_TYPES = [
 ];
 
 export const EVENT_LOCATIONS = [
-  'Vice City', 'Vice Beach', 'Ocean Beach', 'Little Havana', 'Little Haiti', 'Stockyard',
+  'Azura Bay', 'Coral Strand', 'Coral Drive', 'Little Havana', 'Little Haiti', 'Stockyard',
   'Downtown', 'Hamlet', 'Belville', 'Rockridge', 'Leaf Links', 'Venetian Islands',
-  'Key Lento', 'Watson Bay', 'Capri', 'Gloriana Key', 'Grassrivers', 'Port Gellhorn',
-  'Ambrosia', 'Allied Crystal', 'Lake Leonida', 'Mount Kalaga', 'Yorktown', 'Waning Sands',
+  'Key Lento', 'Watson Bay', 'Capri', 'Solara Key', 'Reedmarsh', 'Port Marlowe',
+  'Ambrosia', 'Allied Crystal', 'Lake Solmaris', 'Mount Corvina', 'Yorktown', 'Waning Sands',
   'Millport', 'Emerald Springs', 'La Perle', 'Bayside', 'Salton', 'Southside', 'Balsero',
-  'Decor District', 'Goose Key', 'Gellhorn International Raceway', 'Leonida Keys',
-  'Vice City Port', 'VCIA', 'Breakwater Quarry', 'Crosstown', 'Tequesta Retreat',
+  'Decor District', 'Pelican Key', 'Marlowe International Raceway', 'Solmaris Keys',
+  'Azura Harbor', 'ABIA', 'Breakwater Quarry', 'Crosstown', 'Tequesta Retreat',
 ];
 
 // Total combinations: 14 types × 40 locations = 560 (500+).

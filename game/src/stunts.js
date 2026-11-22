@@ -22,8 +22,8 @@ export const ROBBERY_KINDS = [
   { id: 'payday', name: 'Payday Loans', total: 7 },
 ];
 
-// Free-roam robbery rules (SPEC §19): always bring your partner (Jason +
-// Lucia together). Alone with more than 2 guards, guards shoot without
+// Free-roam robbery rules (SPEC §19): always bring your partner (Cole +
+// Mara together). Alone with more than 2 guards, guards shoot without
 // warning. Disarm the guards first before threatening civilians.
 export const ROBBERY_RULES = {
   bringPartner: true,

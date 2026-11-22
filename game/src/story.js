@@ -1,15 +1,15 @@
 // story.js — Chapters, endings and Criminal Profile, SPEC §1, §11.
 // Endings are NOT picked from a menu: they emerge organically from 4 factors —
-// (1) BuckMe family savings, (2) Jason–Lucia relationship, (3) Criminal Profile,
+// (1) BuckMe family savings, (2) Cole–Mara relationship, (3) Criminal Profile,
 // (4) choices in earlier missions. Good Ending 1 reads BuckMe SAVINGS
 // (>= $40,000), never wallet cash (cash is capped at $20,000).
 
 export const CHAPTERS = [
-  { n: 1, name: 'Just Like Paradise', missions: 22, area: 'Leonida Keys', blurb: 'Lucia in prison; Jason\'s early action.' },
-  { n: 2, name: 'Paradise Lost', missions: 11, area: 'Port Gellhorn', blurb: 'Lucia free with an ankle monitor; building a life with Jason.' },
-  { n: 3, name: 'Tits, Ass, Drug Money', missions: 26, area: 'Vice City', blurb: 'Jason + Lucia operating together — steal luxury cars, rob banks, rob cartels.' },
-  { n: 4, name: 'Vice City, Baby', missions: 25, area: 'Ocean Beach', blurb: 'Their own business around Ocean Beach; legal trouble and authority surveillance.' },
-  { n: 5, name: 'Top of the World, Ma', missions: 7, area: 'Leonida', blurb: 'Endgame / climax.' },
+  { n: 1, name: 'Keys, Cages and Currents', missions: 22, area: 'Solmaris Keys', blurb: 'Mara in prison; Cole\'s early action.' },
+  { n: 2, name: 'Cold Water', missions: 11, area: 'Port Marlowe', blurb: 'Mara free with an ankle monitor; building a life with Cole.' },
+  { n: 3, name: 'Neon and Fast Money', missions: 26, area: 'Azura Bay', blurb: 'Cole + Mara operating together — steal luxury cars, rob banks, rob cartels.' },
+  { n: 4, name: 'Azura Bay, Baby', missions: 25, area: 'Coral Strand', blurb: 'Their own business around Coral Strand; legal trouble and authority surveillance.' },
+  { n: 5, name: 'The Last Run', missions: 7, area: 'Solmaris', blurb: 'Endgame / climax.' },
 ];
 
 export function chapterReward(chapter) {
@@ -48,7 +48,7 @@ export function breakingPoint(chaos) {
 // The 4 organic endings (Bab 11).
 export const ENDINGS = [
   { id: 'good1', name: 'Good Ending 1', desc: 'Both survive and escape the police pursuit together.', condition: 'BuckMe savings >= $40,000 and relationship strong' },
-  { id: 'good2', name: 'Good Ending 2 — Swim For It (Unarmed)', desc: 'One sacrifices themselves to prison (Jason jailed, Lucia free, new life).', condition: 'Swim For It chosen unarmed' },
+  { id: 'good2', name: 'Good Ending 2 — Swim For It (Unarmed)', desc: 'One sacrifices themselves to prison (Cole jailed, Mara free, new life).', condition: 'Swim For It chosen unarmed' },
   { id: 'bad1', name: 'Bad Ending 1 — Swim For It (Armed)', desc: 'Escape fails; both are shot on the bridge.', condition: 'Swim For It chosen armed' },
   { id: 'bad2', name: 'Bad Ending 2 — No Surrender', desc: 'Bonnie & Clyde style — die in a crash / shootout.', condition: 'No Surrender chosen' },
 ];

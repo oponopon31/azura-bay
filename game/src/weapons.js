@@ -1,13 +1,13 @@
 // weapons.js — Sidearms (16), SPEC §2a. User's exact names, no renames.
-// ES9 = Jason's starting pistol, K17 = Lucia's standard pistol.
+// ES9 = Cole's starting pistol, K17 = Mara's standard pistol.
 // Fairview Kalinga .50 has the highest pistol damage (55);
 // Scorpio Akulus has the highest revolver damage (58); Coil Shocker is stun.
 // Stats: damage (per shot), fireRate (shots/s), range (m), handling (0-100),
 // capacity (magazine), unlock (mission gating), role (who starts with it).
 export const SIDEARMS = [
   { id: 'nipper', name: 'Scorpio Nipper .38', kind: 'sidearm', damage: 22, fireRate: 3.2, range: 28, handling: 88, capacity: 6, unlock: 'm1', note: 'compact, light' },
-  { id: 'es9', name: 'Girardi ES9', kind: 'sidearm', damage: 26, fireRate: 4.0, range: 32, handling: 82, capacity: 15, unlock: 'm1', role: 'jason-start', note: "Jason's starting pistol" },
-  { id: 'k17', name: 'Klose K17', kind: 'sidearm', damage: 27, fireRate: 4.2, range: 34, handling: 85, capacity: 17, unlock: 'm1', role: 'lucia-standard', note: "Lucia's standard pistol, polymer 9mm" },
+  { id: 'es9', name: 'Girardi ES9', kind: 'sidearm', damage: 26, fireRate: 4.0, range: 32, handling: 82, capacity: 15, unlock: 'm1', role: 'cole-start', note: "Cole's starting pistol" },
+  { id: 'k17', name: 'Klose K17', kind: 'sidearm', damage: 27, fireRate: 4.2, range: 34, handling: 85, capacity: 17, unlock: 'm1', role: 'mara-standard', note: "Mara's standard pistol, polymer 9mm" },
   { id: 'duke1992', name: 'Duke Arms 1992', kind: 'sidearm', damage: 34, fireRate: 2.6, range: 30, handling: 74, capacity: 8, unlock: 'm3', note: 'heavy, M1911-style' },
   { id: 'es18', name: 'Girardi ES18', kind: 'sidearm', damage: 24, fireRate: 3.0, range: 30, handling: 80, capacity: 18, unlock: 'm12', burst: 3, note: 'burst-fire, 3 rounds per pull — fires 3 bullets' },
   { id: 'k17mcd', name: 'Klose K17 MCD', kind: 'sidearm', damage: 22, fireRate: 9.0, range: 26, handling: 70, capacity: 24, unlock: 'm22', note: 'full-auto, 24 rounds' },
@@ -34,6 +34,6 @@ export function sidearmById(id) {
 
 // Starting loadout per protagonist.
 export function startingSidearm(protagonist) {
-  if (protagonist === 'jason') return sidearmById('es9');
+  if (protagonist === 'cole') return sidearmById('es9');
   return sidearmById('k17');
 }

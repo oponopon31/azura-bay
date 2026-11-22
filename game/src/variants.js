@@ -2,7 +2,7 @@
 // Scattered in the open world, NOT sold in regular gun shops. Gold/yellow
 // icon in the world and in the Loadout / Weapons Locker; exclusive physical
 // design + modifications that cannot be changed at Ammu-Nation.
-// Shared automatically: once one character finds one, it opens for Jason & Lucia.
+// Shared automatically: once one character finds one, it opens for Cole & Mara.
 // Examples: Clunker 556, Gutterball Morland 850, Kingfisher W22, Golden AK.
 const PREFIXES = [
   'Golden', 'Clunker', 'Gutterball', 'Kingfisher', 'Rusty', 'Chrome',

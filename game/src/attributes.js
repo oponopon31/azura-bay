@@ -1,4 +1,4 @@
-// attributes.js — Character stats (Jason & Lucia), SPEC §10.
+// attributes.js — Character stats (Cole & Mara), SPEC §10.
 // 3 attributes, 4 standard levels each, Level 5 max in late-game once the
 // story level cap opens.
 export const ATTRIBUTES = [

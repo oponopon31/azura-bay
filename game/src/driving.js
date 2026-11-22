@@ -1,6 +1,6 @@
 // driving.js — Driving mechanics, SPEC §18 + §24.
 // Auto-Drive (hold D-Pad Down in a car, pick Cinematic Camera: the car drives
-// itself to the GPS destination, obeying traffic lights). Quick GPS without
+// itself to the GPS destination, following traffic lights). Quick GPS without
 // opening the map (hold D-Pad Down while driving). Push Mechanic (a stuck car
 // / beached boat: walk into it and hold the prompt to push it back).
 // Hide in Car (hold Circle / B in a car to duck lower while hiding from police).
@@ -8,7 +8,7 @@
 // Heavy car physics: a flipped car CANNOT be flipped back by steering; the
 // body dents from bare-hand hits / slamming enemies into doors.
 export const DRIVING_FEATURES = [
-  { id: 'autodrive', name: 'Auto-Drive', desc: 'Hold D-Pad Down in a car, pick Cinematic Camera — car drives itself to the GPS destination, obeying traffic lights.' },
+  { id: 'autodrive', name: 'Auto-Drive', desc: 'Hold D-Pad Down in a car, pick Cinematic Camera — car drives itself to the GPS destination, following traffic lights.' },
   { id: 'quickgps', name: 'Quick GPS', desc: 'Hold D-Pad Down while driving to pick a destination on screen, no map needed.' },
   { id: 'push', name: 'Push Mechanic', desc: 'Stuck car / beached boat: walk into it and hold the prompt to push it back to the road or water.' },
   { id: 'hideincar', name: 'Hide in Car', desc: 'Hold Circle / B in a car to duck lower while hiding from police.' },

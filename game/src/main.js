@@ -50,7 +50,7 @@ const state = {
   economy: { cash: 500, buckme: 0, marked: 0 },
   police: { stars: 0, starState: 'Clear', memory: freshMemory(), seenNow: false },
   missionsDone: new Set(),
-  weapon: { name: 'Girardi ES9', mag: 15, reserve: 45 },
+  weapon: { name: 'Ferrante ES9', mag: 15, reserve: 45 },
   vehicle: null,
   profileName: 'Professional',
   breakingPoint: false,
@@ -63,6 +63,10 @@ const state = {
   mission: null,
   dialogue: null,
   radio: 'Pulse FM',
+  rank: { letter: 'B', title: 'FIXER', rp: 3900, rpMax: 5200 },
+  location: { area: 'Azura Bay', street: 'Coral Drive', zone: 'NEUTRAL', value: 58 },
+  airUnit: false,
+  clockHour: 18.5,
   playerMm: { x: 90, y: 90 },
   missionMarker: { x: 140, y: 40 },
 };
@@ -401,12 +405,12 @@ function buildScene() {
     walkers.push(w);
   }
   // Beach strollers on the sand near the dusk pose.
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < 7; i++) {
     const w = makeWalker(shirtColors[(i + 2) % shirtColors.length]);
-    w.position.set(125 + (i % 2) * 4, 0, -8 + i * 14);
+    w.position.set(122 + (i % 3) * 5, 0, -20 + i * 11);
     w.userData.dir = i % 2 === 0 ? 1 : -1;
     w.userData.speed = 0.8;
-    w.userData.lane = 125 + (i % 2) * 4;
+    w.userData.lane = 122 + (i % 3) * 5;
     scene.add(w);
     walkers.push(w);
   }
@@ -628,6 +632,7 @@ function loop() {
     heli.lookAt(px, 0, pz);
     rotor.rotation.y = state.time * 22;
     heli.visible = pursuit || shotId === 'cover' || shotId === 'heist';
+    state.airUnit = heli.visible;
     if (heli.userData.beacon) heli.userData.beacon.material.color.setHex(Math.floor(state.time * 4) % 2 === 0 ? 0xff2222 : 0x771111);
     heliLight.target.position.set(px - heli.position.x, -20, pz - heli.position.z);
   }
@@ -647,8 +652,10 @@ function loop() {
     camera.position.set(px + 30, 14, pz + 26);
     camera.lookAt(px + 2, 6, pz - 30);
   } else if (pose.cam === 'beach') {
-    camera.position.set(100, 4.5, playerMesh.position.z + 16);
-    camera.lookAt(150, 2.5, playerMesh.position.z - 12);
+    // Dusk 3/4 shot from the south-east: sand + strollers + palms in front,
+    // Coral Drive, and the neon beachfront towers facing camera.
+    camera.position.set(130, 8, playerMesh.position.z + 25);
+    camera.lookAt(70, 5, playerMesh.position.z - 25);
   } else if (shotId) {
     camera.position.set(px + 7, 5.5, pz + 13);
     camera.lookAt(px, 2.5, pz - 12);
@@ -697,8 +704,8 @@ export function boot() {
   window.__hudEls = buildHud(document.getElementById('hud'));
   const mmCanvas = document.createElement('canvas');
   mmCanvas.id = 'minimap-canvas';
-  mmCanvas.width = 180;
-  mmCanvas.height = 180;
+  mmCanvas.width = 150;
+  mmCanvas.height = 150;
   document.getElementById('mapbox').appendChild(mmCanvas);
 
   // Pose state: hour, wanted level, featured mission, vehicle.
@@ -707,7 +714,16 @@ export function boot() {
   state.police.starState = STAR_STATES[pose.stars] ? STAR_STATES[pose.stars].name : 'Clear';
   const fm = FEATURED_MISSIONS.find((m) => m.id === pose.mission) || FEATURED_MISSIONS[0];
   state.featured = fm;
-  state.mission = { title: fm.title, stage: fm.stages[pose.stage] || fm.stages[0], timer: fm.timer };
+  const fIdx = FEATURED_MISSIONS.indexOf(fm);
+  state.mission = {
+    n: fIdx + 1, title: fm.title, stage: fm.stages[pose.stage] || fm.stages[0],
+    objective: fm.objective, stageIndex: pose.stage + 1, stageCount: fm.stages.length,
+    next: fm.stages[pose.stage + 1] || 'Complete the mission', timer: fm.timer,
+  };
+  state.clockHour = pose.hour;
+  state.location = pose.cam === 'beach'
+    ? { area: 'Coral Strand', street: 'Coral Drive', zone: 'NEUTRAL', value: 58 }
+    : { area: 'Azura Bay', street: 'Coral Drive', zone: 'NEUTRAL', value: 58 };
   state.dialogue = fm.dialogue[pose.dialogue] || fm.dialogue[0];
   if (pose.inCar) {
     state.vehicle = { name: 'Velluto Furia', fuel: 78, health: 0.92, speedKmh: 96 };

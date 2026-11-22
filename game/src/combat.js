@@ -10,7 +10,7 @@
 // (both can be turned off in settings). Surrender at 1–2 stars.
 // Free-aim from a car window via Focus Mode (driver, tyre, engine block,
 // fuel tank). Pistol fire rate is uncapped (as fast as you pull R2/RT).
-// Realistic AR recoil: short bursts are far more accurate than holding the
+// Realistic AR kickback: short bursts are far more accurate than holding the
 // trigger. Cole & Mara hand weapons to each other in the field.
 // First-person via scope/optic (R3) — NOT full first-person on foot.
 // Shoot an enemy's hand = their weapon drops. Warning shots to the air =
@@ -45,7 +45,7 @@ export function bloomAfterShots(shotsFired, baseBloom) {
   return Math.min(1, baseBloom + shotsFired * 0.04);
 }
 
-// AR recoil: short bursts are far more accurate than holding the trigger.
+// AR kickback: short bursts are far more accurate than holding the trigger.
 export function burstAccuracy(shotsInBurst) {
   if (shotsInBurst <= 3) return 0.95;
   if (shotsInBurst <= 6) return 0.8;

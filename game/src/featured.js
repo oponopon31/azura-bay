@@ -8,7 +8,7 @@ export const FEATURED_MISSIONS = [
     id: 'f1', title: 'Salt Air Run', chapter: 1, missionIds: [1, 2, 6],
     area: 'Solmaris Keys', timer: 240,
     objective: 'Run the Keys smuggling route — reach the Pelican Key dock before the Coast Guard closes in.',
-    stages: ['Meet Gus at the Key Lento dock', 'Load the boat and cast off', 'Outrun the Coast Guard cutter', 'Deliver the cargo at Pelican Key'],
+    stages: ['Meet Gus at the Cayo Verde dock', 'Load the boat and cast off', 'Outrun the Coast Guard cutter', 'Deliver the cargo at Pelican Key'],
     crew: [{ name: 'Gus Marlowe', ability: 'Smuggler — cuts heat in half after any delivery' }],
     dialogue: [
       { speaker: 'Gus Marlowe', initials: 'GM', color: '#8a6d3b', line: 'Keys water is ours tonight, Cole. Keep her under forty knots till the point.' },
@@ -34,9 +34,9 @@ export const FEATURED_MISSIONS = [
     area: 'Port Marlowe', timer: 300,
     objective: 'Open the bag Mara smuggled out, then move the crew into the Port Marlowe motel.',
     stages: ['Open the bag — what did she bring out?', 'Sweep the motel for watchers', 'Set up the new base'],
-    crew: [{ name: 'Cal Hampton', ability: 'Watcher — hears police radio before dispatch airs it' }],
+    crew: [{ name: 'Dale Mercer', ability: 'Watcher — hears police radio before dispatch airs it' }],
     dialogue: [
-      { speaker: 'Cal Hampton', initials: 'CH', color: '#5b8c5a', line: 'Motel has ears, Cole. I swept three rooms already. We are clean.' },
+      { speaker: 'Dale Mercer', initials: 'DM', color: '#5b8c5a', line: 'Motel has ears, Cole. I swept three rooms already. We are clean.' },
       { speaker: 'Mara Solano', initials: 'MS', color: '#c94f7c', line: 'The bag is the whole plan. Open it slow — it took me two years to fill.' },
     ],
     reward: 8000,

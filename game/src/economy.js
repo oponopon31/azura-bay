@@ -15,11 +15,11 @@ export const MONEY_TYPES = [
 
 // Specialist fences (SPEC §17).
 export const FENCES = [
-  { id: 'tyrone', name: 'Tyrone', specialty: 'drugs', note: 'highest payout for drugs' },
-  { id: 'yasmani', name: 'Yasmani', specialty: 'jewellery & marked bills', note: 'also unlocks armoured-truck & big-vault robbery missions' },
-  { id: 'moses', name: 'Moses', specialty: 'standard stolen cars, no tracker', note: 'Chapter 2, $1,000+ per car' },
-  { id: 'paynspray', name: "Pay 'n' Spray", specialty: 'tracked standard stolen cars', note: 'early Chapter 3, $4,000+ per car' },
-  { id: 'randy', name: 'Randy', specialty: 'special-order supercars, mint condition', note: '$30,000+ per car' },
+  { id: 'bishop', name: 'Bishop', specialty: 'drugs', note: 'highest payout for drugs' },
+  { id: 'rey', name: 'Rey Cruz', specialty: 'jewellery & marked bills', note: 'also unlocks armoured-truck & big-vault robbery missions' },
+  { id: 'zeke', name: 'Zeke', specialty: 'standard stolen cars, no tracker', note: 'Chapter 2, $1,000+ per car' },
+  { id: 'quickspray', name: "Quick Spray", specialty: 'tracked standard stolen cars', note: 'early Chapter 3, $4,000+ per car' },
+  { id: 'rocco', name: 'Rocco', specialty: 'special-order supercars, mint condition', note: '$30,000+ per car' },
 ];
 
 // Minimum bank balance required to open certain story missions.
@@ -48,10 +48,10 @@ export function totalWealth(state) {
   return (s.cash || 0) + (s.buckme || 0) + (s.marked || 0);
 }
 
-// Launder marked bills through a fence (Yasmani takes a cut).
+// Launder marked bills through a fence (Rey Cruz takes a cut).
 export function launderMarked(marked, fenceId) {
   const fence = FENCES.find((f) => f.id === fenceId);
   if (!fence) return { clean: 0, kept: marked };
-  const rate = fenceId === 'yasmani' ? 0.85 : 0.7;
+  const rate = fenceId === 'rey' ? 0.85 : 0.7;
   return { clean: Math.floor(marked * rate), kept: 0, fence: fence.name };
 }

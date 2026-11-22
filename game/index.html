@@ -10,49 +10,81 @@
   #game canvas { display: block; }
   #hud { position: fixed; inset: 0; pointer-events: none; z-index: 10; }
   .hud-corner { position: absolute; }
-  .hud-topleft { top: 12px; left: 12px; width: 300px; }
-  .hud-topleft2 { top: 198px; left: 12px; width: 240px; }
+  .hud-panel { position: absolute; }
+  .hud-mission { top: 12px; left: 12px; width: 330px; background: rgba(5,10,18,.55); border-radius: 8px; padding: 7px 10px; }
+  .hud-dispatch { top: 170px; left: 12px; width: 330px; }
+  .hud-status { top: 320px; left: 12px; width: 240px; }
   .hud-topright { top: 12px; right: 12px; text-align: right; }
-  .hud-topcenter { top: 12px; left: 50%; transform: translateX(-50%); width: 420px; text-align: center; }
+  .hud-rank { top: 168px; right: 12px; width: 250px; }
+  .hud-location { bottom: 222px; left: 12px; width: 180px; }
+  .hud-vitals { bottom: 12px; left: 12px; width: 180px; }
   .hud-bottomcenter { bottom: 14px; left: 50%; transform: translateX(-50%); width: 520px; display: flex; gap: 10px; align-items: center; background: rgba(5,10,18,.72); border-radius: 12px; padding: 10px 14px; }
   .hud-bottomright { bottom: 12px; right: 12px; text-align: right; }
-  .hud-bottomright2 { bottom: 118px; right: 12px; text-align: right; }
   .bar { height: 10px; border-radius: 5px; background: rgba(0,0,0,.55); margin: 3px 0; overflow: hidden; position: relative; }
   .bar::before { content: ''; display: block; height: 100%; width: var(--v, 50%); border-radius: 5px; }
   .bar.health::before { background: #ff5d8f; }
+  .bar.armour::before { background: #4db8ff; }
   .bar.stamina::before { background: #b6ff4d; }
   .bar.focus::before { background: #b06bff; }
   .bar.oxygen::before { background: #4db8ff; }
-  .bar span { position: absolute; left: 4px; top: -3px; font-size: 11px; }
+  .bar span { position: absolute; left: 4px; top: -3px; font-size: 9px; }
   .badge { display: inline-block; background: #ffd34d; color: #111; font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 8px; margin: 2px 2px 0 0; }
   .stars { font-size: 20px; letter-spacing: 2px; color: #ffd34d; text-shadow: 0 0 6px #000; }
   .clues { font-size: 11px; color: #ffb3c8; }
-  .weapon, .money { font-size: 13px; text-shadow: 0 1px 2px #000; }
+  .clock { font-size: 16px; font-weight: 700; text-shadow: 0 1px 2px #000; }
+  .money { font-size: 18px; font-weight: 700; color: #6dffb8; text-shadow: 0 1px 2px #000; }
+  .airunit { font-size: 11px; font-weight: 700; letter-spacing: 1px; color: #ff5d5d; text-shadow: 0 1px 2px #000; }
   .profile { font-size: 15px; font-weight: 700; text-shadow: 0 1px 2px #000; }
   .profile.breaking { color: #ff4d4d; }
   .relationship { font-size: 12px; color: #cfe8ff; text-shadow: 0 1px 2px #000; }
   .radio { font-size: 12px; color: #ffd34d; text-shadow: 0 1px 2px #000; }
-  .hud-minimap { position: absolute; bottom: 12px; left: 12px; border-radius: 16px; overflow: hidden; box-shadow: 0 0 0 2px rgba(255,255,255,.25); }
-  .hud-minimap canvas { border-radius: 12px; display: block; }
+  .hud-minimap { position: absolute; bottom: 64px; left: 12px; border-radius: 16px; overflow: hidden; box-shadow: 0 0 0 2px rgba(255,255,255,.25); }
+  .hud-minimap canvas { border-radius: 12px; display: block; width: 150px; height: 150px; }
+  .mission-head { font-size: 13px; font-weight: 700; letter-spacing: 1px; color: #ffd34d; text-shadow: 0 1px 2px #000; margin-bottom: 3px; }
+  .mission-stage { display: inline-block; background: rgba(255,211,77,.92); color: #111; font-size: 13px; font-weight: 700; padding: 1px 6px; border-radius: 4px; margin-bottom: 3px; }
+  .mission-obj { font-size: 13px; text-shadow: 0 1px 2px #000; }
+  .mission-next { font-size: 12px; color: #ffd34d; text-shadow: 0 1px 2px #000; margin-top: 2px; }
+  .mission-timer { font-size: 13px; font-weight: 700; text-shadow: 0 1px 2px #000; }
   .dispatch-title { font-size: 12px; font-weight: 700; letter-spacing: 1px; color: #ffd34d; text-shadow: 0 1px 2px #000; margin-bottom: 4px; }
   .dispatch-row { display: flex; gap: 8px; font-size: 12px; text-shadow: 0 1px 2px #000; background: rgba(5,10,18,.55); border-radius: 6px; padding: 2px 6px; margin-bottom: 2px; }
-  .dispatch-unit { flex: 1; }
+  .dispatch-unit { flex: 1; font-weight: 700; }
   .dispatch-dist { color: #cfe8ff; }
   .dispatch-tactic { color: #ff8a5c; font-weight: 700; }
-  .objective-title { font-size: 15px; font-weight: 700; color: #ffd34d; text-shadow: 0 1px 2px #000; }
-  .objective-text { font-size: 13px; text-shadow: 0 1px 2px #000; }
-  .objective-timer { font-size: 16px; font-weight: 700; color: #fff; text-shadow: 0 1px 2px #000; }
+  .dispatch-more { font-size: 11px; color: #cfe8ff; text-shadow: 0 1px 2px #000; padding-left: 6px; }
+  .rank-head { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
+  .rank-badge { background: #159a7c; padding: 2px 7px; border-radius: 4px; font-weight: 700; font-size: 12px; }
+  .rank-title { font-size: 15px; font-weight: 700; text-shadow: 0 1px 2px #000; }
+  .rp-bar { height: 6px; background: rgba(0,0,0,.55); border-radius: 3px; overflow: hidden; }
+  .rp-bar span { display: block; height: 100%; background: #ffd34d; }
+  .rp-text { font-size: 11px; color: #cfe8ff; text-shadow: 0 1px 2px #000; margin: 2px 0 4px; }
+  .slot { display: flex; gap: 6px; align-items: center; font-size: 12px; background: rgba(5,10,18,.55); border-radius: 6px; padding: 3px 6px; margin-top: 3px; text-shadow: 0 1px 2px #000; }
+  .slot.active { outline: 2px solid #ffd34d; }
+  .slot-n { color: #ffd34d; font-weight: 700; }
+  .slot-name { flex: 1; font-weight: 700; }
+  .slot-ammo { color: #cfe8ff; }
+  .crew-card { display: flex; gap: 8px; align-items: center; background: rgba(5,10,18,.6); border-radius: 8px; padding: 5px 8px; margin-top: 4px; }
+  .crew-key { width: 26px; height: 26px; min-width: 26px; border-radius: 50%; background: #2a6db0; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; }
+  .crew-ability { display: block; font-size: 12px; font-weight: 700; }
+  .crew-name { display: block; font-size: 11px; color: #cfe8ff; }
+  .loc-area { font-size: 17px; font-weight: 700; color: #ffd34d; text-shadow: 0 1px 2px #000; }
+  .loc-street { font-size: 12px; text-shadow: 0 1px 2px #000; }
+  .loc-zone { display: inline-block; margin-top: 2px; font-size: 11px; background: rgba(5,10,18,.6); padding: 1px 8px; border-radius: 10px; }
+  .vitals-row { display: flex; align-items: center; gap: 6px; font-size: 11px; margin: 3px 0; text-shadow: 0 1px 2px #000; }
+  .vitals-row span { width: 52px; }
+  .vitals-row .bar { flex: 1; margin: 0; }
+  .vitals-row b { width: 24px; text-align: right; }
   .dialogue-portrait { width: 44px; height: 44px; min-width: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px; color: #fff; text-shadow: 0 1px 2px #000; }
   .dialogue-speaker { font-size: 12px; font-weight: 700; color: #ffd34d; }
   .dialogue-line { font-size: 14px; }
-  .speed { font-size: 34px; font-weight: 700; text-shadow: 0 1px 3px #000; }
+  .speed { font-size: 44px; font-weight: 700; text-shadow: 0 1px 3px #000; line-height: 1; }
   .speed span { font-size: 13px; font-weight: 400; }
-  .speed-name { font-size: 12px; color: #cfe8ff; text-shadow: 0 1px 2px #000; }
+  .speed-name { font-size: 13px; font-weight: 700; color: #4dd8ff; text-shadow: 0 1px 2px #000; }
+  .dented { font-size: 13px; font-weight: 700; color: #ffd34d; text-shadow: 0 1px 2px #000; }
   .fuel, .engine { font-size: 12px; text-shadow: 0 1px 2px #000; }
   #title-screen { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(5,10,18,.72); z-index: 20; }
   #title-screen h1 { font-size: 64px; margin: 0; letter-spacing: 6px; color: #ffd34d; }
   #title-screen button { margin-top: 18px; font-size: 18px; padding: 10px 28px; border: none; border-radius: 8px; background: #ff4d9d; color: #fff; cursor: pointer; }
-  #build-tag { position: fixed; bottom: 4px; right: 8px; font-size: 11px; color: rgba(255,255,255,.6); z-index: 30; }
+  #build-tag { position: fixed; bottom: 2px; left: 50%; transform: translateX(-50%); font-size: 11px; color: rgba(255,255,255,.6); z-index: 30; }
   #pause { display: none; position: fixed; inset: 0; background: rgba(5,10,18,.8); z-index: 25; align-items: center; justify-content: center; flex-direction: column; }
   #pause h2 { margin: 0 0 10px; }
 </style>

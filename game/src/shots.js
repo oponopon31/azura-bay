@@ -4,7 +4,7 @@
 // at the Coral Drive nightclub, 21:30, 1 star.
 export const SHOTS = [
   { id: 'cover', name: 'Cover', scene: 'Mara & Cole in a police pursuit on Coral Drive at sunset, Azura Bay skyline', hour: 18.5, stars: 3 },
-  { id: 'shootout', name: 'Shootout', scene: 'Street shootout outside Ammu-Nation, police responding', hour: 14, stars: 3 },
+  { id: 'shootout', name: 'Shootout', scene: 'Street shootout outside Ironhold Arms, police responding', hour: 14, stars: 3 },
   { id: 'dusk', name: 'Dusk', scene: 'Coral Strand at dusk, neon signs lighting up', hour: 18.5, stars: 0 },
   { id: 'heist', name: 'Heist', scene: 'Azura Harbor Bank vault, bags of marked bills', hour: 11, stars: 4 },
   { id: 'night', name: 'Night', scene: 'Midnight meet at the Coral Drive nightclub', hour: 21.5, stars: 1 },

@@ -1,26 +1,26 @@
 // city.js — Azura Bay districts & day/night, SPEC §28 + MAP-DATA.md.
 // Building map colours: light blue = decoration outside only;
 // DARK BLUE = has an enterable interior.
-// District labels: La Perle, Bayside, Salton, Southside,
-// Balsero, Decor District are Azura Bay district labels; Millport is a town;
+// District labels: La Perle, Bayview, Salton, Southside,
+// Balsero, Decor District are Azura Bay district labels; Millhaven is a town;
 // Emerald Springs has 5 named places and no map label.
 export const DISTRICTS = [
   { name: 'Coral Strand', kind: 'beach', note: 'pastel art-deco hotels, white sand' },
   { name: 'Coral Drive', kind: 'beach', note: 'neon nightlife strip' },
   { name: 'Marlin Bay', kind: 'beach', note: 'beachfront district' },
   { name: 'Downtown', kind: 'downtown', note: 'glass towers' },
-  { name: 'Little Havana', kind: 'district', note: 'panaderías, Cuban shops (also called Little Cuba)' },
-  { name: 'Little Haiti', kind: 'district', note: 'Haitian district' },
+  { name: 'Salsa Quarter', kind: 'district', note: 'panaderías, Cuban shops' },
+  { name: 'Creole Quarter', kind: 'district', note: 'Haitian district' },
   { name: 'Stockyard', kind: 'district', note: 'art / mural district' },
   { name: 'Crosstown', kind: 'district', note: 'Azura Bay district' },
   { name: 'La Perle', kind: 'district', note: 'district label (18 search results)' },
-  { name: 'Bayside', kind: 'district', note: 'district label (12 results); safehouse 201 here' },
+  { name: 'Bayview', kind: 'district', note: 'district label (12 results); safehouse 201 here' },
   { name: 'Salton', kind: 'district', note: 'district label (30 results)' },
   { name: 'Southside', kind: 'district', note: 'district label (17 results)' },
   { name: 'Balsero', kind: 'district', note: 'district label (12 results)' },
   { name: 'Decor District', kind: 'district', note: 'district label (8 results)' },
-  { name: 'Venetian Islands', kind: 'islands', note: 'island chain in the bay' },
-  { name: 'Leaf Links', kind: 'place', note: 'golf area' },
+  { name: 'Coral Isles', kind: 'islands', note: 'island chain in the bay' },
+  { name: 'Palm Links', kind: 'place', note: 'golf area' },
 ];
 
 export const BUILDING_COLORS = {

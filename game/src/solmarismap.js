@@ -4,20 +4,20 @@
 // Breakwater Quarry uses the CORRECTED -4462/-922 (old -4600/+643 never used).
 // Pelican Key airfield is a DIFFERENT airfield from ABIA.
 export const MAP_POINTS = [
-  { id: 'keylento', name: 'Key Lento', kind: 'town', gx: -2366, gy: -5992, county: 'Key County', region: 'Solmaris Keys' },
-  { id: 'hamlet', name: 'Hamlet', kind: 'town', gx: -2864, gy: -3120, county: 'Bay County', region: 'Azura Bay' },
-  { id: 'watsonbay', name: 'Watson Bay', kind: 'town', gx: -4862, gy: -3404, county: 'Key County', region: 'Solmaris Keys' },
+  { id: 'keylento', name: 'Cayo Verde', kind: 'town', gx: -2366, gy: -5992, county: 'Key County', region: 'Solmaris Keys' },
+  { id: 'hamlet', name: 'Foxglove', kind: 'town', gx: -2864, gy: -3120, county: 'Bay County', region: 'Azura Bay' },
+  { id: 'watsonbay', name: 'Waverly Bay', kind: 'town', gx: -4862, gy: -3404, county: 'Key County', region: 'Solmaris Keys' },
   { id: 'capri', name: 'Capri', kind: 'town', gx: -7088, gy: 202, county: 'Key County', region: 'Solmaris Keys' },
   { id: 'glorianakey', name: 'Solara Key', kind: 'town', gx: 722, gy: -1398, county: 'Bay County', region: 'Azura Bay' },
   { id: 'azurabay', name: 'Azura Bay', kind: 'city', gx: -220, gy: 756, county: 'Bay County', region: 'Azura Bay' },
   { id: 'coralstrand', name: 'Coral Strand', kind: 'town', gx: 1530, gy: 896, county: 'Bay County', region: 'Azura Bay' },
-  { id: 'waningsands', name: 'Waning Sands', kind: 'town', gx: -244, gy: 4028, county: 'North County', region: 'Azura Bay' },
+  { id: 'waningsands', name: 'Silver Sands', kind: 'town', gx: -244, gy: 4028, county: 'North County', region: 'Azura Bay' },
   { id: 'ambrosia', name: 'Ambrosia', kind: 'town', gx: -3040, gy: 4234, county: 'West County', region: 'Ambrosia' },
   { id: 'portmarlowe', name: 'Port Marlowe', kind: 'town', gx: -6560, gy: 4264, county: 'West County', region: 'Port Marlowe' },
-  { id: 'millport', name: 'Millport', kind: 'town', gx: -712, gy: 6244, county: 'Highland County', region: 'Mount Corvina National Park' },
+  { id: 'millport', name: 'Millhaven', kind: 'town', gx: -712, gy: 6244, county: 'Highland County', region: 'Mount Corvina National Park' },
   { id: 'emeraldsprings', name: 'Emerald Springs', kind: 'place', gx: -3960, gy: 2164, county: 'West County', region: 'Ambrosia' },
   { id: 'laperle', name: 'La Perle', kind: 'district', gx: -762, gy: 1776, county: 'Bay County', region: 'Azura Bay' },
-  { id: 'bayside', name: 'Bayside', kind: 'district', gx: -440, gy: 1298, county: 'Bay County', region: 'Azura Bay' },
+  { id: 'bayside', name: 'Bayview', kind: 'district', gx: -440, gy: 1298, county: 'Bay County', region: 'Azura Bay' },
   { id: 'salton', name: 'Salton', kind: 'district', gx: -1414, gy: -536, county: 'Bay County', region: 'Azura Bay' },
   { id: 'southside', name: 'Southside', kind: 'district', gx: -1632, gy: -2122, county: 'Bay County', region: 'Azura Bay' },
   { id: 'balsero', name: 'Balsero', kind: 'district', gx: -2218, gy: 460, county: 'Bay County', region: 'Azura Bay' },
@@ -52,9 +52,9 @@ export const COUNTIES = [
 
 // 23 in-game map icons.
 export const MAP_ICONS = [
-  'Destination', 'New', 'Safehouse', 'Wardrobe', 'Gym', 'Grocery store', 'Ammu-Nation',
+  'Destination', 'New', 'Safehouse', 'Wardrobe', 'Gym', 'Grocery store', 'Ironhold Arms',
   'Weapon locker', 'Clothing store', 'Electronics store', 'Salon / barber', 'ATM',
-  "Pay 'n' Spray", 'Mod shop (cars)', 'Mod shop (bikes)', 'Specialty mod shop',
+  "Quick Spray", 'Mod shop (cars)', 'Mod shop (bikes)', 'Specialty mod shop',
   'Gas station', 'Electric charging station', 'Shooting range', 'Golf', 'Pool',
   'Fishing', 'CCTV camera',
 ];

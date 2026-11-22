@@ -49,8 +49,8 @@ export function runSelfTest() {
   check('weapons: 69 total (16+37+9+4+3)', totalWeapons === 69,
     `${SIDEARMS.length}+${LONGARMS.length}+${MELEE.length}+${EXPLOSIVES.length}+${SPECIALS.length}`);
   const sidearmNames = SIDEARMS.map((w) => w.name);
-  check('sidearms: exact user names',
-    ['Girardi ES9', 'Klose K17', 'Scorpio Nipper .38', 'Fairview Kalinga .50', 'Scorpio Akulus', 'Beretta-style Service Pistol', 'Coil Shocker', 'Wortham WCR-1'].every((n) => sidearmNames.includes(n)));
+  check('sidearms: renamed originals',
+    ['Ferrante ES9', 'Kessler K17', 'Scorpio Nipper .38', 'Fairview Kalinga .50', 'Scorpio Akulus', 'Service Pistol', 'Volt Shocker', 'Wortham WCR-1'].every((n) => sidearmNames.includes(n)));
   check('ES9 = Cole start, K17 = Mara standard',
     sidearmById('es9').role === 'cole-start' && sidearmById('k17').role === 'mara-standard');
   const pistols = SIDEARMS.filter((w) => !['nipper', 'wcr1', 'hawk38', 'mustang357', 'morgan', 'akulus'].includes(w.id));
@@ -130,7 +130,7 @@ export function runSelfTest() {
     player: { health: 80, maxHealth: 100, stamina: 60, focus: 70, oxygen: 100, diving: false, swimming: false, adrenaline: 0.6, relationship: 65 },
     economy: { cash: 15000, buckme: 30000 },
     police: { stars: 2, starState: 'White Solid', memory: { cctv: true, outfit: false, vehicle: true }, seenNow: true },
-    weapon: { name: 'Girardi ES9', mag: 12, reserve: 30 },
+    weapon: { name: 'Ferrante ES9', mag: 12, reserve: 30 },
     vehicle: { fuel: 20, health: 0.3 },
     profileName: 'Hardened',
     breakingPoint: false,
@@ -148,9 +148,9 @@ export function runSelfTest() {
   check('police: star states 0-6; heatPerStar(3)=60; hitChanceAt bounded',
     STAR_STATES.length === 7 && heatPerStar(3) === 60 &&
     hitChanceAt(10, 3) >= 0.05 && hitChanceAt(10, 3) <= 0.9 && canSurrender(2) === true);
-  check('economy: 3 money types, 5 fences, Yasmani launders 85%',
+  check('economy: 3 money types, 5 fences, Rey Cruz launders 85%',
     MONEY_TYPES.length === 3 && FENCES.length === 5 &&
-    launderMarked(1000, 'yasmani').clean === 850 && totalWealth({ cash: 100, buckme: 200, marked: 50 }) === 350);
+    launderMarked(1000, 'rey').clean === 850 && totalWealth({ cash: 100, buckme: 200, marked: 50 }) === 350);
 
   // 40-42. Events, gunshops, attributes.
   check('random events: 500+ combinations', totalEventCombinations() >= 500, `got ${totalEventCombinations()}`);

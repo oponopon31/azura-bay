@@ -27,7 +27,7 @@ export const ESCAPE_METHODS = [
   'Change clothes (via personal car trunk)',
   'Mask / hat',
   'Split Cole & Mara up',
-  'Change car, repaint at Pay \'n\' Spray, or call Joey for a clean personal car',
+  'Change car, repaint at Quick Spray, or call Joey for a clean personal car',
   'Loot police car trunks (Body Armor + Shotgun / Assault Rifle)',
 ];
 

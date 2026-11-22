@@ -30,6 +30,95 @@ export function buildHud(container) {
   };
 }
 
+// ---- face portraits ---------------------------------------------------------
+// Low-poly face portraits drawn on canvas (blocky art style, distinct per
+// character: skin tone, hair shape/colour, beard/mustache). Data URLs are
+// cached; generation is lazy and browser-only so node (selftest) never
+// touches document.
+const PORTRAIT_STYLES = {
+  'Mara Solano': { skin: '#e8b48c', hair: '#3a2418', style: 'long', bg: '#c94f7c' },
+  'Cole Reyes': { skin: '#d9a986', hair: '#161616', style: 'short', bg: '#2a6db0' },
+  'Rico Vega': { skin: '#b57a4e', hair: '#111111', style: 'short', mustache: true, bg: '#b03a2e' },
+  'Gus Marlowe': { skin: '#e0b48f', hair: '#c8c8c8', style: 'short', beard: true, bg: '#8a6d3b' },
+  'Luxe': { skin: '#8a5a3b', hair: '#f2c94d', style: 'long', bg: '#d4a017' },
+  'Dale Mercer': { skin: '#d9a986', hair: '#5b4a35', style: 'short', bg: '#5b8c5a' },
+  'Dario Quinn': { skin: '#c98f5f', hair: '#0d0d0d', style: 'slick', bg: '#7a5fb0' },
+  'Marlon Keene': { skin: '#a06a42', hair: '#111111', style: 'short', beard: true, bg: '#2e86ab' },
+};
+const portraitCache = new Map();
+export function portraitUrl(name) {
+  if (typeof document === 'undefined') return '';
+  if (portraitCache.has(name)) return portraitCache.get(name);
+  const s = PORTRAIT_STYLES[name] || { skin: '#d9a986', hair: '#333333', style: 'short', bg: '#555555' };
+  const c = document.createElement('canvas');
+  c.width = 96; c.height = 96;
+  const g = c.getContext('2d');
+  g.fillStyle = s.bg;
+  g.fillRect(0, 0, 96, 96);
+  // Long hair falls behind the face.
+  if (s.style === 'long') {
+    g.fillStyle = s.hair;
+    g.beginPath(); g.ellipse(48, 52, 30, 38, 0, 0, Math.PI * 2); g.fill();
+  }
+  // Face.
+  g.fillStyle = s.skin;
+  g.beginPath(); g.ellipse(48, 50, 22, 26, 0, 0, Math.PI * 2); g.fill();
+  // Beard covers the jaw.
+  if (s.beard) {
+    g.fillStyle = s.hair;
+    g.beginPath(); g.ellipse(48, 66, 20, 14, 0, 0, Math.PI); g.fill();
+  }
+  // Hair on top.
+  g.fillStyle = s.hair;
+  if (s.style === 'long') {
+    g.beginPath(); g.ellipse(48, 34, 23, 16, 0, Math.PI, 0); g.fill();
+    g.fillRect(24, 30, 6, 26);
+    g.fillRect(66, 30, 6, 26);
+  } else if (s.style === 'slick') {
+    g.beginPath(); g.ellipse(48, 30, 22, 12, 0, Math.PI, 0); g.fill();
+    g.fillRect(26, 28, 44, 4);
+  } else {
+    g.beginPath(); g.ellipse(48, 32, 22, 14, 0, Math.PI, 0); g.fill();
+  }
+  // Eyes + brows.
+  g.fillStyle = '#1a1a1a';
+  g.beginPath(); g.arc(39, 48, 2.6, 0, Math.PI * 2); g.fill();
+  g.beginPath(); g.arc(57, 48, 2.6, 0, Math.PI * 2); g.fill();
+  g.fillStyle = s.hair;
+  g.fillRect(35, 41, 9, 2.5);
+  g.fillRect(52, 41, 9, 2.5);
+  // Nose.
+  g.strokeStyle = 'rgba(0,0,0,0.35)';
+  g.lineWidth = 2;
+  g.beginPath(); g.moveTo(48, 50); g.lineTo(48, 58); g.stroke();
+  // Mustache.
+  if (s.mustache) {
+    g.fillStyle = s.hair;
+    g.fillRect(40, 60, 16, 4);
+  }
+  // Mouth.
+  g.strokeStyle = '#5a2a1a';
+  g.lineWidth = 2.5;
+  g.beginPath();
+  if (s.beard) { g.moveTo(42, 68); g.lineTo(54, 68); }
+  else { g.arc(48, 66, 6, 0.15 * Math.PI, 0.85 * Math.PI); }
+  g.stroke();
+  const url = c.toDataURL('image/png');
+  portraitCache.set(name, url);
+  return url;
+}
+
+// ---- weapon slot icons ------------------------------------------------------
+// Simple silhouettes (gold on transparent) so the 5 slots read as weapons
+// at a glance instead of text-only labels. Keyed by slot number.
+const WEAPON_ICONS = {
+  fist: '<svg viewBox="0 0 32 20" xmlns="http://www.w3.org/2000/svg"><path fill="#ffd34d" d="M7 2h13a4 4 0 0 1 4 4v4a8 8 0 0 1-8 8H9a4 4 0 0 1-4-4V6a4 4 0 0 1 2-4z"/><rect x="8" y="2" width="2.5" height="7" fill="#0a1420"/><rect x="13" y="2" width="2.5" height="7" fill="#0a1420"/><rect x="18" y="2" width="2.5" height="7" fill="#0a1420"/></svg>',
+  pistol: '<svg viewBox="0 0 32 20" xmlns="http://www.w3.org/2000/svg"><path fill="#ffd34d" d="M3 2h24a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2h-9l-2 9a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2l2-9H3a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/></svg>',
+  smg: '<svg viewBox="0 0 32 20" xmlns="http://www.w3.org/2000/svg"><path fill="#ffd34d" d="M2 4h20v3h8v3h-8v1h-6l-2 7H9l2-7H2V4z"/><rect x="12" y="11" width="5" height="7" fill="#ffd34d"/></svg>',
+  rifle: '<svg viewBox="0 0 32 20" xmlns="http://www.w3.org/2000/svg"><path fill="#ffd34d" d="M1 7h29a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H19l-1 5a1 1 0 0 1-1 1h-3a1 1 0 0 1-1-1l1-5H9l-1 4a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1l1-4H1a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1z"/></svg>',
+  shotgun: '<svg viewBox="0 0 32 20" xmlns="http://www.w3.org/2000/svg"><path fill="#ffd34d" d="M1 6h30v3H15l-1 7a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1l1-7H1V6z"/><rect x="14" y="10" width="9" height="3" fill="#0a1420"/></svg>',
+};
+
 function esc(s) {
   return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;');
 }
@@ -45,11 +134,11 @@ export function hudCorners(state) {
   const crew = (state.featured && state.featured.crew) || [];
   const w = state.weapon;
   const slots = [
-    { n: 1, name: 'FISTS', ammo: '∞', active: !w },
-    { n: 2, name: w ? shortWeapon(w.name) : 'ES9', ammo: w ? `${w.mag}/${w.reserve}` : '15/45', active: !!w },
-    { n: 3, name: 'MK-5', ammo: '30/60', active: false },
-    { n: 4, name: 'AZ1200', ammo: '8/16', active: false },
-    { n: 5, name: '556', ammo: '30/60', active: false },
+    { n: 1, name: 'FISTS', ammo: '∞', active: !w, icon: 'fist' },
+    { n: 2, name: w ? shortWeapon(w.name) : 'ES9', ammo: w ? `${w.mag}/${w.reserve}` : '15/45', active: !!w, icon: 'pistol' },
+    { n: 3, name: 'MK-5', ammo: '30/60', active: false, icon: 'smg' },
+    { n: 4, name: 'AZ1200', ammo: '8/16', active: false, icon: 'rifle' },
+    { n: 5, name: '556', ammo: '30/60', active: false, icon: 'shotgun' },
   ];
   return {
     health: { value: p.health, max: p.maxHealth, regenCap: p.maxHealth * HEALTH_REGEN_CAP },
@@ -169,10 +258,10 @@ export function updateHudCorners(els, state) {
   }
   if (els.rank) {
     const slots = c.slots.map((s) =>
-      `<div class="slot${s.active ? ' active' : ''}"><span class="slot-n">${s.n}</span><span class="slot-name">${esc(s.name)}</span><span class="slot-ammo">${esc(s.ammo)}</span></div>`).join('');
+      `<div class="slot${s.active ? ' active' : ''}"><span class="slot-n">${s.n}</span><span class="slot-icon">${WEAPON_ICONS[s.icon] || ''}</span><span class="slot-name">${esc(s.name)}</span><span class="slot-ammo">${esc(s.ammo)}</span></div>`).join('');
     const crew = c.crew.map((k) => {
       const ability = String(k.ability || '').split(' — ')[0].toUpperCase();
-      return `<div class="crew-card"><span class="crew-key">${esc(k.key)}</span><span class="crew-body"><span class="crew-ability">${esc(ability)}</span><span class="crew-name">${esc(k.name)} · Crew</span></span></div>`;
+      return `<div class="crew-card"><img class="crew-portrait" src="${portraitUrl(k.name)}" alt=""><span class="crew-key">${esc(k.key)}</span><span class="crew-body"><span class="crew-ability">${esc(ability)}</span><span class="crew-name">${esc(k.name)} · Crew</span></span></div>`;
     }).join('');
     els.rank.innerHTML =
       `<div class="rank-head"><span class="rank-badge">RANK ${esc(c.rank.letter)}</span><span class="rank-title">${esc(c.rank.title)}</span></div>` +
@@ -197,7 +286,7 @@ export function updateHudCorners(els, state) {
   }
   if (els.dialogue) {
     els.dialogue.innerHTML = c.dialogue
-      ? `<div class="dialogue-portrait" style="background:${c.dialogue.color}">${c.dialogue.initials}</div>` +
+      ? `<img class="dialogue-portrait" src="${portraitUrl(c.dialogue.speaker)}" alt="">` +
         `<div class="dialogue-body"><div class="dialogue-speaker">${c.dialogue.speaker}</div><div class="dialogue-line">${c.dialogue.line}</div></div>`
       : '';
   }

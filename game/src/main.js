@@ -114,7 +114,7 @@ const pose = shotId ? SHOT_POSES[shotId] : { hour: 18.5, stars: 0, mission: 'f1'
 // ---- 3D scene ---------------------------------------------------------------
 let renderer, scene, camera, playerMesh, playerCar, clock;
 let traffic = [], walkers = [], policeCars = [], heli = null, heliLight = null, rotor = null;
-let missionBeacon = null, barrierMesh = null;
+let missionBeacon = null, barrierMesh = null, coverChase = [];
 // Road grid: avenues run north-south, streets east-west. Coral Drive is x=90,
 // the beachfront avenue with the sea to its east.
 const WORLD = { avenues: [-90, -60, -30, 0, 30, 60, 90], streets: [-120, -90, -60, -30, 0, 30, 60, 90, 120] };
@@ -224,6 +224,53 @@ function makeWalker(shirt) {
     new THREE.MeshLambertMaterial({ color: 0x2c3e50 }));
   legs.position.y = 0.45;
   group.add(legs);
+  return group;
+}
+
+// A beach umbrella: striped cone canopy on a pole.
+function makeUmbrella(color) {
+  const group = new THREE.Group();
+  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 2.6, 6),
+    new THREE.MeshLambertMaterial({ color: 0x8a7a5a }));
+  pole.position.y = 1.3;
+  group.add(pole);
+  const canopy = new THREE.Mesh(new THREE.ConeGeometry(2.2, 1.0, 8),
+    new THREE.MeshLambertMaterial({ color }));
+  canopy.position.y = 2.9;
+  group.add(canopy);
+  return group;
+}
+
+// A scooter with a helmeted rider.
+function makeScooter(color) {
+  const group = new THREE.Group();
+  const wheelMat = new THREE.MeshLambertMaterial({ color: 0x111111 });
+  for (const z of [0.75, -0.75]) {
+    const w = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 0.2, 10), wheelMat);
+    w.rotation.z = Math.PI / 2;
+    w.position.set(0, 0.32, z);
+    group.add(w);
+  }
+  const body = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.4, 1.5),
+    new THREE.MeshLambertMaterial({ color }));
+  body.position.y = 0.55;
+  group.add(body);
+  const seat = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.15, 0.6),
+    new THREE.MeshLambertMaterial({ color: 0x1a1a1a }));
+  seat.position.set(0, 0.85, -0.35);
+  group.add(seat);
+  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.7, 0.35),
+    new THREE.MeshLambertMaterial({ color: 0xe67e22 }));
+  torso.position.y = 1.25;
+  group.add(torso);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.24, 8, 8),
+    new THREE.MeshLambertMaterial({ color: 0xd9a986 }));
+  head.position.y = 1.8;
+  group.add(head);
+  const helm = new THREE.Mesh(new THREE.SphereGeometry(0.28, 8, 8),
+    new THREE.MeshLambertMaterial({ color: 0xffd34d }));
+  helm.position.y = 1.86;
+  group.add(helm);
   return group;
 }
 
@@ -538,6 +585,23 @@ function buildScene() {
   const rail = new THREE.Mesh(new THREE.BoxGeometry(13.4, 0.4, 0.45), barMat);
   rail.position.set(0, 2.2, 0);
   barrierMesh.add(rail);
+  // Striped top rail: alternating orange/white segments, matching the body.
+  for (let i = 0; i < 5; i++) {
+    const rseg = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.42, 0.47), i % 2 === 0 ? barMat2 : barMat);
+    rseg.position.set(-5.2 + i * 2.6, 2.2, 0);
+    barrierMesh.add(rseg);
+  }
+  // Flashing beacons on the rail ends, so the barricade reads as a live
+  // police roadblock, not a flat orange wall.
+  const beaconMatL = new THREE.MeshBasicMaterial({ color: 0xff2222 });
+  const beaconMatR = new THREE.MeshBasicMaterial({ color: 0xffb020 });
+  for (const [x, mat] of [[-6, beaconMatL], [6, beaconMatR]]) {
+    const b = new THREE.Mesh(new THREE.SphereGeometry(0.35, 8, 8), mat);
+    b.position.set(x, 2.75, 0);
+    barrierMesh.add(b);
+  }
+  barrierMesh.userData.beaconL = beaconMatL;
+  barrierMesh.userData.beaconR = beaconMatR;
   for (const x of [-6.5, 6.5]) {
     const leg = new THREE.Mesh(new THREE.BoxGeometry(0.5, 1.3, 0.5), barMat);
     leg.position.set(x, 0.65, 0);
@@ -545,6 +609,36 @@ function buildScene() {
   }
   barrierMesh.position.set(90, 0, -2);
   scene.add(barrierMesh);
+
+  // Round 9 cover dressing: extra traffic, a scooter, sidewalk pedestrians
+  // and beach umbrellas that track the player car at fixed offsets (like
+  // the roadblock), so the cover street is busy whenever the shot is taken.
+  if (shotId === 'cover') {
+    const coverOffsets = [
+      { dx: -2.5, dz: -10, kind: 'car', color: 0x2e86c1 },
+      { dx: 2.5, dz: -16, kind: 'car', color: 0xf1c40f },
+      { dx: -2.5, dz: -26, kind: 'car', color: 0xecf0f1 },
+      { dx: 2.5, dz: -34, kind: 'car', color: 0x16a085 },
+      { dx: 4.6, dz: -13, kind: 'scooter', color: 0xc0392b },
+      { dx: -6.5, dz: -8, kind: 'walker', color: 0xe74c3c },
+      { dx: 6.5, dz: -18, kind: 'walker', color: 0x3498db },
+      { dx: -6.5, dz: -28, kind: 'walker', color: 0xf1c40f },
+      { dx: 6.5, dz: -6, kind: 'walker', color: 0x9b59b6 },
+      { dx: 24, dz: -12, kind: 'umbrella', color: 0xff4d6d },
+      { dx: 30, dz: -2, kind: 'umbrella', color: 0x4dd8ff },
+      { dx: 22, dz: -24, kind: 'umbrella', color: 0xffd34d },
+    ];
+    for (const o of coverOffsets) {
+      let mesh;
+      if (o.kind === 'car') { mesh = makeCar(o.color, false); mesh.rotation.y = Math.PI; }
+      else if (o.kind === 'scooter') { mesh = makeScooter(o.color); mesh.rotation.y = Math.PI; }
+      else if (o.kind === 'walker') { mesh = makeWalker(o.color); mesh.rotation.y = Math.PI / 2; }
+      else { mesh = makeUmbrella(o.color); }
+      mesh.position.set(90 + o.dx, 0, 20 + o.dz);
+      scene.add(mesh);
+      coverChase.push({ mesh, dx: o.dx, dz: o.dz });
+    }
+  }
 
   // Helicopter: body, tail, beacon, spinning rotor, and a spotlight cone
   // tracking the player.
@@ -707,8 +801,18 @@ function loop() {
       const on = Math.floor(state.time * 6) % 2 === 0;
       pc.userData.barR.material.color.setHex(on ? 0xff2222 : 0x551111);
       pc.userData.barB.material.color.setHex(on ? 0x111155 : 0x2244ff);
+      // Roadblock beacons flash in step with the police light bars.
+      if (barrierMesh.userData.beaconL) {
+        barrierMesh.userData.beaconL.color.setHex(on ? 0xff2222 : 0x551111);
+        barrierMesh.userData.beaconR.color.setHex(on ? 0x552200 : 0xffb020);
+      }
     }
   });
+  // Cover dressing tracks the player car at fixed offsets (like the
+  // roadblock), so the busy street stays in frame for the whole chase.
+  if (shotId === 'cover') {
+    for (const p of coverChase) p.mesh.position.set(90 + p.dx, 0, pz + p.dz);
+  }
   // Helicopter circles just ahead of the player, low, east of the road over
   // the open beach — clearly inside the chase camera's frame — spotlight tracking.
   if (heli) {

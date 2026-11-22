@@ -104,7 +104,7 @@ const SHOT_POSES = {
   cover:    { hour: 18.5, stars: 3, mission: 'f8', stage: 1, dialogue: 0, inCar: true,  cam: 'chase', drive: true },
   shootout: { hour: 14,   stars: 3, mission: 'f5', stage: 2, dialogue: 2, inCar: false, cam: 'street', drive: false },
   dusk:     { hour: 18.5, stars: 0, mission: 'f6', stage: 0, dialogue: 0, inCar: false, cam: 'beach', drive: false },
-  heist:    { hour: 11,   stars: 4, mission: 'f5', stage: 1, dialogue: 1, inCar: true,  cam: 'chase-side', drive: true },
+  heist:    { hour: 11,   stars: 4, mission: 'f5', stage: 1, dialogue: 1, inCar: false, cam: 'heist', drive: false },
   night:    { hour: 21.5, stars: 1, mission: 'f2', stage: 0, dialogue: 0, inCar: false, cam: 'street', drive: false },
 };
 const params = new URLSearchParams(window.location.search);
@@ -429,11 +429,59 @@ function buildScene() {
     new THREE.MeshLambertMaterial({ color: 0x2c3e50 }));
   legs.position.y = 0.45;
   playerMesh.add(legs);
+  // Arms, so the figure reads as a person (not a torso block) at close
+  // camera range, plus a held longarm so the weapon is visible in the
+  // on-foot shot poses (shootout / dusk / heist).
+  const armMat = new THREE.MeshLambertMaterial({ color: 0x2a6db0 });
+  for (const x of [-0.6, 0.6]) {
+    const arm = new THREE.Mesh(new THREE.BoxGeometry(0.25, 1.1, 0.3), armMat);
+    arm.position.set(x, 1.35, 0);
+    playerMesh.add(arm);
+  }
+  const gun = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.28, 1.5),
+    new THREE.MeshLambertMaterial({ color: 0x9aa0a3 }));
+  gun.position.set(0.72, 1.3, -0.45);
+  playerMesh.add(gun);
+  // Shot poses frame the character close: enlarge the figure so a person
+  // (not a dot) is clearly visible in every on-foot screenshot, and turn
+  // it a touch toward the camera so the held weapon reads from behind.
+  if (shotId && !pose.drive) { playerMesh.scale.setScalar(1.45); playerMesh.rotation.y = -0.3; }
   playerMesh.position.set(0, 0, 0);
   scene.add(playerMesh);
   playerCar = makeCar(0xd4242c, false);
+  // Driver visible above the cabin: head + shoulders in the driver's seat,
+  // so the chase shots show a person driving, not an empty car.
+  const driver = new THREE.Group();
+  const dTorso = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.7, 0.45),
+    new THREE.MeshLambertMaterial({ color: 0x2a6db0 }));
+  dTorso.position.y = 1.5;
+  driver.add(dTorso);
+  const dHead = new THREE.Mesh(new THREE.SphereGeometry(0.3, 8, 8),
+    new THREE.MeshLambertMaterial({ color: 0xd9a986 }));
+  dHead.position.y = 2.05;
+  driver.add(dHead);
+  driver.position.set(-0.55, 0, -0.3);
+  playerCar.add(driver);
   playerCar.position.set(90, 0, 20);
   scene.add(playerCar);
+  // Heist pose: bags of marked bills at the character's feet, so the shot
+  // reads as the bank job (vault context) rather than a plain street.
+  if (shotId === 'heist') {
+    const bagMat = new THREE.MeshLambertMaterial({ color: 0x2f7a3d });
+    const bandMat = new THREE.MeshLambertMaterial({ color: 0xffd34d });
+    for (const [x, z, ry] of [[1.6, -2.5, 0.4], [-1.4, -3.2, -0.3], [0.4, -4.2, 0.9]]) {
+      const bag = new THREE.Group();
+      const sack = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.65, 0.65), bagMat);
+      sack.position.y = 0.33;
+      bag.add(sack);
+      const band = new THREE.Mesh(new THREE.BoxGeometry(0.97, 0.18, 0.67), bandMat);
+      band.position.y = 0.4;
+      bag.add(band);
+      bag.position.set(x, 0, z);
+      bag.rotation.y = ry;
+      scene.add(bag);
+    }
+  }
 
   // Police: 6 pursuit cars spawn around the player's start (so they are in
   // frame from the first second) + roadblock + helicopter with spotlight.
@@ -628,7 +676,16 @@ function loop() {
   // the open beach — clearly inside the chase camera's frame — spotlight tracking.
   if (heli) {
     const a = state.time * 0.35;
-    heli.position.set(px + 12 + Math.cos(a) * 4, 20, pz - 28 + Math.sin(a) * 5);
+    // Shot poses: the helicopter hovers over the road ahead of the player
+    // (low, y=12) so it stays in the close camera's frame; the old
+    // px+12 offset put it inside the east-side building row for the
+    // on-foot poses at x=0, where the towers hid it. Free roam keeps the
+    // higher beach-side hover.
+    const overRoad = shotId && !pose.drive;
+    heli.position.set(
+      px + (overRoad ? 2 : 12) + Math.cos(a) * 4,
+      shotId ? 12 : 20,
+      pz - (overRoad ? 22 : 28) + Math.sin(a) * 5);
     heli.lookAt(px, 0, pz);
     rotor.rotation.y = state.time * 22;
     heli.visible = pursuit || shotId === 'cover' || shotId === 'heist';
@@ -639,26 +696,31 @@ function loop() {
   // Mission beacon bobs.
   if (missionBeacon) missionBeacon.children[0].position.y = 8 + Math.sin(state.time * 2) * 0.8;
 
-  // Camera per pose: tight chase cam on the road, low street cam on foot,
-  // close beach cam with palms + water in frame.
+  // Camera per pose (round 7 camera fix): CLOSE in every submitted shot,
+  // so the playable character / player car is large in frame, never a dot.
+  // Chase: low close chase cam, car fills the lower frame with the driver
+  // visible above the cabin; lookAt is up and right so the helicopter and
+  // the roadblock ahead stay in frame. On-foot (street / heist): close
+  // over-the-shoulder, character ~half the frame height, police + towers
+  // behind. Beach (dusk): close 3/4 from the south-east, character large,
+  // neon towers + strollers in frame.
   if (pose.cam === 'chase') {
-    camera.position.set(px, 9, pz + 19);
-    camera.lookAt(px + 6, 9, pz - 38);
+    camera.position.set(px - 3.5, 2.9, pz + 8.5);
+    camera.lookAt(px + 5, 4.5, pz - 25);
   } else if (pose.cam === 'chase-side') {
-    // High side view of the pursuit from the beach side: player car, police
-    // and the helicopter read from a different angle than the cover's chase
-    // cam. Kept high and back so the helicopter stays fully in frame and no
-    // palm crown sits against the lens.
-    camera.position.set(px + 30, 14, pz + 26);
-    camera.lookAt(px + 2, 6, pz - 30);
+    // Unused by the submitted poses since the heist went on-foot; kept
+    // close anyway so no pose ever falls back to a wide shot.
+    camera.position.set(px + 7, 4, pz + 10);
+    camera.lookAt(px, 2, pz - 25);
   } else if (pose.cam === 'beach') {
-    // Dusk 3/4 shot from the south-east: sand + strollers + palms in front,
-    // Coral Drive, and the neon beachfront towers facing camera.
-    camera.position.set(130, 8, playerMesh.position.z + 25);
-    camera.lookAt(70, 5, playerMesh.position.z - 25);
+    camera.position.set(px + 6, 3.2, pz + 8.5);
+    camera.lookAt(px - 4, 1.8, pz - 15);
+  } else if (pose.cam === 'heist') {
+    camera.position.set(px + 2.5, 3.0, pz + 7.5);
+    camera.lookAt(px, 1.5, pz - 15);
   } else if (shotId) {
-    camera.position.set(px + 7, 5.5, pz + 13);
-    camera.lookAt(px, 2.5, pz - 12);
+    camera.position.set(px + 2.5, 3.0, pz + 7.5);
+    camera.lookAt(px, 1.5, pz - 15);
   } else {
     camera.position.set(playerMesh.position.x, 55, playerMesh.position.z + 75);
     camera.lookAt(playerMesh.position.x, 0, playerMesh.position.z);

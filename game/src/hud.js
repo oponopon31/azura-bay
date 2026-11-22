@@ -141,10 +141,13 @@ export function updateHudCorners(els, state) {
       (rows || '<div class="dispatch-row">No units assigned</div>') +
       (c.dispatch.length > 5 ? `<div class="dispatch-more">+${c.dispatch.length - 5} more</div>` : '');
   }
+  // Status panel no longer holds STAMINA/FOCUS: at its old fixed position
+  // (top: 320px) the bars overlapped the dispatch panel's "+1 more" line
+  // whenever the dispatch list ran long, and floated mid-left when it ran
+  // short. STAMINA/FOCUS now live in the vitals panel, directly under
+  // HEALTH/ARMOUR. Only O2 (diving) and buff badges stay here.
   if (els.status) {
     els.status.innerHTML =
-      `<div class="bar stamina" style="--v:${c.stamina.value}%"><span>STAMINA</span></div>` +
-      `<div class="bar focus" style="--v:${c.focus.value}%"><span>FOCUS</span></div>` +
       (c.oxygen.shown ? `<div class="bar oxygen" style="--v:${c.oxygen.value}%"><span>O₂</span></div>` : '') +
       (c.buffs.bodyArmor ? '<span class="badge">BODY ARMOR</span>' : '') +
       (c.buffs.focusInfinite ? '<span class="badge">FOCUS ∞</span>' : '') +
@@ -188,7 +191,9 @@ export function updateHudCorners(els, state) {
   if (els.vitals) {
     els.vitals.innerHTML =
       `<div class="vitals-row"><span>HEALTH</span><div class="bar health" style="--v:${c.health.value}%"></div><b>${Math.round(c.health.value)}</b></div>` +
-      `<div class="vitals-row"><span>ARMOUR</span><div class="bar armour" style="--v:${c.armour}%"></div><b>${Math.round(c.armour)}</b></div>`;
+      `<div class="vitals-row"><span>ARMOUR</span><div class="bar armour" style="--v:${c.armour}%"></div><b>${Math.round(c.armour)}</b></div>` +
+      `<div class="vitals-row"><span>STAMINA</span><div class="bar stamina" style="--v:${c.stamina.value}%"></div><b>${Math.round(c.stamina.value)}</b></div>` +
+      `<div class="vitals-row"><span>FOCUS</span><div class="bar focus" style="--v:${c.focus.value}%"></div><b>${Math.round(c.focus.value)}</b></div>`;
   }
   if (els.dialogue) {
     els.dialogue.innerHTML = c.dialogue

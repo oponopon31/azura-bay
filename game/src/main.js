@@ -442,6 +442,20 @@ function buildScene() {
     new THREE.MeshLambertMaterial({ color: 0x9aa0a3 }));
   gun.position.set(0.72, 1.3, -0.45);
   playerMesh.add(gun);
+  // Cheap character detail (round 7 polish): a cap and a backpack, so the
+  // figure reads as a person from behind at close range. No face work —
+  // the figure is always seen from behind.
+  const capMat = new THREE.MeshLambertMaterial({ color: 0x1a1a1a });
+  const cap = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.18, 0.6), capMat);
+  cap.position.y = 2.74;
+  playerMesh.add(cap);
+  const brim = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.08, 0.3), capMat);
+  brim.position.set(0, 2.7, -0.32);
+  playerMesh.add(brim);
+  const pack = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.9, 0.32),
+    new THREE.MeshLambertMaterial({ color: 0x5a4a2a }));
+  pack.position.set(0, 1.35, 0.42);
+  playerMesh.add(pack);
   // Shot poses frame the character close: enlarge the figure so a person
   // (not a dot) is clearly visible in every on-foot screenshot, and turn
   // it a touch toward the camera so the held weapon reads from behind.
@@ -460,6 +474,15 @@ function buildScene() {
     new THREE.MeshLambertMaterial({ color: 0xd9a986 }));
   dHead.position.y = 2.05;
   driver.add(dHead);
+  // Cap + seat back, so the driver reads as a seated person, not a
+  // floating head + shoulders.
+  const dCap = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.15, 0.55), capMat);
+  dCap.position.y = 2.32;
+  driver.add(dCap);
+  const dSeat = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.8, 0.22),
+    new THREE.MeshLambertMaterial({ color: 0x1a1a1a }));
+  dSeat.position.set(0, 1.35, 0.32);
+  driver.add(dSeat);
   driver.position.set(-0.55, 0, -0.3);
   playerCar.add(driver);
   playerCar.position.set(90, 0, 20);
@@ -496,24 +519,31 @@ function buildScene() {
     door.position.set(0, 0.75, 0.4);
     pc.add(door);
     pc.position.set(startX + spawnOffsets[i][0], 0, startZ + spawnOffsets[i][1]);
+    if (i >= 4) pc.scale.setScalar(1.2); // Roadblock cars read larger.
     scene.add(pc);
     policeCars.push(pc);
   }
-  // Roadblock barrier: striped barricade held ahead of the player on the road.
+  // Roadblock barrier: striped barricade held ahead of the player on the
+  // road. Round 7 polish: taller + wider (13 wide, 2.4 tall with a top
+  // rail) and held closer (30 units ahead), so it reads clearly in the
+  // cover shot instead of a small distant stripe.
   barrierMesh = new THREE.Group();
   const barMat = new THREE.MeshLambertMaterial({ color: 0xff7a1a });
   const barMat2 = new THREE.MeshLambertMaterial({ color: 0xecf0f1 });
   for (let i = 0; i < 5; i++) {
-    const seg = new THREE.Mesh(new THREE.BoxGeometry(2, 1, 0.4), i % 2 === 0 ? barMat : barMat2);
-    seg.position.set(-4 + i * 2, 0.9, 0);
+    const seg = new THREE.Mesh(new THREE.BoxGeometry(2.6, 1.7, 0.5), i % 2 === 0 ? barMat : barMat2);
+    seg.position.set(-5.2 + i * 2.6, 1.15, 0);
     barrierMesh.add(seg);
   }
-  for (const x of [-4.5, 4.5]) {
-    const leg = new THREE.Mesh(new THREE.BoxGeometry(0.4, 1, 0.4), barMat);
-    leg.position.set(x, 0.5, 0);
+  const rail = new THREE.Mesh(new THREE.BoxGeometry(13.4, 0.4, 0.45), barMat);
+  rail.position.set(0, 2.2, 0);
+  barrierMesh.add(rail);
+  for (const x of [-6.5, 6.5]) {
+    const leg = new THREE.Mesh(new THREE.BoxGeometry(0.5, 1.3, 0.5), barMat);
+    leg.position.set(x, 0.65, 0);
     barrierMesh.add(leg);
   }
-  barrierMesh.position.set(90, 0, -25);
+  barrierMesh.position.set(90, 0, -2);
   scene.add(barrierMesh);
 
   // Helicopter: body, tail, beacon, spinning rotor, and a spotlight cone
@@ -666,10 +696,17 @@ function loop() {
       pc.userData.barB.material.color.setHex(on ? 0x111155 : 0x2244ff);
     }
     if (i >= 4 && pose.drive) {
-      // Roadblock stays ahead of the player car, on the road.
-      pc.position.z = pz - 45 - (i - 4) * 3;
+      // Roadblock stays ahead of the player car, on the road — close
+      // enough (22–30 units) that the barrier + cars read clearly in the
+      // cover shot, with light bars flashing. The barrier sits BETWEEN
+      // the player and the two cars, so it is the nearest, most
+      // prominent element instead of hiding behind them.
+      pc.position.z = pz - 27 - (i - 4) * 3;
       pc.position.x = roadX + (i === 4 ? -3 : 3);
-      if (barrierMesh) { barrierMesh.position.z = pz - 45; barrierMesh.position.x = roadX; }
+      if (barrierMesh) { barrierMesh.position.z = pz - 22; barrierMesh.position.x = roadX; }
+      const on = Math.floor(state.time * 6) % 2 === 0;
+      pc.userData.barR.material.color.setHex(on ? 0xff2222 : 0x551111);
+      pc.userData.barB.material.color.setHex(on ? 0x111155 : 0x2244ff);
     }
   });
   // Helicopter circles just ahead of the player, low, east of the road over

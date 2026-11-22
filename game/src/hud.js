@@ -25,6 +25,8 @@ export function buildHud(container) {
     location: mk('hud-location', 'hud-panel hud-location'),
     dialogue: mk('hud-dialogue', 'hud-corner hud-bottomcenter'),
     vehicle: mk('hud-vehicle', 'hud-corner hud-bottomright'),
+    prompt: mk('hud-prompt', 'hud-corner hud-prompt'),
+    objective: mk('hud-objective', 'hud-corner hud-objective'),
     vitals: mk('hud-vitals', 'hud-panel hud-vitals'),
     mapbox: mk('mapbox', 'hud-minimap'),
   };
@@ -152,8 +154,8 @@ export function hudCorners(state) {
       adrenaline: p.adrenaline,
     },
     vehicle: state.vehicle
-      ? { fuel: state.vehicle.fuel, engine: state.vehicle.health, lowFuel: state.vehicle.fuel < 25, engineFailing: state.vehicle.health < 0.35, speedKmh: state.vehicle.speedKmh || 0, name: state.vehicle.name || '', dented: state.vehicle.health != null ? Math.round((1 - state.vehicle.health) * 100) : 0 }
-      : { speedKmh: 0, name: '', dented: 0 },
+      ? { fuel: state.vehicle.fuel, engine: state.vehicle.health, lowFuel: state.vehicle.fuel < 25, engineFailing: state.vehicle.health < 0.35, speedKmh: state.vehicle.speedKmh || 0, name: state.vehicle.name || '', dented: state.vehicle.health != null ? Math.round((1 - state.vehicle.health) * 100) : 0, body: state.vehicle.body != null ? state.vehicle.body : state.vehicle.health, tires: state.vehicle.tires != null ? state.vehicle.tires : 1 }
+      : { speedKmh: 0, name: '', dented: 0, engine: 0.92, body: 0.86, tires: 0.94 },
     wanted: { stars: pol.stars, state: pol.starState },
     airUnit: pol.stars > 0 || !!state.airUnit,
     dispatch: (state.dispatch || []).map((u) => ({ name: u.name, distance: u.distance, tactic: u.tactic })),
@@ -173,6 +175,8 @@ export function hudCorners(state) {
     relationship: { value: p.relationship, label: relationshipLabel(p.relationship) },
     mission: m,
     dialogue: state.dialogue || null,
+    prompt: state.prompt || null,
+    objectiveBar: state.objectiveBar || null,
     radio: state.radio || null,
     rank,
     crew: crew.slice(0, 3).map((c, i) => ({ name: c.name, ability: c.ability, key: ['Z', 'X', 'C'][i] || '' })),
@@ -222,13 +226,13 @@ export function updateHudCorners(els, state) {
       : '';
   }
   if (els.dispatch) {
-    const shown = c.dispatch.slice(0, 5);
+    const shown = c.dispatch.slice(0, 8);
     const rows = shown.map((u) =>
       `<div class="dispatch-row"><span class="dispatch-unit">${esc(dispatchShortName(u.name))}</span><span class="dispatch-tactic">${esc(u.tactic)}</span><span class="dispatch-dist">${Math.round(u.distance)} m</span></div>`).join('');
     els.dispatch.innerHTML =
       `<div class="dispatch-title">ABPD RESPONSE — ${c.dispatch.length} UNITS</div>` +
       (rows || '<div class="dispatch-row">No units assigned</div>') +
-      (c.dispatch.length > 5 ? `<div class="dispatch-more">+${c.dispatch.length - 5} more</div>` : '');
+      (c.dispatch.length > 8 ? `<div class="dispatch-more">+${c.dispatch.length - 8} more</div>` : '');
   }
   // Status panel no longer holds STAMINA/FOCUS: at its old fixed position
   // (top: 320px) the bars overlapped the dispatch panel's "+1 more" line
@@ -292,14 +296,29 @@ export function updateHudCorners(els, state) {
   }
   if (els.vehicle) {
     const v = c.vehicle;
+    const pct = (x) => Math.round((x != null ? x : 0) * 100);
     els.vehicle.innerHTML =
       `<div class="speed">${Math.round(v.speedKmh || 0)}<span> KM/H</span></div>` +
       (v.name ? `<div class="speed-name">${esc(v.name)}</div>` : '') +
       (state.vehicle ? `<div class="dented">${v.dented}% DENTED</div>` : '') +
+      `<div class="dmg-row"><span>ENGINE</span><div class="bar dmg-engine" style="--v:${pct(v.engine)}%"></div><b>${pct(v.engine)}%</b></div>` +
+      `<div class="dmg-row"><span>BODY</span><div class="bar dmg-body" style="--v:${pct(v.body)}%"></div><b>${pct(v.body)}%</b></div>` +
+      `<div class="dmg-row"><span>TIRES</span><div class="bar dmg-tires" style="--v:${pct(v.tires)}%"></div><b>${pct(v.tires)}%</b></div>` +
       (state.vehicle && state.vehicle.fuel != null
         ? `<div class="fuel">FUEL ${Math.round(state.vehicle.fuel)}%${v.lowFuel ? ' — LOW FUEL' : ''} · ENGINE ${Math.round(state.vehicle.health * 100)}%${v.engineFailing ? ' — ENGINE FAILING' : ''}</div>`
         : '') +
       (c.radio ? `<div class="radio">♪ ${esc(c.radio)}</div>` : '');
+  }
+  if (els.prompt) {
+    const p = c.prompt;
+    els.prompt.innerHTML = p
+      ? `<span class="prompt-key">${esc(p.key)}</span><span class="prompt-text">${esc(p.text)}</span>`
+      : '';
+  }
+  if (els.objective) {
+    els.objective.innerHTML = c.objectiveBar
+      ? `<span class="objective-label">OBJECTIVE</span><span class="objective-text">${esc(c.objectiveBar)}</span>`
+      : '';
   }
   return c;
 }

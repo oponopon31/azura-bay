@@ -1,4 +1,4 @@
-// main.js — AZURA BAY bootstrap (round 7).
+// main.js — AZURA BAY bootstrap (round 10).
 // Loads the full Solmaris data model, builds the 3D city (three.js), wires the
 // dispatch/objective/dialogue HUD, and runs the game loop. index.html loads
 // this as a module.
@@ -103,8 +103,8 @@ export function contentTotals() {
 const SHOT_POSES = {
   cover:    { hour: 18.5, stars: 3, mission: 'f8', stage: 1, dialogue: 0, inCar: true,  cam: 'chase', drive: true },
   shootout: { hour: 14,   stars: 3, mission: 'f5', stage: 2, dialogue: 2, inCar: false, cam: 'street', drive: false },
-  dusk:     { hour: 18.5, stars: 0, mission: 'f6', stage: 0, dialogue: 0, inCar: false, cam: 'beach', drive: false },
-  heist:    { hour: 11,   stars: 4, mission: 'f5', stage: 1, dialogue: 1, inCar: false, cam: 'heist', drive: false },
+  dusk:     { hour: 18.5, stars: 0, mission: 'f4', stage: 1, dialogue: 0, inCar: false, cam: 'steal', drive: false },
+  heist:    { hour: 21.5, stars: 4, mission: 'f5', stage: 1, dialogue: 1, inCar: false, cam: 'heist', drive: false },
   night:    { hour: 21.5, stars: 1, mission: 'f2', stage: 0, dialogue: 0, inCar: false, cam: 'street', drive: false },
 };
 const params = new URLSearchParams(window.location.search);
@@ -114,7 +114,7 @@ const pose = shotId ? SHOT_POSES[shotId] : { hour: 18.5, stars: 0, mission: 'f1'
 // ---- 3D scene ---------------------------------------------------------------
 let renderer, scene, camera, playerMesh, playerCar, clock;
 let traffic = [], walkers = [], policeCars = [], heli = null, heliLight = null, rotor = null;
-let missionBeacon = null, barrierMesh = null, coverChase = [];
+let missionBeacon = null, barrierMesh = null, coverChase = [], stealCar = null;
 // Road grid: avenues run north-south, streets east-west. Coral Drive is x=90,
 // the beachfront avenue with the sea to its east.
 const WORLD = { avenues: [-90, -60, -30, 0, 30, 60, 90], streets: [-120, -90, -60, -30, 0, 30, 60, 90, 120] };
@@ -503,10 +503,14 @@ function buildScene() {
     new THREE.MeshLambertMaterial({ color: 0x5a4a2a }));
   pack.position.set(0, 1.35, 0.42);
   playerMesh.add(pack);
-  // Shot poses frame the character close: enlarge the figure so a person
-  // (not a dot) is clearly visible in every on-foot screenshot, and turn
-  // it a touch toward the camera so the held weapon reads from behind.
-  if (shotId && !pose.drive) { playerMesh.scale.setScalar(1.45); playerMesh.rotation.y = -0.3; }
+  // Round 10: on-foot figures are near-natural size (1.15x) and turned
+  // 3/4, so the environment and the car dominate the frame and the face
+  // edge reads instead of a straight-from-behind block. The steal pose
+  // turns further, toward the target car parked beside the player.
+  if (shotId && !pose.drive) {
+    playerMesh.scale.setScalar(1.15);
+    playerMesh.rotation.y = shotId === 'dusk' ? -1.35 : -1.5;
+  }
   playerMesh.position.set(0, 0, 0);
   scene.add(playerMesh);
   playerCar = makeCar(0xd4242c, false);
@@ -534,6 +538,15 @@ function buildScene() {
   playerCar.add(driver);
   playerCar.position.set(90, 0, 20);
   scene.add(playerCar);
+  // Steal pose: the target car — a bright gold Aurelion Zephyr (mission 49's
+  // car, the First Impressions target) — parked on the east side of the
+  // avenue beside the player, so the car is the star of the frame. Its
+  // position tracks the player in the loop.
+  if (shotId === 'dusk') {
+    stealCar = makeCar(0xffb300, false);
+    stealCar.position.set(6, 0, -2);
+    scene.add(stealCar);
+  }
   // Heist pose: bags of marked bills at the character's feet, so the shot
   // reads as the bank job (vault context) rather than a plain street.
   if (shotId === 'heist') {
@@ -736,6 +749,12 @@ function loop() {
       playerMesh.position.x = 118;
       playerMesh.position.z = Math.sin(state.time * 0.1) * 10;
     }
+    // The steal car tracks the player along the avenue, parked on the
+    // east side of the road, nose pointing down the street.
+    if (stealCar) {
+      stealCar.position.set(playerMesh.position.x + 6, 0, playerMesh.position.z - 2);
+      stealCar.rotation.y = 0;
+    }
   } else {
     // Free roam: WASD moves the player on foot.
     const speed = 24 * dt;
@@ -837,14 +856,15 @@ function loop() {
   // Mission beacon bobs.
   if (missionBeacon) missionBeacon.children[0].position.y = 8 + Math.sin(state.time * 2) * 0.8;
 
-  // Camera per pose (round 7 camera fix): CLOSE in every submitted shot,
-  // so the playable character / player car is large in frame, never a dot.
-  // Chase: low close chase cam, car fills the lower frame with the driver
+  // Camera per pose (round 7 camera fix, round 10 reframe): the cover
+  // stays a low close chase cam, car fills the lower frame with the driver
   // visible above the cabin; lookAt is up and right so the helicopter and
-  // the roadblock ahead stay in frame. On-foot (street / heist): close
-  // over-the-shoulder, character ~half the frame height, police + towers
-  // behind. Beach (dusk): close 3/4 from the south-east, character large,
-  // neon towers + strollers in frame.
+  // the roadblock ahead stay in frame. On-foot (street / heist): pulled
+  // back and 3/4 from the right, character smaller so the street, police
+  // and towers dominate. Steal: low 3/4 from the south-east, the Zephyr
+  // fills the frame with the character standing beside it, facing the car.
+  // Beach (dusk): close 3/4 from the south-east, character large, neon
+  // towers + strollers in frame.
   if (pose.cam === 'chase') {
     camera.position.set(px - 3.5, 2.9, pz + 8.5);
     camera.lookAt(px + 5, 4.5, pz - 25);
@@ -856,12 +876,15 @@ function loop() {
   } else if (pose.cam === 'beach') {
     camera.position.set(px + 6, 3.2, pz + 8.5);
     camera.lookAt(px - 4, 1.8, pz - 15);
+  } else if (pose.cam === 'steal') {
+    camera.position.set(px + 11, 3.1, pz + 7.5);
+    camera.lookAt(px + 3, 1.2, pz - 3);
   } else if (pose.cam === 'heist') {
-    camera.position.set(px + 2.5, 3.0, pz + 7.5);
-    camera.lookAt(px, 1.5, pz - 15);
+    camera.position.set(px + 4.5, 3.6, pz + 10.5);
+    camera.lookAt(px - 1, 1.2, pz - 15);
   } else if (shotId) {
-    camera.position.set(px + 2.5, 3.0, pz + 7.5);
-    camera.lookAt(px, 1.5, pz - 15);
+    camera.position.set(px + 4.5, 3.6, pz + 10.5);
+    camera.lookAt(px - 1, 1.2, pz - 15);
   } else {
     camera.position.set(playerMesh.position.x, 55, playerMesh.position.z + 75);
     camera.lookAt(playerMesh.position.x, 0, playerMesh.position.z);
@@ -869,7 +892,7 @@ function loop() {
 
   // HUD: dispatch distances from live police positions, mission timer, dialogue.
   const mm = (x, z) => ({ x: 90 + x * 0.55, y: 90 + z * 0.55 });
-  state.dispatch = DISPATCH_UNITS.slice(0, state.police.stars > 0 ? 6 : 2).map((u, i) => {
+  state.dispatch = DISPATCH_UNITS.slice(0, state.police.stars > 0 ? 10 : 2).map((u, i) => {
     const pc = policeCars[i % policeCars.length];
     const d = pc ? Math.hypot(pc.position.x - px, pc.position.z - pz) : 120 + i * 40;
     return { ...u, distance: d, mm: pc ? mm(pc.position.x, pc.position.z) : mm(60 + i * 10, 60) };
@@ -929,7 +952,16 @@ export function boot() {
     : { area: 'Azura Bay', street: 'Coral Drive', zone: 'NEUTRAL', value: 58 };
   state.dialogue = fm.dialogue[pose.dialogue] || fm.dialogue[0];
   if (pose.inCar) {
-    state.vehicle = { name: 'Velluto Furia', fuel: 78, health: 0.92, speedKmh: 96 };
+    state.vehicle = { name: 'Velluto Furia', fuel: 78, health: 0.92, speedKmh: 96, body: 0.86, tires: 0.94 };
+  }
+  // Steal pose: the target car is parked beside the player — its readout
+  // (name + condition) shows bottom-right, and the interaction prompt +
+  // objective bar stage the lift (First Impressions, stage 2: lift the
+  // Aurelion Zephyr without tripping the alarm).
+  if (shotId === 'dusk') {
+    state.vehicle = { name: 'Aurelion Zephyr', fuel: 64, health: 0.97, speedKmh: 0, body: 0.97, tires: 1 };
+    state.prompt = { key: 'E', text: 'STEAL AURELION ZEPHYR' };
+    state.objectiveBar = 'Steal the Aurelion Zephyr on Coral Drive';
   }
   state.gpsRoute = [{ x: 90, y: 90 }, { x: 90, y: 40 }, { x: 140, y: 40 }, { x: 140, y: 90 }];
   buildScene();

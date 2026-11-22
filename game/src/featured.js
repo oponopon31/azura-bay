@@ -124,4 +124,8 @@ export const DISPATCH_UNITS = [
   { id: 'u33', name: 'Unit 33 "Strand"', kind: 'patrol', tactic: 'SPOTLIGHT' },
   { id: 'air1', name: 'Air 1 "Falcon"', kind: 'air', tactic: 'AIR UNIT' },
   { id: 'u40', name: 'Unit 40 "Bridge"', kind: 'patrol', tactic: 'ROADBLOCK' },
+  { id: 'u45', name: 'Unit 45 "Northside"', kind: 'patrol', tactic: 'PIT' },
+  { id: 'u52', name: 'Unit 52 "Marina"', kind: 'patrol', tactic: 'RAMMING' },
+  { id: 'u58', name: 'Unit 58 "Old Town"', kind: 'patrol', tactic: 'ROADBLOCK' },
+  { id: 'air2', name: 'Air 2 "Hawk"', kind: 'air', tactic: 'SPOTLIGHT' },
 ];

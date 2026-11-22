@@ -329,10 +329,11 @@ export function setBuildTag(el, tag) {
 }
 
 // Minimap: player-centred, zoomed (1.6x) open-world-style top-down view.
-// BLUE sea east of the beach, light-brown beach sand, roads drawn as LINES
-// (avenues + streets from the city road grid), varied-colour city blocks,
-// clear coastline. Markers on top: player = white arrow centred, mission =
-// gold diamond, police = blue dots, pink GPS route following roads.
+// BLUE sea east of the beach, light-brown beach sand, dark uniform city
+// blocks, then roads drawn as wide bright LINES ON TOP of the blocks
+// (avenues + streets from the city road grid), clear coastline. Markers on
+// top: player = white arrow centred, mission = gold diamond, police =
+// blue dots, pink GPS route following roads.
 // All state coords arrive in the old minimap space (90 + world*0.55);
 // they are converted back to world coords, then re-projected centred on
 // the player: screen = centre + (world - player) * 0.55 * ZOOM.
@@ -366,28 +367,9 @@ export function drawMinimap(ctx, state) {
   ctx.lineTo(X(125), h);
   ctx.stroke();
 
-  // Roads as lines: avenues (north-south) + streets (east-west).
-  const avenues = [-90, -60, -30, 0, 30, 60, 90];
-  const streets = [-120, -90, -60, -30, 0, 30, 60, 90, 120];
-  ctx.strokeStyle = '#cfc9b8';
-  ctx.lineCap = 'round';
-  for (const ax of avenues) {
-    ctx.lineWidth = ax === 90 ? 5 : 3;
-    ctx.beginPath();
-    ctx.moveTo(X(ax), -10);
-    ctx.lineTo(X(ax), h + 10);
-    ctx.stroke();
-  }
-  for (const sz of streets) {
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(-10, Y(sz));
-    ctx.lineTo(w + 10, Y(sz));
-    ctx.stroke();
-  }
-
-  // City blocks, varied colours, darker bottom edge.
-  const palette = ['#6b7a5e', '#7a6a58', '#5e6b7a', '#8a7a5e', '#6e5a6e', '#7a7a6a', '#5a7a6e'];
+  // City blocks FIRST (dark, uniform grey-green, low saturation, so the
+  // roads read on top of them), darker bottom edge.
+  const palette = ['#39423a', '#333d36', '#3a4038', '#2f3833', '#37403a', '#313a34', '#3c423a'];
   (state.mapBlocks || []).forEach((b, i) => {
     const bw = toWorld(b);
     const bw2 = b.w / 0.55;
@@ -401,6 +383,27 @@ export function drawMinimap(ctx, state) {
     ctx.fillStyle = 'rgba(0,0,0,0.25)';
     ctx.fillRect(sx, sy + sh - 2, sw, 2);
   });
+
+  // Roads as wide bright lines ON TOP of the blocks: avenues (north-south)
+  // + streets (east-west). Coral Drive (ax 90) is the main avenue.
+  const avenues = [-90, -60, -30, 0, 30, 60, 90];
+  const streets = [-120, -90, -60, -30, 0, 30, 60, 90, 120];
+  ctx.strokeStyle = '#ece8dc';
+  ctx.lineCap = 'round';
+  for (const ax of avenues) {
+    ctx.lineWidth = ax === 90 ? 7 : 5;
+    ctx.beginPath();
+    ctx.moveTo(X(ax), -10);
+    ctx.lineTo(X(ax), h + 10);
+    ctx.stroke();
+  }
+  for (const sz of streets) {
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.moveTo(-10, Y(sz));
+    ctx.lineTo(w + 10, Y(sz));
+    ctx.stroke();
+  }
 
   // Pink GPS route: player -> road -> marker.
   if (state.gpsRoute && state.gpsRoute.length > 1) {
@@ -446,8 +449,23 @@ export function drawMinimap(ctx, state) {
   ctx.lineTo(C - 5, C + 5);
   ctx.closePath();
   ctx.fill();
-  // North indicator.
-  ctx.fillStyle = 'rgba(255,255,255,0.85)';
+  // North indicator: "N" + small arrow, dark outline so it reads at
+  // minimap scale against the bright roads.
   ctx.font = 'bold 11px system-ui, sans-serif';
-  ctx.fillText('N', 8, 15);
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = 'rgba(0,0,0,0.75)';
+  ctx.fillStyle = '#fff';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.moveTo(13, 3);
+  ctx.lineTo(17, 10);
+  ctx.lineTo(9, 10);
+  ctx.closePath();
+  ctx.stroke();
+  ctx.fill();
+  ctx.lineWidth = 3;
+  ctx.strokeText('N', 8, 24);
+  ctx.fillText('N', 8, 24);
 }

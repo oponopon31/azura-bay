@@ -53,6 +53,6 @@ export const PLACES = {
 export const GAME = {
   title: 'AZURA BAY',
   subtitle: 'AZURA BAY open world: 91 story missions across Solmaris',
-  build: 'AZURA BAY · Round 11',
+  build: 'AZURA BAY · Round 12',
   chapters: 5,
 };

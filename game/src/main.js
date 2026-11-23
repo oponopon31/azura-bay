@@ -1,7 +1,10 @@
-// main.js — AZURA BAY bootstrap (round 10).
+// main.js — AZURA BAY bootstrap (round 12).
 // Loads the full Solmaris data model, builds the 3D city (three.js), wires the
 // dispatch/objective/dialogue HUD, and runs the game loop. index.html loads
 // this as a module.
+// Round 12: gradient sky dome with sun disc + clouds (no more flat-colour
+// sky), golden-hour light, brighter asphalt, district palettes, streetlights,
+// market-plaza staging for the shootout, and a busier beachfront cover.
 // The city is a real 3D scene: colour-varied facades with lit windows, roads
 // with lane markings, sidewalks, palms, beach + water, golden-hour light,
 // traffic, pedestrians, and a police pursuit with dispatch, roadblock and
@@ -101,9 +104,13 @@ export function contentTotals() {
 // Each pose is a real gameplay state: hour, wanted level, featured mission,
 // in-car vs on-foot, and camera. Screenshots are taken from the live game.
 const SHOT_POSES = {
-  cover:    { hour: 18.5, stars: 3, mission: 'f8', stage: 1, dialogue: 0, inCar: true,  cam: 'chase', drive: true },
-  shootout: { hour: 14,   stars: 3, mission: 'f5', stage: 2, dialogue: 2, inCar: false, cam: 'street', drive: false },
-  dusk:     { hour: 18.5, stars: 0, mission: 'f4', stage: 1, dialogue: 0, inCar: false, cam: 'steal', drive: false },
+  // Round 12 re-stage: cover moves to 16:30 golden hour (blue upper sky,
+  // low warm sun, ocean + palms in frame); shootout moves to the market
+  // plaza (cam 'plaza'); dusk steal moves to 17:30 golden hour so the gold
+  // Zephyr sits in warm light, not a flat orange wash; heist stays night.
+  cover:    { hour: 16.5, stars: 3, mission: 'f8', stage: 1, dialogue: 0, inCar: true,  cam: 'chase', drive: true },
+  shootout: { hour: 14,   stars: 3, mission: 'f5', stage: 2, dialogue: 2, inCar: false, cam: 'plaza', drive: false },
+  dusk:     { hour: 17.5, stars: 0, mission: 'f4', stage: 1, dialogue: 0, inCar: false, cam: 'steal', drive: false },
   heist:    { hour: 21.5, stars: 4, mission: 'f5', stage: 1, dialogue: 1, inCar: false, cam: 'heist', drive: false },
   night:    { hour: 21.5, stars: 1, mission: 'f2', stage: 0, dialogue: 0, inCar: false, cam: 'street', drive: false },
 };
@@ -274,6 +281,127 @@ function makeScooter(color) {
   return group;
 }
 
+// Round 12 sky: a vertical-gradient canvas texture for the sky dome —
+// blue on top, warm gold at the horizon for golden hour, never one flat
+// colour — with a soft sun glow, drifting cloud puffs, and stars at night.
+function skyTexture(mode) {
+  const c = document.createElement('canvas');
+  c.width = 1024; c.height = 512;
+  const g = c.getContext('2d');
+  const grad = g.createLinearGradient(0, 0, 0, 512);
+  if (mode === 'golden') {
+    grad.addColorStop(0, '#2f6fd0'); grad.addColorStop(0.45, '#6fa8e0');
+    grad.addColorStop(0.72, '#f2c184'); grad.addColorStop(1, '#ff9e57');
+  } else if (mode === 'dusk') {
+    grad.addColorStop(0, '#2c4a8a'); grad.addColorStop(0.5, '#7a7ec0');
+    grad.addColorStop(0.75, '#e88a4d'); grad.addColorStop(1, '#ff8a4d');
+  } else if (mode === 'night') {
+    grad.addColorStop(0, '#050a18'); grad.addColorStop(0.6, '#101d38');
+    grad.addColorStop(1, '#2a3a5c');
+  } else {
+    grad.addColorStop(0, '#2f7fd0'); grad.addColorStop(0.55, '#7db8e8');
+    grad.addColorStop(0.8, '#cfe8f8'); grad.addColorStop(1, '#e8f4fc');
+  }
+  g.fillStyle = grad;
+  g.fillRect(0, 0, 1024, 512);
+  // Sun glow low on the horizon for golden hour / dusk.
+  if (mode === 'golden' || mode === 'dusk') {
+    const glow = g.createRadialGradient(300, 400, 10, 300, 400, 220);
+    glow.addColorStop(0, 'rgba(255,214,140,0.95)');
+    glow.addColorStop(0.4, 'rgba(255,170,90,0.55)');
+    glow.addColorStop(1, 'rgba(255,150,70,0)');
+    g.fillStyle = glow;
+    g.fillRect(0, 0, 1024, 512);
+  }
+  // Soft cloud puffs across the upper sky (day + golden hour).
+  if (mode !== 'night') {
+    let seed = 987654321;
+    const rnd = () => { seed = (seed * 48271) % 2147483647; return seed / 2147483647; };
+    for (let i = 0; i < 26; i++) {
+      const x = rnd() * 1024, y = 40 + rnd() * 190, r = 26 + rnd() * 55;
+      const puff = g.createRadialGradient(x, y, 4, x, y, r);
+      puff.addColorStop(0, 'rgba(255,255,255,0.85)');
+      puff.addColorStop(1, 'rgba(255,255,255,0)');
+      g.fillStyle = puff;
+      g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill();
+    }
+  } else {
+    // Stars at night.
+    let seed = 13579;
+    const rnd = () => { seed = (seed * 48271) % 2147483647; return seed / 2147483647; };
+    for (let i = 0; i < 180; i++) {
+      g.fillStyle = `rgba(255,255,255,${0.35 + rnd() * 0.6})`;
+      g.fillRect(rnd() * 1024, rnd() * 260, 2, 2);
+    }
+  }
+  const tex = new THREE.CanvasTexture(c);
+  if (THREE.SRGBColorSpace) tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+// A flat white cloud drifting high above the city.
+function makeCloud() {
+  const group = new THREE.Group();
+  const mat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.92, fog: false });
+  for (const [x, y, s] of [[0, 0, 14], [10, 1, 10], [-9, 0.5, 9], [4, 3, 8]]) {
+    const puff = new THREE.Mesh(new THREE.SphereGeometry(s, 8, 6), mat);
+    puff.scale.y = 0.32;
+    puff.position.set(x, y, 0);
+    group.add(puff);
+  }
+  return group;
+}
+
+// A streetlight: dark pole + warm glowing lamp head, so night streets read.
+function makeStreetlight() {
+  const group = new THREE.Group();
+  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.18, 7, 6),
+    new THREE.MeshLambertMaterial({ color: 0x2a2f36 }));
+  pole.position.y = 3.5;
+  group.add(pole);
+  const arm = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.14, 0.14),
+    new THREE.MeshLambertMaterial({ color: 0x2a2f36 }));
+  arm.position.set(0.8, 6.9, 0);
+  group.add(arm);
+  const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.42, 8, 8),
+    new THREE.MeshBasicMaterial({ color: 0xffe9a8 }));
+  lamp.position.set(1.6, 6.8, 0);
+  group.add(lamp);
+  const glow = new THREE.Mesh(new THREE.SphereGeometry(1.1, 8, 8),
+    new THREE.MeshBasicMaterial({ color: 0xffe9a8, transparent: true, opacity: 0.22 }));
+  glow.position.set(1.6, 6.8, 0);
+  group.add(glow);
+  return group;
+}
+
+// A market stall: striped canopy over a goods table, for the shootout plaza.
+function makeMarketStall(canopyColor) {
+  const group = new THREE.Group();
+  const table = new THREE.Mesh(new THREE.BoxGeometry(4.4, 1.1, 2.6),
+    new THREE.MeshLambertMaterial({ color: 0x7a5a38 }));
+  table.position.y = 0.55;
+  group.add(table);
+  const goodsMat = new THREE.MeshLambertMaterial({ color: 0xe67e22 });
+  const goodsMat2 = new THREE.MeshLambertMaterial({ color: 0x2f8f4e });
+  for (let i = 0; i < 5; i++) {
+    const crate = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.5, 0.7), i % 2 ? goodsMat : goodsMat2);
+    crate.position.set(-1.7 + i * 0.85, 1.35, 0);
+    group.add(crate);
+  }
+  const canopy = new THREE.Mesh(new THREE.BoxGeometry(5, 0.25, 3.4),
+    new THREE.MeshLambertMaterial({ color: canopyColor }));
+  canopy.position.y = 3.1;
+  canopy.rotation.z = 0.06;
+  group.add(canopy);
+  for (const [x, z] of [[-2.2, -1.5], [2.2, -1.5], [-2.2, 1.5], [2.2, 1.5]]) {
+    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 2.1, 6),
+      new THREE.MeshLambertMaterial({ color: 0x5a4a2a }));
+    post.position.set(x, 2.05, z);
+    group.add(post);
+  }
+  return group;
+}
+
 function buildScene() {
   renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize(window.innerWidth, window.innerHeight);
@@ -281,15 +409,43 @@ function buildScene() {
   scene = new THREE.Scene();
   const dusk = isDuskAt(pose.hour);
   const night = isNightAt(pose.hour);
-  scene.background = new THREE.Color(night ? 0x0a1420 : dusk ? 0xe07a3e : 0x87b5d6);
-  scene.fog = new THREE.Fog(night ? 0x0a1420 : dusk ? 0xe07a3e : 0x87b5d6, 200, 900);
-  camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
+  // Round 12: golden hour is 16:00-18:00 — blue upper sky, warm low sun.
+  const golden = pose.hour >= 16 && pose.hour < 18;
+  const skyMode = night ? 'night' : golden ? 'golden' : dusk ? 'dusk' : 'day';
+  const horizonColor = night ? 0x2a3a5c : dusk ? 0xe88a4d : golden ? 0xf2c184 : 0xbfe0f5;
+  // Gradient sky dome with sun glow + clouds instead of a flat colour.
+  const skyDome = new THREE.Mesh(
+    new THREE.SphereGeometry(1200, 32, 15),
+    new THREE.MeshBasicMaterial({ map: skyTexture(skyMode), side: THREE.BackSide, fog: false })
+  );
+  scene.add(skyDome);
+  scene.fog = new THREE.Fog(horizonColor, 200, 900);
+  camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2500);
   camera.position.set(0, 40, 90);
   camera.lookAt(0, 0, 0);
-  // Golden-hour light: warm low sun at dusk, cool dim light at night.
-  scene.add(new THREE.AmbientLight(0xffffff, night ? 0.35 : dusk ? 0.55 : 0.7));
-  const sun = new THREE.DirectionalLight(dusk ? 0xffb36b : 0xfff2cc, dusk ? 1.6 : 1.2);
-  sun.position.set(dusk ? -150 : 100, dusk ? 60 : 200, 50);
+  // Sun disc in the sky: low warm disc at golden hour, high disc by day,
+  // pale moon at night — always a visible light source, never an empty sky.
+  const sunDisc = new THREE.Mesh(new THREE.SphereGeometry(night ? 22 : 30, 16, 12),
+    new THREE.MeshBasicMaterial({ color: night ? 0xe8ecf5 : golden || dusk ? 0xffd27d : 0xfff6c8, fog: false }));
+  if (night) sunDisc.position.set(320, 420, -750);
+  else if (golden || dusk) sunDisc.position.set(-380, 120, -820);
+  else sunDisc.position.set(240, 520, -420);
+  scene.add(sunDisc);
+  // Drifting clouds high above the city (day + golden hour).
+  if (!night) {
+    const cloudSpots = [[-260, 150, -500], [80, 180, -650], [330, 140, -420], [-80, 200, -800], [420, 170, -700], [-420, 160, -350]];
+    for (const [x, y, z] of cloudSpots) {
+      const cl = makeCloud();
+      cl.position.set(x, y, z);
+      scene.add(cl);
+    }
+  }
+  // Light: warm low sun at golden hour, bright sky light by day, lamps +
+  // hemisphere fill at night so the city still reads after dark.
+  scene.add(new THREE.AmbientLight(0xffffff, night ? 0.5 : golden ? 0.75 : dusk ? 0.6 : 0.85));
+  scene.add(new THREE.HemisphereLight(night ? 0x2a3a5c : 0x9fc8ee, night ? 0x1a2028 : 0x8a7a5a, night ? 0.55 : 0.45));
+  const sun = new THREE.DirectionalLight(golden ? 0xffc07a : dusk ? 0xffb36b : 0xfff2cc, golden ? 1.9 : dusk ? 1.6 : 1.25);
+  sun.position.set(golden ? -220 : dusk ? -150 : 100, golden ? 70 : dusk ? 60 : 200, 50);
   scene.add(sun);
 
   // Ground: grass inland, sand along the beachfront (east of Coral Drive).
@@ -323,10 +479,10 @@ function buildScene() {
   lake.position.set(-243.5, 0.5, -599.25);
   scene.add(lake);
 
-  // Roads: dark asphalt strips along every avenue and street, with dashed
-  // centre lines and pale sidewalk plates on both sides.
-  const roadMat = new THREE.MeshLambertMaterial({ color: 0x2e3138 });
-  const walkMat = new THREE.MeshLambertMaterial({ color: 0x9aa0a3 });
+  // Roads: sun-bleached grey asphalt (round 12: no more near-black roads)
+  // with dashed centre lines and pale sidewalk plates on both sides.
+  const roadMat = new THREE.MeshLambertMaterial({ color: 0x565b66 });
+  const walkMat = new THREE.MeshLambertMaterial({ color: 0xb8bcc0 });
   const dashMat = new THREE.MeshBasicMaterial({ color: 0xf5e9c8 });
   for (const x of WORLD.avenues) {
     const road = new THREE.Mesh(new THREE.PlaneGeometry(10, 340), roadMat);
@@ -362,7 +518,14 @@ function buildScene() {
   // Buildings: colour-varied facades with lit windows, on sidewalk plates.
   // Blocks fill the grid between avenues; the beachfront row is taller and
   // pastel, the inland blocks mixed heights and colours.
+  // Round 12 district palettes: pastel beachfront, cool glass downtown,
+  // warm brick around the market plaza, mixed pastels elsewhere — streets
+  // stop reading as one flat purple/yellow box canyon.
   const facades = ['#e8b4b8', '#f2d492', '#a8c8e8', '#c9a0dc', '#f5f5f0', '#e89b6d', '#9fd6c0', '#d98a8a'];
+  const beachPal = ['#f2c9c0', '#f7dd9e', '#bcd8f0', '#e8b4d8', '#f5f0e6', '#ffd9a0', '#a8e0d0', '#f0a8a0'];
+  const downtownPal = ['#8fb8d8', '#a8c8e8', '#7aa8c8', '#b8d0e0', '#9fc0d8', '#6a9ac0'];
+  const marketPal = ['#d98a6a', '#c97a5a', '#e8a87c', '#b85c4a', '#e8c88a', '#d9a05a'];
+  const awningCols = [0xe74c3c, 0x2f8f4e, 0x2e86c1, 0xf1c40f, 0x9b59b6, 0xe67e22];
   let bi = 0;
   for (let gx = 0; gx < 6; gx++) {
     for (let gz = 0; gz < 8; gz++) {
@@ -375,11 +538,20 @@ function buildScene() {
       const plate = new THREE.Mesh(new THREE.BoxGeometry(w + 2, 0.4, d + 2), walkMat);
       plate.position.set(bx, 0.2, bz);
       scene.add(plate);
-      const tex = facadeTexture(facades[bi % facades.length], dusk || night ? 0.55 : 0.3);
+      const pal = bx >= 60 ? beachPal : bx <= -45 ? downtownPal : (Math.abs(bx) <= 15 && Math.abs(bz) <= 30) ? marketPal : facades;
+      const tex = facadeTexture(pal[bi % pal.length], night ? 0.8 : (dusk || golden) ? 0.6 : 0.3);
       const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d),
         new THREE.MeshLambertMaterial({ map: tex }));
       b.position.set(bx, h / 2 + 0.4, bz);
       scene.add(b);
+      // Street-level awning on every third building: a stripe of colour
+      // at shopfront height so the ground floor is never bare concrete.
+      if (bi % 3 === 0) {
+        const awn = new THREE.Mesh(new THREE.BoxGeometry(w + 1, 0.7, 1.4),
+          new THREE.MeshLambertMaterial({ color: awningCols[bi % awningCols.length] }));
+        awn.position.set(bx, 3.4, bz + d / 2 + 0.6);
+        scene.add(awn);
+      }
       state.mapBlocks.push({ x: 90 + bx * 0.55, y: 90 + bz * 0.55, w: 8, h: 8 });
       bi++;
     }
@@ -390,7 +562,7 @@ function buildScene() {
   for (let i = 0; i < 6; i++) {
     const z = -100 + i * 40;
     const h = 34 + (i % 3) * 12;
-    const tex = facadeTexture(facades[(i + 2) % facades.length], dusk || night ? 0.6 : 0.35);
+    const tex = facadeTexture(facades[(i + 2) % facades.length], night ? 0.8 : (dusk || golden) ? 0.6 : 0.35);
     const t = new THREE.Mesh(new THREE.BoxGeometry(14, h, 14),
       new THREE.MeshLambertMaterial({ map: tex }));
     t.position.set(72, h / 2, z);
@@ -412,12 +584,29 @@ function buildScene() {
     }
   }
 
+  // Streetlights line Coral Drive and the plaza avenue: poles by day,
+  // warm glowing lamps after dark so night streets read.
+  for (let z = -140; z <= 140; z += 28) {
+    for (const x of [84, 96]) {
+      const lamp = makeStreetlight();
+      lamp.position.set(x, 0, z);
+      lamp.rotation.y = x === 84 ? 0 : Math.PI;
+      scene.add(lamp);
+    }
+  }
+  for (let z = -60; z <= 60; z += 30) {
+    const lamp = makeStreetlight();
+    lamp.position.set(-6, 0, z);
+    scene.add(lamp);
+  }
+
   // Traffic: coloured cars circulating on the avenues, plus parked cars.
-  const trafficColors = [0xc0392b, 0x2e86c1, 0xf1c40f, 0xecf0f1, 0x1a1a1a, 0x7d3c98, 0x16a085];
-  for (let i = 0; i < 14; i++) {
+  // Round 12: 24 circulating cars (was 14) so every shot has traffic.
+  const trafficColors = [0xc0392b, 0x2e86c1, 0xf1c40f, 0xecf0f1, 0x1a1a1a, 0x7d3c98, 0x16a085, 0xe67e22, 0x2ecc71, 0xfd79a8];
+  for (let i = 0; i < 24; i++) {
     const car = makeCar(trafficColors[i % trafficColors.length], false);
     const avenue = WORLD.avenues[i % WORLD.avenues.length];
-    car.position.set(avenue + (i % 2 === 0 ? -2.5 : 2.5), 0, -140 + i * 20);
+    car.position.set(avenue + (i % 2 === 0 ? -2.5 : 2.5), 0, -140 + i * 12);
     car.rotation.y = i % 2 === 0 ? 0 : Math.PI;
     car.userData.dir = i % 2 === 0 ? 1 : -1;
     car.userData.speed = 9 + (i % 4) * 2;
@@ -439,12 +628,12 @@ function buildScene() {
     scene.add(car);
   }
   // Pedestrians stroll the sidewalks, clustered near the player's start so
-  // the on-foot shots have people in frame.
-  const shirtColors = [0xe74c3c, 0x3498db, 0xf1c40f, 0xecf0f1, 0x9b59b6, 0x1abc9c, 0xe67e22];
-  for (let i = 0; i < 16; i++) {
+  // the on-foot shots have people in frame. Round 12: 30 walkers (was 16).
+  const shirtColors = [0xe74c3c, 0x3498db, 0xf1c40f, 0xecf0f1, 0x9b59b6, 0x1abc9c, 0xe67e22, 0xfd79a8, 0x2ecc71];
+  for (let i = 0; i < 30; i++) {
     const w = makeWalker(shirtColors[i % shirtColors.length]);
     const lane = WORLD.avenues[i % WORLD.avenues.length] + (i % 2 === 0 ? -6.5 : 6.5);
-    w.position.set(lane, 0, -44 + i * 6);
+    w.position.set(lane, 0, -44 + (i % 15) * 6);
     w.userData.dir = i % 2 === 0 ? 1 : -1;
     w.userData.speed = 1.2 + (i % 3) * 0.4;
     w.userData.lane = lane;
@@ -452,14 +641,71 @@ function buildScene() {
     walkers.push(w);
   }
   // Beach strollers on the sand near the dusk pose.
-  for (let i = 0; i < 7; i++) {
+  for (let i = 0; i < 10; i++) {
     const w = makeWalker(shirtColors[(i + 2) % shirtColors.length]);
-    w.position.set(122 + (i % 3) * 5, 0, -20 + i * 11);
+    w.position.set(122 + (i % 3) * 5, 0, -20 + i * 8);
     w.userData.dir = i % 2 === 0 ? 1 : -1;
     w.userData.speed = 0.8;
     w.userData.lane = 122 + (i % 3) * 5;
     scene.add(w);
     walkers.push(w);
+  }
+  // Round 12 market plaza (shootout): six stalls with striped canopies
+  // plus a browsing crowd, so the shootout is a busy plaza, not the same
+  // street canyon as the other shots.
+  if (shotId === 'shootout') {
+    const stallCols = [0xe74c3c, 0xf1c40f, 0x2f8f4e, 0x2e86c1, 0xfd79a8, 0xe67e22];
+    const stallSpots = [[-13, -16, 0.3], [11, -20, -0.2], [-15, 4, -0.4], [13, 0, 0.5], [-9, -30, 0.1], [9, -32, -0.3]];
+    stallSpots.forEach(([x, z, ry], i) => {
+      const stall = makeMarketStall(stallCols[i % stallCols.length]);
+      stall.position.set(x, 0, z);
+      stall.rotation.y = ry;
+      scene.add(stall);
+    });
+    for (let i = 0; i < 12; i++) {
+      const w = makeWalker(shirtColors[(i + 4) % shirtColors.length]);
+      const cx = -12 + (i % 4) * 8, cz = -28 + Math.floor(i / 4) * 12;
+      w.position.set(cx, 0, cz);
+      w.userData.dir = i % 2 === 0 ? 1 : -1;
+      // Browsers stand at the stalls (speed 0) so nobody wanders in
+      // front of the plaza camera mid-shot.
+      w.userData.speed = 0;
+      w.userData.lane = cx;
+      scene.add(w);
+      walkers.push(w);
+    }
+  }
+  // Round 12 steal pose: street life around the gold Zephyr — onlookers
+  // on the WEST sidewalk, across the street from the camera, and two
+  // parked cars up the road, so the frame is inhabited but nobody stands
+  // between the camera and the car.
+  if (shotId === 'dusk') {
+    for (let i = 0; i < 6; i++) {
+      const w = makeWalker(shirtColors[(i + 1) % shirtColors.length]);
+      const lx = -8.5 - (i % 2) * 1.5;
+      w.position.set(lx, 0, -12 + i * 5);
+      w.userData.dir = i % 2 === 0 ? 1 : -1;
+      w.userData.speed = 0.9;
+      w.userData.lane = lx;
+      scene.add(w);
+      walkers.push(w);
+    }
+    for (const [x, z, col] of [[-7.5, -26, 0x16a085], [7.5, -34, 0xecf0f1]]) {
+      const parked = makeCar(col, false);
+      parked.position.set(x, 0, z);
+      scene.add(parked);
+    }
+  }
+  // Round 12 heist pose: vertical neon bars on the buildings flanking the
+  // avenue, so the night bank job reads in colour, not darkness.
+  if (shotId === 'heist') {
+    const neonBars = [0xff4d9d, 0x4dd8ff, 0xffd34d, 0x7dff6a];
+    for (let i = 0; i < 4; i++) {
+      const bar = new THREE.Mesh(new THREE.BoxGeometry(0.6, 7, 1.2),
+        new THREE.MeshBasicMaterial({ color: neonBars[i % neonBars.length] }));
+      bar.position.set(i % 2 === 0 ? -8.5 : 8.5, 5, -18 + i * 12);
+      scene.add(bar);
+    }
   }
 
   // Player: on-foot figure + player car (one is shown per pose).
@@ -487,7 +733,10 @@ function buildScene() {
   }
   const gun = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.28, 1.5),
     new THREE.MeshLambertMaterial({ color: 0x9aa0a3 }));
-  gun.position.set(0.72, 1.3, -0.45);
+  gun.position.set(0.72, 1.3, -0.15);
+  // Round 12: the longarm points along the figure's facing (local +x after
+  // the 3/4 turn), not across the chest — no more grey bar across the torso.
+  gun.rotation.y = Math.PI / 2;
   playerMesh.add(gun);
   // Cheap character detail (round 7 polish): a cap and a backpack, so the
   // figure reads as a person from behind at close range. No face work —
@@ -679,7 +928,7 @@ function buildScene() {
   rotor.position.y = 1;
   heli.add(rotor);
   const cone = new THREE.Mesh(new THREE.ConeGeometry(4.5, 22, 16, 1, true),
-    new THREE.MeshBasicMaterial({ color: 0xfff2b0, transparent: true, opacity: 0.16, side: THREE.DoubleSide }));
+    new THREE.MeshBasicMaterial({ color: 0xfff2b0, transparent: true, opacity: night ? 0.3 : 0.16, side: THREE.DoubleSide }));
   cone.position.y = -11;
   cone.rotation.x = Math.PI;
   heli.add(cone);
@@ -866,8 +1115,16 @@ function loop() {
   // Beach (dusk): close 3/4 from the south-east, character large, neon
   // towers + strollers in frame.
   if (pose.cam === 'chase') {
+    // Round 12: look up and EAST toward the beach and ocean, so the cover
+    // shows palms, sand and water beside the chase, not just the road.
     camera.position.set(px - 3.5, 2.9, pz + 8.5);
-    camera.lookAt(px + 5, 4.5, pz - 25);
+    camera.lookAt(px + 11, 3.5, pz - 25);
+  } else if (pose.cam === 'plaza') {
+    // Market-plaza shootout: higher, wider 3/4 so stalls, crowd, police
+    // and the warm-brick plaza buildings all read in one frame, and a
+    // passing pedestrian stays below the frame instead of filling it.
+    camera.position.set(px + 10, 8, pz + 16);
+    camera.lookAt(px - 3, 1.5, pz - 16);
   } else if (pose.cam === 'chase-side') {
     // Unused by the submitted poses since the heist went on-foot; kept
     // close anyway so no pose ever falls back to a wide shot.
@@ -877,8 +1134,10 @@ function loop() {
     camera.position.set(px + 6, 3.2, pz + 8.5);
     camera.lookAt(px - 4, 1.8, pz - 15);
   } else if (pose.cam === 'steal') {
-    camera.position.set(px + 11, 3.1, pz + 7.5);
-    camera.lookAt(px + 3, 1.2, pz - 3);
+    // Low, close 3/4 from the south-east: the Zephyr fills the frame with
+    // the character beside it, onlookers across the street behind the car.
+    camera.position.set(px + 10, 3.0, pz + 7);
+    camera.lookAt(px + 3, 1.2, pz - 2);
   } else if (pose.cam === 'heist') {
     camera.position.set(px + 4.5, 3.6, pz + 10.5);
     camera.lookAt(px - 1, 1.2, pz - 15);
